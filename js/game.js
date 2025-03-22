@@ -37,11 +37,9 @@ function initThree() {
     gameState.renderer.domElement.addEventListener('mousedown', handleMouseDown);
     gameState.renderer.domElement.addEventListener('mousemove', handleMouseMove);
     gameState.renderer.domElement.addEventListener('mouseup', handleMouseUp);
-    
-    // Add touch event listeners with proper options for mobile
-    gameState.renderer.domElement.addEventListener('touchstart', handleTouch, { passive: false });
-    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-    gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd, { passive: false });
+    gameState.renderer.domElement.addEventListener('touchstart', handleTouch);
+    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove);
+    gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd);
     
     // Add capture button event listener
     document.getElementById('captureButton').addEventListener('click', handleCapture);
@@ -170,30 +168,21 @@ window.addEventListener('load', init);
 
 // Check if a click is on any UI element
 function isClickingUI(event) {
-    // Handle touch events
+    // Get the correct x and y coordinates whether from mouse or touch event
+    let clientX, clientY;
+    
+    // Check if it's a touch event
     if (event.touches && event.touches.length > 0) {
-        const touch = event.touches[0];
-        const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        
-        if (element && (
-            element.tagName === 'BUTTON' || 
-            element.tagName === 'INPUT' || 
-            element.tagName === 'SELECT' || 
-            element.classList.contains('monster-card') ||
-            element.closest('.monster-card') ||
-            element.closest('#captureUI') ||
-            element.closest('#storageUI') ||
-            element.closest('#chatBox') ||
-            element.closest('#goldDisplay') ||
-            element.closest('#monsterInfo')
-        )) {
-            return true;
-        }
-        
-        return false;
+        // Use the first touch point
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    } else {
+        // Use mouse coordinates
+        clientX = event.clientX;
+        clientY = event.clientY;
     }
     
-    // For regular mouse events - check if clicking on any UI element
+    // Check if clicking on any UI element
     const uiElements = [
         document.getElementById('captureUI'),
         document.getElementById('storageUI'),
@@ -206,8 +195,8 @@ function isClickingUI(event) {
     for (const element of uiElements) {
         if (element && element.style.display === 'block') {
             const rect = element.getBoundingClientRect();
-            if (event.clientX >= rect.left && event.clientX <= rect.right &&
-                event.clientY >= rect.top && event.clientY <= rect.bottom) {
+            if (clientX >= rect.left && clientX <= rect.right &&
+                clientY >= rect.top && clientY <= rect.bottom) {
                 return true;
             }
         }
@@ -356,6 +345,12 @@ function handleTouch(event) {
         return;
     }
     
+    // Don't process if touching UI elements
+    if (isClickingUI(event)) {
+        gameState.isMouseDown = false;
+        return;
+    }
+    
     // Set mouse down flag
     gameState.isMouseDown = true;
     
@@ -367,16 +362,50 @@ function handleTouch(event) {
         gameState.lastMousePosition.x = touch.clientX;
         gameState.lastMousePosition.y = touch.clientY;
         
-        // Create a fake click event
-        const fakeClick = {
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            preventDefault: () => {},
-            target: document.elementFromPoint(touch.clientX, touch.clientY) || document.body
-        };
+        // Check if capture UI is open
+        const captureUIOpen = document.getElementById('captureUI').style.display === 'block';
         
-        // Process as click
-        handleClick(fakeClick);
+        // Convert touch position to world coordinates
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        // Raycasting to get touched position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, gameState.camera);
+        
+        // Calculate intersection with z=0 plane
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const targetPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, targetPoint);
+        
+        // Check if touched on a capture target
+        for (const target of gameState.captureTargets) {
+            const distanceToTarget = targetPoint.distanceTo(target.mesh.position);
+            
+            if (distanceToTarget < 20) {
+                if (!target.clicked) {
+                    showCaptureUI(target);
+                }
+                return; // Always return if touched on a capture target
+            }
+        }
+        
+        // Hide capture UI if visible
+        if (captureUIOpen) {
+            document.getElementById('captureUI').style.display = 'none';
+            // Reset clicked flag for the capture target
+            for (const target of gameState.captureTargets) {
+                if (target.clicked) {
+                    target.clicked = false;
+                    break;
+                }
+            }
+            return; // Don't process movement if we just closed the UI
+        }
+        
+        // Set target position for player movement
+        gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
     }
 }
 
@@ -389,47 +418,36 @@ function handleTouchMove(event) {
         return;
     }
     
+    // Don't process if not currently tracking movement or if touching UI
+    if (!gameState.isMouseDown || isClickingUI(event)) {
+        gameState.isMouseDown = false;
+        return;
+    }
+    
     // Use first touch point
     if (event.touches.length > 0) {
         const touch = event.touches[0];
-        
-        // Get the element at the touch point
-        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        
-        // Check if touching UI
-        const isTouchingUI = targetElement && (
-            targetElement.tagName === 'BUTTON' || 
-            targetElement.tagName === 'INPUT' || 
-            targetElement.tagName === 'SELECT' || 
-            targetElement.classList.contains('monster-card') ||
-            targetElement.closest('.monster-card') ||
-            targetElement.closest('#captureUI') ||
-            targetElement.closest('#storageUI') ||
-            targetElement.closest('#chatBox') ||
-            targetElement.closest('#goldDisplay') ||
-            targetElement.closest('#monsterInfo')
-        );
-        
-        // Don't process movement if touching UI
-        if (isTouchingUI) {
-            gameState.isMouseDown = false;
-            return;
-        }
         
         // Store touch position
         gameState.lastMousePosition.x = touch.clientX;
         gameState.lastMousePosition.y = touch.clientY;
         
-        // Create a fake mouse move event
-        const fakeMouseMove = {
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            preventDefault: () => {},
-            target: targetElement || document.body
-        };
+        // Convert touch position to world coordinates
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
         
-        // Process as mouse move
-        handleMouseMove(fakeMouseMove);
+        // Raycasting to get clicked position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, gameState.camera);
+        
+        // Calculate intersection with z=0 plane
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const targetPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, targetPoint);
+        
+        // Set target position for player movement
+        gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
     }
 }
 
@@ -439,15 +457,6 @@ function handleTouchEnd(event) {
     
     // Reset mouse down flag
     gameState.isMouseDown = false;
-    
-    // If there are any touches remaining (multi-touch), use the last touch point
-    if (event.touches && event.touches.length > 0) {
-        const touch = event.touches[0];
-        
-        // Store touch position
-        gameState.lastMousePosition.x = touch.clientX;
-        gameState.lastMousePosition.y = touch.clientY;
-    }
 }
 
 // Update player movement
