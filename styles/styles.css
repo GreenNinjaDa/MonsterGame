@@ -1,0 +1,278 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000;
+    touch-action: none;
+}
+canvas {
+    display: block;
+}
+#ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #ffdd57;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+#goldCounter {
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+#storageButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+    margin-top: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    pointer-events: auto;
+}
+#captureUI {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    display: none;
+    pointer-events: auto;
+}
+#captureButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+#storageUI {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    pointer-events: auto;
+}
+#storageUI h2 {
+    text-align: center;
+    margin-top: 0;
+}
+#monsterList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+.monster-card {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+    transition: all 0.3s;
+}
+.monster-card:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+.monster-color {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: 0 auto;
+}
+.monster-actions {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+.monster-actions button {
+    background-color: #2980b9;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.monster-actions button.monster-active {
+    background-color: #27ae60;
+}
+.monster-actions button.details-button {
+    background-color: #9b59b6;
+}
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Monster Details Modal */
+#monsterDetailsUI {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    width: 60%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    pointer-events: auto;
+    z-index: 1001;
+}
+
+#monsterDetailsUI h2 {
+    text-align: center;
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#detailsContent {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.monster-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.monster-header .monster-color {
+    flex-shrink: 0;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    table-layout: fixed;
+}
+
+.stats-table th, .stats-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table th {
+    font-weight: bold;
+    color: #ffdd57;
+}
+
+.stats-table th:first-child,
+.stats-table td:first-child {
+    width: 30%;
+}
+
+.stats-table th:nth-child(2),
+.stats-table td:nth-child(2) {
+    width: 12%;
+}
+
+.stats-table th:nth-child(3),
+.stats-table td:nth-child(3),
+.stats-table th:nth-child(4),
+.stats-table td:nth-child(4),
+.stats-table th:nth-child(5),
+.stats-table td:nth-child(5) {
+    width: 15%;
+}
+
+.stats-table th:last-child,
+.stats-table td:last-child {
+    width: 13%;
+}
+
+.stat-value {
+    text-align: right;
+}
+
+.stat-modifier {
+    color: #4CAF50;
+    text-align: right;
+}
+
+.stat-modifier.negative {
+    color: #e74c3c;
+}
+
+.stat-total {
+    font-weight: bold;
+    text-align: right;
+}
+
+#chatUI {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.chat-message {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.chat-message.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.chat-message.fade-out {
+    opacity: 0;
+    transform: translateY(-20px);
+} 
