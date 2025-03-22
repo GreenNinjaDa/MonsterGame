@@ -42,7 +42,7 @@ function updateUILabel(uiLabel, monster) {
     // Level display - larger size
     context.fillStyle = 'rgba(0, 0, 0, 0.7)';
     context.fillRect(65, 30, 30, 30); // Larger background
-    context.font = 'bold 20px Arial'; // Much larger font size
+    context.font = '20px Arial'; // Much larger font size
     context.fillStyle = 'white';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -69,7 +69,7 @@ function updateUILabel(uiLabel, monster) {
         }
     }
     
-    context.font = 'bold 20px Arial'; // Doubled name font size
+    context.font = '25px Arial'; // Doubled name font size
     context.fillStyle = 'white';
     context.textAlign = 'center';
     
@@ -499,7 +499,7 @@ function addMonsterToPlayer(monster) {
 
 // Handle experience gain from defeating monsters
 function handleExperienceGain(victor, defeated) {
-    // Base EXP calculation - doubled from original
+    // Base EXP calculation
     let baseExp = ((4 * defeated.level) + 20);
     
     // Check level difference

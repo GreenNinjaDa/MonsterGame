@@ -360,11 +360,11 @@ function createFloatingText(text, position, color = 0xffffff) {
     // Create a canvas for the text
     const canvas = document.createElement('canvas');
     canvas.width = 200;
-    canvas.height = 40;
+    canvas.height = 60;
     const context = canvas.getContext('2d');
     
     // Draw text on canvas
-    context.font = 'bold 20px Arial';
+    context.font = 'bold 30px Arial';
     context.fillStyle = '#' + new THREE.Color(color).getHexString();
     context.strokeStyle = 'black';
     context.lineWidth = 4;
@@ -385,7 +385,7 @@ function createFloatingText(text, position, color = 0xffffff) {
     sprite.position.copy(position);
     sprite.position.y += 30; // Above the monster
     sprite.position.z = 10;  // In front of everything
-    sprite.scale.set(100, 20, 1);
+    sprite.scale.set(150, 30, 1);
     
     // Add to scene
     gameState.scene.add(sprite);
