@@ -37,9 +37,11 @@ function initThree() {
     gameState.renderer.domElement.addEventListener('mousedown', handleMouseDown);
     gameState.renderer.domElement.addEventListener('mousemove', handleMouseMove);
     gameState.renderer.domElement.addEventListener('mouseup', handleMouseUp);
-    gameState.renderer.domElement.addEventListener('touchstart', handleTouch);
-    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove);
-    gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd);
+    
+    // Add touch event listeners with proper options for mobile
+    gameState.renderer.domElement.addEventListener('touchstart', handleTouch, { passive: false });
+    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd, { passive: false });
     
     // Add capture button event listener
     document.getElementById('captureButton').addEventListener('click', handleCapture);
@@ -168,7 +170,30 @@ window.addEventListener('load', init);
 
 // Check if a click is on any UI element
 function isClickingUI(event) {
-    // Check if clicking on any UI element
+    // Handle touch events
+    if (event.touches && event.touches.length > 0) {
+        const touch = event.touches[0];
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        if (element && (
+            element.tagName === 'BUTTON' || 
+            element.tagName === 'INPUT' || 
+            element.tagName === 'SELECT' || 
+            element.classList.contains('monster-card') ||
+            element.closest('.monster-card') ||
+            element.closest('#captureUI') ||
+            element.closest('#storageUI') ||
+            element.closest('#chatBox') ||
+            element.closest('#goldDisplay') ||
+            element.closest('#monsterInfo')
+        )) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // For regular mouse events - check if clicking on any UI element
     const uiElements = [
         document.getElementById('captureUI'),
         document.getElementById('storageUI'),
@@ -346,7 +371,8 @@ function handleTouch(event) {
         const fakeClick = {
             clientX: touch.clientX,
             clientY: touch.clientY,
-            preventDefault: () => {}
+            preventDefault: () => {},
+            target: document.elementFromPoint(touch.clientX, touch.clientY) || document.body
         };
         
         // Process as click
@@ -367,6 +393,29 @@ function handleTouchMove(event) {
     if (event.touches.length > 0) {
         const touch = event.touches[0];
         
+        // Get the element at the touch point
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        // Check if touching UI
+        const isTouchingUI = targetElement && (
+            targetElement.tagName === 'BUTTON' || 
+            targetElement.tagName === 'INPUT' || 
+            targetElement.tagName === 'SELECT' || 
+            targetElement.classList.contains('monster-card') ||
+            targetElement.closest('.monster-card') ||
+            targetElement.closest('#captureUI') ||
+            targetElement.closest('#storageUI') ||
+            targetElement.closest('#chatBox') ||
+            targetElement.closest('#goldDisplay') ||
+            targetElement.closest('#monsterInfo')
+        );
+        
+        // Don't process movement if touching UI
+        if (isTouchingUI) {
+            gameState.isMouseDown = false;
+            return;
+        }
+        
         // Store touch position
         gameState.lastMousePosition.x = touch.clientX;
         gameState.lastMousePosition.y = touch.clientY;
@@ -375,7 +424,8 @@ function handleTouchMove(event) {
         const fakeMouseMove = {
             clientX: touch.clientX,
             clientY: touch.clientY,
-            preventDefault: () => {}
+            preventDefault: () => {},
+            target: targetElement || document.body
         };
         
         // Process as mouse move
@@ -389,6 +439,15 @@ function handleTouchEnd(event) {
     
     // Reset mouse down flag
     gameState.isMouseDown = false;
+    
+    // If there are any touches remaining (multi-touch), use the last touch point
+    if (event.touches && event.touches.length > 0) {
+        const touch = event.touches[0];
+        
+        // Store touch position
+        gameState.lastMousePosition.x = touch.clientX;
+        gameState.lastMousePosition.y = touch.clientY;
+    }
 }
 
 // Update player movement
