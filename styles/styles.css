@@ -275,4 +275,17 @@ canvas {
 .chat-message.fade-out {
     opacity: 0;
     transform: translateY(-20px);
+}
+
+#activeMonsterList {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+#activeMonsterList .monster-card {
+    flex: 1;
+    max-width: 45%;
 } 
