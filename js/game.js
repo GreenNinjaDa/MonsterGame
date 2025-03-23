@@ -38,6 +38,7 @@ function initThree() {
     gameState.renderer.domElement.addEventListener('mousemove', handleMouseMove);
     gameState.renderer.domElement.addEventListener('mouseup', handleMouseUp);
     gameState.renderer.domElement.addEventListener('touchstart', handleTouch);
+    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove);
     gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd);
     
     // Add capture button event listener
@@ -402,6 +403,48 @@ function handleTouch(event) {
             }
             return; // Don't process movement if we just closed the UI
         }
+        
+        // Set target position for player movement
+        gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
+    }
+}
+
+// Handle touch move events for continuous movement
+function handleTouchMove(event) {
+    event.preventDefault();
+    
+    // Don't process if storage UI is open
+    if (gameState.storageUIOpen) {
+        return;
+    }
+    
+    // Don't process if not currently tracking movement or if touching UI
+    if (!gameState.isMouseDown || isClickingUI(event)) {
+        gameState.isMouseDown = false;
+        return;
+    }
+    
+    // Use first touch point
+    if (event.touches.length > 0) {
+        const touch = event.touches[0];
+        
+        // Store touch position
+        gameState.lastMousePosition.x = touch.clientX;
+        gameState.lastMousePosition.y = touch.clientY;
+        
+        // Convert touch position to world coordinates
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        // Raycasting to get clicked position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, gameState.camera);
+        
+        // Calculate intersection with z=0 plane
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const targetPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, targetPoint);
         
         // Set target position for player movement
         gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
