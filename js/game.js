@@ -1,4 +1,12 @@
 // Initialize Three.js
+let backgroundMusic;
+
+function initMusic() {
+    backgroundMusic = new Audio('assets/sound/Music.mp3');
+    backgroundMusic.loop = true;
+    backgroundMusic.play();
+}
+
 function initThree() {
     // Create scene
     gameState.scene = new THREE.Scene();
@@ -67,6 +75,9 @@ function initPlayer() {
     
     // Add to player's monsters
     addMonsterToPlayer(starterMonster);
+    
+    addChatMessage("Welcome to the game! Press M to play/pause the music.", 60000)
+    
 }
 
 // Main game loop
@@ -163,7 +174,10 @@ function init() {
 }
 
 // Start the game when the page is loaded
-window.addEventListener('load', init);
+window.addEventListener('load', () => {
+    init();
+    initMusic();
+});
 
 // Check if a click is on any UI element
 function isClickingUI(event) {
@@ -1404,6 +1418,16 @@ function setupUIEventHandlers() {
         // 'S' key to toggle storage
         if (event.key === 's' || event.key === 'S') {
             toggleStorageUI();
+        }
+        // 'M' key to toggle music
+        if (event.key === 'm' || event.key === 'M') {
+            if (backgroundMusic.paused) {
+                backgroundMusic.play();
+                addChatMessage("Music playing, press M again to pause.", 6000)
+            } else {
+                backgroundMusic.pause();
+                addChatMessage("Music paused, press M again to play.", 6000)
+            }
         }
     });
 }

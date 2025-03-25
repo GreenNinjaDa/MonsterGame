@@ -433,7 +433,7 @@ function showMonsterDetails(monsterId) {
             <div class="monster-color" style="background-color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}"></div>
             <div>
                 <h3>${monster.name} ${formatModifiers(monster)}</h3>
-                <p>${monster.element} Level ${monster.level}</p>
+                <p>${monster.element}${monster.element !== MONSTER_TYPES[monster.typeId].element ? ' (Shifted)' : ''} Level ${monster.level}</p>
                 <p>Spawn Level (Potential): ${monster.spawnLevel}</p>
                 <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             </div>
@@ -453,8 +453,9 @@ function showMonsterDetails(monsterId) {
             </tr>
     `;
     
-    // Get element modifiers
-    const elementMods = ELEMENT_MODIFIERS[monster.element];
+    // Get element modifiers for both current and original element
+    const currentElementMods = ELEMENT_MODIFIERS[monster.element];
+    const originalElementMods = ELEMENT_MODIFIERS[MONSTER_TYPES[monster.typeId].element];
     
     // Get rare modifiers
     let rareModifiers = monster.rareModifiers || [];
@@ -490,23 +491,23 @@ function showMonsterDetails(monsterId) {
         const afterLevel = baseValue + levelModifier;
         statsAfterLevel[stat] = afterLevel;
         
-        // Element modifier - calculated based on stats AFTER level modifier
-        let elementModifier = 0;
-        if (elementMods[stat]) {
-            elementModifier = Math.round(afterLevel * elementMods[stat] / 100);
+        // Get element modifier percentages
+        let elementModifierPercent = 0;
+        if (monster.element !== MONSTER_TYPES[monster.typeId].element) {
+            // If shifted, combine both element modifiers
+            if (originalElementMods[stat]) elementModifierPercent += originalElementMods[stat];
+            if (currentElementMods[stat]) elementModifierPercent += currentElementMods[stat];
+        } else {
+            // If not shifted, just use current element modifier
+            if (currentElementMods[stat]) elementModifierPercent = currentElementMods[stat];
         }
         
-        // Calculate intermediate value after level and element modifiers
-        const afterLevelAndElement = afterLevel + elementModifier;
-        statsBeforeRare[stat] = afterLevelAndElement;
-        
-        // Rare modifiers - calculated based on stats AFTER level and element modifiers
-        let rareModifier = 0;
+        // Calculate rare modifier percentages
+        let rareModifierPercent = 0;
         if (rareModifiers && rareModifiers.length > 0) {
             for (const modifierName of rareModifiers) {
                 if (RARE_MODIFIERS[modifierName] && RARE_MODIFIERS[modifierName][stat]) {
-                    rareModifier += afterLevelAndElement * RARE_MODIFIERS[modifierName][stat] / 100;
-                    rareModifier = Math.round(rareModifier);
+                    rareModifierPercent += RARE_MODIFIERS[modifierName][stat];
                 }
             }
         }
@@ -523,11 +524,11 @@ function showMonsterDetails(monsterId) {
                 <td class="stat-modifier">
                     ${levelModifier > 0 ? '+' + levelModifier : (levelModifier < 0 ? levelModifier : '')}
                 </td>
-                <td class="stat-modifier ${elementModifier < 0 ? 'negative' : ''}">
-                    ${elementModifier > 0 ? '+' + elementModifier : (elementModifier < 0 ? elementModifier : '')}
+                <td class="stat-modifier ${elementModifierPercent < 0 ? 'negative' : ''}">
+                    ${elementModifierPercent !== 0 ? (elementModifierPercent > 0 ? '+' : '') + elementModifierPercent + '%' : ''}
                 </td>
-                <td class="stat-modifier ${rareModifier < 0 ? 'negative' : ''}">
-                    ${rareModifier > 0 ? '+' + rareModifier : (rareModifier < 0 ? rareModifier : '')}
+                <td class="stat-modifier ${rareModifierPercent < 0 ? 'negative' : ''}">
+                    ${rareModifierPercent !== 0 ? (rareModifierPercent > 0 ? '+' : '') + rareModifierPercent + '%' : ''}
                 </td>
                 <td class="stat-total">${totalValue}</td>
             </tr>

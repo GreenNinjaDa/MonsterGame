@@ -84,7 +84,7 @@ function updateUILabel(uiLabel, monster) {
 }
 
 // Calculate monster stats from base values, level, element, and rare modifiers
-function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0) {
+function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0, typeId = null) {
     // Create copies to avoid modifying original objects
     const stats = {};
     
@@ -103,10 +103,34 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     });
     
     // Step 3: Apply element modifiers AFTER level-up stats
-    const elementMods = ELEMENT_MODIFIERS[element];
-    Object.keys(elementMods).forEach(stat => {
-        const modifier = elementMods[stat];
-        stats[stat] = Math.round(stats[stat] * (1 + modifier / 100));
+    // First, get the original element modifiers from the monster's type
+    const originalElement = typeId ? MONSTER_TYPES[typeId].element : element;
+    const originalElementMods = ELEMENT_MODIFIERS[originalElement];
+    const currentElementMods = ELEMENT_MODIFIERS[element];
+    
+    // Combine element modifiers before applying them
+    const totalElementModifiers = {};
+    
+    // Initialize total modifiers with current element
+    Object.keys(currentElementMods).forEach(stat => {
+        totalElementModifiers[stat] = currentElementMods[stat];
+    });
+    
+    // If element is different from original, add original element modifiers
+    if (element !== originalElement) {
+        Object.keys(originalElementMods).forEach(stat => {
+            if (!totalElementModifiers[stat]) {
+                totalElementModifiers[stat] = 0;
+            }
+            totalElementModifiers[stat] += originalElementMods[stat];
+        });
+    }
+    
+    // Apply combined element modifiers once
+    Object.keys(totalElementModifiers).forEach(stat => {
+        if (stats[stat]) {
+            stats[stat] = Math.round(stats[stat] * (1 + totalElementModifiers[stat] / 100));
+        }
     });
     
     // Step 4: Apply rare modifiers if present - FIX: Sum all modifiers first, then apply once
@@ -172,7 +196,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         level, 
         tempElement, 
         rareModifiers, 
-        spawnLevel
+        spawnLevel,
+        typeId
     );
     
     // Create the monster's visual representation
@@ -574,7 +599,8 @@ function checkLevelUp(monster) {
             monster.level, 
             monster.element, 
             monster.rareModifiers, 
-            monster.spawnLevel
+            monster.spawnLevel,
+            monster.typeId
         );
         
         // Store current HP and stamina percentages to maintain proportions
