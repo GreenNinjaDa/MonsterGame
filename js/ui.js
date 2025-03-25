@@ -24,6 +24,39 @@ function toggleStorageUI() {
 function initStorageUI() {
     // Set up initial content
     updateStorageUI();
+    
+    // Add music toggle button to storage UI header
+    const storageHeader = document.querySelector('#storageUI h2');
+    const musicButton = document.createElement('button');
+    musicButton.id = 'musicToggleButton';
+    musicButton.className = 'music-toggle';
+    musicButton.innerHTML = '🔊'; // Default to sound-on icon
+    
+    // Insert before the header text
+    storageHeader.parentNode.insertBefore(musicButton, storageHeader);
+    
+    // Add click handler for music toggle
+    musicButton.addEventListener('click', toggleMusic);
+}
+
+// Toggle music playback
+function toggleMusic() {
+    const button = document.getElementById('musicToggleButton');
+    
+    if (!musicInitialized) {
+        // If music hasn't started yet, start it
+        backgroundMusic.play();
+        musicInitialized = true;
+        button.innerHTML = '🔊';
+    } else if (backgroundMusic.paused) {
+        // If music is paused, resume it
+        backgroundMusic.play();
+        button.innerHTML = '🔊';
+    } else {
+        // If music is playing, pause it
+        backgroundMusic.pause();
+        button.innerHTML = '🔈';
+    }
 }
 
 // Helper function to format modifiers for display
@@ -66,8 +99,7 @@ function updateStorageUI() {
             <p>HP: ${Math.round(monster.currentHP)}/${monster.maxHP}</p>
             <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             <div class="monster-actions">
-                <button class="monster-active" disabled>Active (Slot ${index + 1})</button>
-                <button data-id="${monster.id}" class="store-button">Store</button>
+                <button data-id="${monster.id}" class="store-button">Store (Active ${index + 1})</button>
                 <button data-id="${monster.id}" class="details-button">Details</button>
             </div>
         `;
@@ -348,7 +380,7 @@ function handleCapture() {
     
     // Reset clicked flag for the capture target to allow retrying
     if (targetIndex !== -1) {
-        gameState.captureTargets[targetIndex].clicked = false;
+            gameState.captureTargets[targetIndex].clicked = false;
     }
 }
 
@@ -430,10 +462,20 @@ function showMonsterDetails(monsterId) {
     // Color and basic info
     let headerHTML = `
         <div class="monster-header">
-            <div class="monster-color" style="background-color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}"></div>
+            <div class="monster-color" style="background-color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}; position: relative;">
+                <div style="
+                    position: absolute;
+                    top: 15%;
+                    left: 15%;
+                    width: 70%;
+                    height: 70%;
+                    border-radius: 50%;
+                    background-color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()};
+                "></div>
+            </div>
             <div>
                 <h3>${monster.name} ${formatModifiers(monster)}</h3>
-                <p>${monster.element}${monster.element !== MONSTER_TYPES[monster.typeId].element ? ' (Shifted)' : ''} Level ${monster.level}</p>
+                <p>${monster.element}${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (${MONSTER_TYPES[monster.typeId].element})` : ''} Level ${monster.level}</p>
                 <p>Spawn Level (Potential): ${monster.spawnLevel}</p>
                 <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             </div>

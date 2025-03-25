@@ -1,10 +1,22 @@
 // Initialize Three.js
 let backgroundMusic;
+let musicInitialized = false;
 
 function initMusic() {
     backgroundMusic = new Audio('assets/sound/Music.mp3');
     backgroundMusic.loop = true;
-    backgroundMusic.play();
+    backgroundMusic.volume = 0.5;
+}
+
+function startMusicOnFirstInput() {
+    if (!musicInitialized) {
+        backgroundMusic.play();
+        musicInitialized = true;
+        // Remove all the input event listeners for music start
+        document.removeEventListener('click', startMusicOnFirstInput);
+        document.removeEventListener('keydown', startMusicOnFirstInput);
+        document.removeEventListener('touchstart', startMusicOnFirstInput);
+    }
 }
 
 function initThree() {
@@ -23,7 +35,9 @@ function initThree() {
     gameState.camera.lookAt(0, 0, 0);
     
     // Create renderer
-    gameState.renderer = new THREE.WebGLRenderer({ antialias: true });
+    gameState.renderer = new THREE.WebGLRenderer({ 
+        antialias: true
+    });
     gameState.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(gameState.renderer.domElement);
     
@@ -76,7 +90,7 @@ function initPlayer() {
     // Add to player's monsters
     addMonsterToPlayer(starterMonster);
     
-    addChatMessage("Welcome to the game! Press M to play/pause the music.", 60000)
+    addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Monster Storage on mobile.", 60000)
     
 }
 
@@ -145,8 +159,19 @@ function init() {
     // Initialize Three.js
     initThree();
     
+    // Load monster textures
+    loadMonsterTextures();
+    
     // Initialize player
     initPlayer();
+    
+    // Initialize music but don't play yet
+    initMusic();
+    
+    // Add event listeners for first input
+    document.addEventListener('click', startMusicOnFirstInput);
+    document.addEventListener('keydown', startMusicOnFirstInput);
+    document.addEventListener('touchstart', startMusicOnFirstInput);
     
     // Make sure starter monster uses correct EXP formula
     for (const monster of gameState.player.monsters) {
@@ -176,7 +201,6 @@ function init() {
 // Start the game when the page is loaded
 window.addEventListener('load', () => {
     init();
-    initMusic();
 });
 
 // Check if a click is on any UI element
@@ -663,6 +687,9 @@ function updateCombat(deltaTime) {
                     .subVectors(monster.target.mesh.position, monster.mesh.position)
                     .normalize();
                 
+                // Update monster direction before moving
+                updateMonsterDirection(monster, monster.target.mesh.position.x);
+                
                 // Calculate speed (wild monsters are slower)
                 const speed = GAME_CONFIG.playerSpeed * (monster.isWild ? 0.8 : 1.2) * deltaTime;
                 
@@ -793,6 +820,9 @@ function updateMonsterFollowing(deltaTime) {
         monster.targetPosition.copy(gameState.player.position)
             .sub(playerDirection.multiplyScalar(distanceFromPlayer));
         
+        // Update monster direction before moving
+        updateMonsterDirection(monster, monster.targetPosition.x);
+        
         // Move towards target position
         const direction = new THREE.Vector3()
             .subVectors(monster.targetPosition, monster.mesh.position)
@@ -853,10 +883,6 @@ function updateWildMonsterAggro(deltaTime) {
                     continue;
                 }
                 
-                if (!monster.originalPosition) {
-                    monster.originalPosition = new THREE.Vector3().copy(monster.mesh.position);
-                }
-                
                 monster.aggroPlayer = true;
                 monster.aggroTarget = null;
                 monster.returningToOrigin = false;
@@ -868,6 +894,9 @@ function updateWildMonsterAggro(deltaTime) {
                 
                 // Move slightly faster than normal when chasing player
                 const speed = GAME_CONFIG.playerSpeed * 0.9 * deltaTime;
+                
+                // Update monster direction before moving
+                updateMonsterDirection(monster, gameState.player.position.x);
                 
                 monster.mesh.position.x += direction.x * speed;
                 monster.mesh.position.y += direction.y * speed;
@@ -953,6 +982,9 @@ function updateWildMonsterAggro(deltaTime) {
                     .subVectors(targetMonster.mesh.position, monster.mesh.position)
                     .normalize();
                 
+                // Update monster direction before moving
+                updateMonsterDirection(monster, targetMonster.mesh.position.x);
+                
                 // Calculate speed (wild monsters are slower)
                 const speed = GAME_CONFIG.playerSpeed * 0.8 * deltaTime;
                 
@@ -975,12 +1007,60 @@ function updateWildMonsterAggro(deltaTime) {
                     .subVectors(monster.originalPosition, monster.mesh.position)
                     .normalize();
                 
+                // Update monster direction before moving
+                updateMonsterDirection(monster, monster.originalPosition.x);
+                
                 // Speed is slower when returning
                 const speed = GAME_CONFIG.playerSpeed * 0.7 * deltaTime;
                 
                 // Move toward origin
                 monster.mesh.position.x += direction.x * speed;
                 monster.mesh.position.y += direction.y * speed;
+            }
+        }
+        // If monster is not aggroed, not returning to origin, and not in combat, do random movement
+        else if (!monster.aggroPlayer && !monster.returningToOrigin && !monster.inCombat) {
+            // Initialize random movement target if not set
+            if (!monster.randomMoveTarget) {
+                monster.randomMoveTimer = 2 + Math.random() * 3;
+                monster.randomMoveTarget = new THREE.Vector3();
+                monster.randomMoveTarget.x = monster.originalPosition.x;
+                monster.randomMoveTarget.y = monster.originalPosition.y;
+            }
+            
+            // Update random movement timer
+            monster.randomMoveTimer -= deltaTime;
+            
+            // If timer is up, set new random target
+            if (monster.randomMoveTimer <= 0) {
+                
+                // Calculate random movement radius based on area level
+                const moveRadius = gameState.currentArea * 50;
+                
+                // Generate random angle
+                const angle = Math.random() * Math.PI * 2;
+                
+                // Calculate new target position within radius
+                monster.randomMoveTarget.x = monster.originalPosition.x + Math.cos(angle) * moveRadius;
+                monster.randomMoveTarget.y = monster.originalPosition.y + Math.sin(angle) * moveRadius;
+                
+                // Set new random timer (between 2 and 5 seconds)
+                monster.randomMoveTimer = 2 + Math.random() * 3;
+            }
+            
+            // Move toward random target if distance is greater than 5
+            if (monster.mesh.position.distanceTo(monster.randomMoveTarget) > 5) {
+                const direction = new THREE.Vector3()
+                    .subVectors(monster.randomMoveTarget, monster.mesh.position)
+                    .normalize();
+            // Update monster direction before moving
+            updateMonsterDirection(monster, monster.randomMoveTarget.x);
+            
+            // Move at a slower speed for random movement
+            const speed = GAME_CONFIG.playerSpeed * 0.5 * deltaTime;
+            
+            monster.mesh.position.x += direction.x * speed;
+            monster.mesh.position.y += direction.y * speed;
             }
         }
     }
@@ -1073,6 +1153,9 @@ function spawnWildMonsters(areaLevel, count = null) {
         monster.mesh.position.set(x, y, 1);
         monster.lastPosition.copy(monster.mesh.position);
         monster.targetPosition.copy(monster.mesh.position);
+        
+        // Set original position for random movement and returning behavior
+        monster.originalPosition = new THREE.Vector3().copy(monster.mesh.position);
         
         // Add to scene
         gameState.scene.add(monster.mesh);
@@ -1198,6 +1281,9 @@ function scheduleMonsterRespawn() {
     monster.mesh.position.set(x, y, 1);
     monster.lastPosition.copy(monster.mesh.position);
     monster.targetPosition.copy(monster.mesh.position);
+    
+    // Set original position for random movement and returning behavior
+    monster.originalPosition = new THREE.Vector3().copy(monster.mesh.position);
     
     // Add to scene
     gameState.scene.add(monster.mesh);
@@ -1463,4 +1549,18 @@ function updateMonsterCooldowns(deltaTime) {
             monster.currentCooldown -= deltaTime;
         }
     }
-} 
+}
+
+function updateMonsterMovement(monster, targetPosition, deltaTime) {
+    const speed = monster.speed;
+    const direction = new THREE.Vector3()
+        .subVectors(targetPosition, monster.mesh.position)
+        .normalize();
+    
+    // Update monster direction based on movement
+    updateMonsterDirection(monster, targetPosition.x);
+    
+    monster.mesh.position.x += direction.x * speed * deltaTime;
+    monster.mesh.position.y += direction.y * speed * deltaTime;
+    monster.mesh.position.z = 0;
+}

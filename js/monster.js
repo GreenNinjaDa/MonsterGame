@@ -1,3 +1,21 @@
+// Global texture cache for monster images
+const MONSTER_TEXTURES = {};
+
+// Load all monster textures at startup
+function loadMonsterTextures() {
+    const textureLoader = new THREE.TextureLoader();
+    for (let i = 1; i <= 6; i++) {
+        MONSTER_TEXTURES[i] = textureLoader.load(`assets/monsterimg/${i}.png`, (texture) => {
+            // Configure texture settings for better rendering
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.encoding = THREE.sRGBEncoding;
+            texture.flipY = false; // Prevent texture from being flipped
+            texture.needsUpdate = true;
+        });
+    }
+}
+
 // Create UI Labels for HP, Stamina, Level, and Name
 function createUILabel() {
     const canvas = document.createElement('canvas');
@@ -13,6 +31,8 @@ function createUILabel() {
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(60, 45, 1); // Larger scale for bigger text
+    sprite.position.y = 35; // Position higher above the monster
+    sprite.position.z = 1; // Ensure UI is above monster
     
     return { sprite, context, texture };
 }
@@ -39,10 +59,12 @@ function updateUILabel(uiLabel, monster) {
     context.fillStyle = 'skyblue';
     context.fillRect(2, 17, (canvas.width - 4) * staminaPercent, 8);
     
-    // Level display - larger size
-    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    context.fillRect(65, 30, 30, 30); // Larger background
-    context.font = '20px Arial'; // Much larger font size
+    // Level display with element color
+    const elementColor = ELEMENT_COLORS[monster.element];
+    const color = new THREE.Color(elementColor);
+    context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 0.7)`;
+    context.fillRect(65, 30, 30, 30);
+    context.font = '20px Arial';
     context.fillStyle = 'white';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -69,7 +91,7 @@ function updateUILabel(uiLabel, monster) {
         }
     }
     
-    context.font = '25px Arial'; // Doubled name font size
+    context.font = '25px Arial';
     context.fillStyle = 'white';
     context.textAlign = 'center';
     
@@ -163,9 +185,9 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     }
     
     // Step 5: Calculate derived stats
-    const maxHP = Math.round(200 * (1 + 0.5 * stats.endur / 100));
-    const maxStamina = Math.round(100 * (1 + 0.5 * stats.endur / 100));
-    const attackCooldown = 5 / (1 + 0.007 * stats.speed); // 5 seconds base, reduced by speed
+    const maxHP = Math.round(200 * (1 + 0.4 * stats.endur / 100));
+    const maxStamina = Math.round(100 * (1 + 0.4 * stats.endur / 100));
+    const attackCooldown = 5 / (1 + 0.006 * stats.speed); // 5 seconds base, reduced by speed
     
     return {
         stats,
@@ -174,6 +196,22 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
         attackCooldown,
         sizeMultiplier
     };
+}
+
+// Update monster facing direction based on movement or target
+function updateMonsterDirection(monster, targetX) {
+    // Get the monster's current x position
+    const currentX = monster.mesh.position.x;
+    
+    // Determine if monster should face left or right
+    const shouldFaceLeft = targetX < currentX;
+    
+    // Only update if direction changed
+    if (shouldFaceLeft !== monster.facingLeft) {
+        monster.facingLeft = shouldFaceLeft;
+        // Scale the monster mesh (not the container) to flip horizontally
+        monster.monsterMesh.scale.x = shouldFaceLeft ? -1 : 1;
+    }
 }
 
 // Create monster object
@@ -199,20 +237,38 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         spawnLevel,
         typeId
     );
-    
-    // Create the monster's visual representation
-    const geometry = new THREE.CircleGeometry(10 * calculatedStats.sizeMultiplier, 32);
-    const material = new THREE.MeshBasicMaterial({ color: ELEMENT_COLORS[tempElement] });
+
+    // Create the monster's visual representation using a plane with texture
+    const geometry = new THREE.PlaneGeometry(40 * calculatedStats.sizeMultiplier, 40 * calculatedStats.sizeMultiplier);
+    const material = new THREE.MeshBasicMaterial({ 
+        map: MONSTER_TEXTURES[typeId],
+        transparent: true,
+        side: THREE.DoubleSide,
+        color: 0xffffff,
+        alphaTest: 0.5
+    });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.z = 1; // Ensure it's above the ground
+    mesh.position.z = 1;
     
-    // Store the original color for reference
-    const originalColor = ELEMENT_COLORS[tempElement];
+    // Create a container for the monster and UI
+    const container = new THREE.Object3D();
+    
+    // Add the monster mesh to the container and flip it
+    container.add(mesh);
+    mesh.rotation.x = Math.PI; // Flip only the monster mesh
+    
+    // Store the original texture for reference
+    const originalTexture = MONSTER_TEXTURES[typeId];
+    const originalMaterial = material;
     
     // Add UI label for HP and Stamina
     const uiLabel = createUILabel();
-    uiLabel.sprite.position.y = 20; // Position above the monster
-    mesh.add(uiLabel.sprite);
+    
+    // Create a separate container for the UI that won't be affected by monster rotation
+    const uiContainer = new THREE.Object3D();
+    uiContainer.position.z = 2; // Position above the monster mesh
+    container.add(uiContainer);
+    uiContainer.add(uiLabel.sprite);
     
     // Monster object
     const monster = {
@@ -231,7 +287,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         currentStamina: calculatedStats.maxStamina,
         attackCooldown: calculatedStats.attackCooldown,
         currentCooldown: 0,
-        mesh,
+        mesh: container, // Use the container as the main mesh
+        monsterMesh: mesh, // Store reference to actual monster mesh
         uiLabel,
         target: null,
         inCombat: false,
@@ -247,6 +304,9 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         originalPosition: null,
         aggroTarget: null,
         returningToOrigin: false,
+        originalTexture,
+        originalMaterial,
+        facingLeft: false, // Track which direction monster is facing
     };
     
     // Update the UI label
@@ -306,12 +366,41 @@ function calculateDamage(attacker, defender) {
     };
 }
 
+// Shader material for tinting textures
+const tintShaderMaterial = {
+    uniforms: {
+        tMap: { value: null },
+        tintColor: { value: new THREE.Color(1, 1, 1) }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tMap;
+        uniform vec3 tintColor;
+        varying vec2 vUv;
+        void main() {
+            vec4 texColor = texture2D(tMap, vUv);
+            if (texColor.a < 0.5) discard;
+            vec3 tinted = mix(texColor.rgb, texColor.rgb * tintColor, 0.6);
+            gl_FragColor = vec4(tinted, texColor.a);
+        }
+    `
+};
+
 // Handle monster attack logic
 function monsterAttack(attacker, defender, deltaTime) {
     // Check if attacker is on cooldown
     if (attacker.currentCooldown > 0) {
         return;
     }
+    
+    // Update attacker direction to face defender
+    updateMonsterDirection(attacker, defender.mesh.position.x);
     
     // Check if attacker has enough stamina
     const staminaCost = 25;
@@ -333,35 +422,41 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     // Visual feedback for elemental interactions
     if (damageResult.elementMultiplier !== 1) {
-        // Clear any existing color flash timeout and revert color
+        // Clear any existing color flash timeout and revert material
         if (defender.colorResetTimeout) {
             clearTimeout(defender.colorResetTimeout);
             defender.colorResetTimeout = null;
-            // Revert to original color before applying new flash
-            if (defender.originalColor && defender.mesh && defender.mesh.material) {
-                defender.mesh.material.color.copy(defender.originalColor);
+            if (defender.monsterMesh && defender.originalMaterial) {
+                defender.monsterMesh.material = defender.originalMaterial;
             }
         }
         
-        // Flash the monster with a color
-        const originalColor = defender.mesh.material.color.clone();
-        let flashColor;
+        // Create a new shader material for the flash effect
+        const flashMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                tMap: { value: defender.originalTexture },
+                tintColor: { value: new THREE.Color(1, 1, 1) }
+            },
+            vertexShader: tintShaderMaterial.vertexShader,
+            fragmentShader: tintShaderMaterial.fragmentShader,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
         
+        // Set the tint color based on effectiveness
         if (damageResult.elementMultiplier > 1) {
-            // Super effective - flash red
-            flashColor = new THREE.Color(1, 0, 0);
+            flashMaterial.uniforms.tintColor.value.set(1, 0, 0);
         } else {
-            // Not very effective - flash blue
-            flashColor = new THREE.Color(0, 0, 1);
+            flashMaterial.uniforms.tintColor.value.set(0, 0, 1);
         }
         
-        defender.mesh.material.color.set(flashColor);
+        // Apply the flash material
+        defender.monsterMesh.material = flashMaterial;
         
-        // Store the original color and flash timeout in the monster object
-        defender.originalColor = originalColor;
+        // Store the flash timeout in the monster object
         defender.colorResetTimeout = setTimeout(() => {
-            if (defender.mesh && defender.mesh.material) {
-                defender.mesh.material.color.set(originalColor);
+            if (defender.monsterMesh && defender.originalMaterial) {
+                defender.monsterMesh.material = defender.originalMaterial;
                 defender.colorResetTimeout = null;
             }
         }, 200);

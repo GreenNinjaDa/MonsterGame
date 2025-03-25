@@ -86,6 +86,9 @@ canvas {
 #storageUI h2 {
     text-align: center;
     margin-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 #monsterList {
     display: grid;
@@ -288,4 +291,26 @@ canvas {
 #activeMonsterList .monster-card {
     flex: 1;
     max-width: 45%;
+}
+
+.music-toggle {
+    position: relative;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    margin-right: auto;
+}
+
+.music-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 } 

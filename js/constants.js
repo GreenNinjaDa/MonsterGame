@@ -10,7 +10,7 @@ const GAME_CONFIG = {
     // Game Balance
     hpRegenRate: 0.02,         // HP regeneration rate (2% per second)
     innerZoneRatio: 0.4,       // Ratio of map that maintains minimum level (40%)
-    outerZoneRatio: 0.6,       // Ratio of map for level scaling (60%)
+    outerZoneRatio: 0.8,       // Ratio of map for level scaling (80%)
     
     // Existing properties...
     playerSpeed: 200, // Units per second
@@ -19,8 +19,8 @@ const GAME_CONFIG = {
         slot2: 50
     },
     aggroRange: 300,
-    attackRange: 50,
-    attackRangeSlot1: 25, // Half the normal attack range for slot 1 monsters
+    attackRange: 100,
+    attackRangeSlot1: 50, // Half the normal attack range for slot 1 monsters
     respawnTime: 50, // Time for player owned monsters to respawn after being defeated
     catchTimeout: 20, // 20 seconds during with the player can capture a monster
     monsterDensity: 1, // Monsters per 500x500 area (reduced from 2)
@@ -88,7 +88,7 @@ const AREAS = {
 // Monster Types
 const MONSTER_TYPES = {
     // # - Name - Element - Speed, Phys Def, Phys Atk, Spec Def, Spec Atk, Endurance
-    1: { name: "Useless Fish", element: "Water", stats: { speed: 30, physDef: 60, physAtk: 70, specDef: 80, specAtk: 10, endur: 50 }, color: 0x3498db },
+    1: { name: "Useless Fish", element: "Water", stats: { speed: 40, physDef: 60, physAtk: 70, specDef: 70, specAtk: 20, endur: 40 }, color: 0x3498db },
     2: { name: "Emberling", element: "Fire", stats: { speed: 70, physDef: 40, physAtk: 50, specDef: 60, specAtk: 60, endur: 20 }, color: 0xe74c3c },
     3: { name: "DownTwo", element: "Earth", stats: { speed: 30, physDef: 65, physAtk: 55, specDef: 65, specAtk: 55, endur: 30 }, color: 0x964b00 },
     4: { name: "Potsy", element: "Plant", stats: { speed: 30, physDef: 60, physAtk: 60, specDef: 60, specAtk: 60, endur: 30 }, color: 0x2ecc71 },
