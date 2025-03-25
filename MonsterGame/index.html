@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monster Catching Game</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <div id="ui">
+        <div id="goldCounter">Gold: 100</div>
+        <div id="areaDisplay">Area: Starting Plains</div>
+        <button id="storageButton">Monster Storage</button>
+    </div>
+    <div id="captureUI">
+        <p id="captureText">Monster Defeated! Would you like to capture it?</p>
+        <p id="captureCost">Cost: 25 Gold</p>
+        <p id="captureChance">Chance: 70%</p>
+        <button id="captureButton">Capture</button>
+    </div>
+    <div id="storageUI">
+        <span class="close-button">&times;</span>
+        <h2>Monster Storage</h2>
+        <div id="activeSlots">
+            <h3>Active Monsters</h3>
+            <div id="activeMonsterList"></div>
+        </div>
+        <div id="storageSlots">
+            <h3>Stored Monsters</h3>
+            <div id="monsterList"></div>
+        </div>
+    </div>
+    
+    <div id="monsterDetailsUI">
+        <span class="close-button">&times;</span>
+        <h2>Monster Details</h2>
+        <div id="detailsContent"></div>
+    </div>
+    
+    <div id="chatUI"></div>
+    
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
+    
+    <!-- Game Scripts -->
+    <script src="js/constants.js"></script>
+    <script src="js/monster.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html> 
