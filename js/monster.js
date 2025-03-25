@@ -156,7 +156,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
 function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, spawnLevel = 0, tempElement = MONSTER_TYPES[typeId].element) {
     const monsterType = MONSTER_TYPES[typeId];
 
-    //Wild monsters have a 20% chance to spawn as a random element
+    //Wild monsters have a 20% chance to spawn as a random element this is called typeshifting
     if (isWild && Math.random() < 0.2) {
         tempElement = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
     }

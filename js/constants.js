@@ -34,7 +34,7 @@ const GAME_CONFIG = {
 // Area Configuration
 const AREAS = {
     1: {
-        name: "Starting Plains v0.2.1",
+        name: "Starting Plains",
         backgroundColor: 0x87CEEB, // Light blue sky color
         description: "A peaceful starting area with gentle monsters"
     },

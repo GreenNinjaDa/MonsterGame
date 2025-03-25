@@ -1,0 +1,1 @@
+// In this file here, I want to create a save and load system for my monster game using LocalStorage. It only needs to store and load the monsters the player owns. It does not need to store their "id" 
