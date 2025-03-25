@@ -53,10 +53,10 @@ function updateStorageUI() {
         const monsterCard = document.createElement('div');
         monsterCard.className = 'monster-card';
         
-        // Monster color circle
+        // Monster color circle based on element
         const colorDiv = document.createElement('div');
         colorDiv.className = 'monster-color';
-        colorDiv.style.backgroundColor = '#' + monster.mesh.material.color.getHexString();
+        colorDiv.style.backgroundColor = '#' + new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString();
         
         // Monster info
         const infoDiv = document.createElement('div');
@@ -88,7 +88,7 @@ function updateStorageUI() {
         // Monster color circle matching its type
         const colorDiv = document.createElement('div');
         colorDiv.className = 'monster-color';
-        colorDiv.style.backgroundColor = '#' + new THREE.Color(MONSTER_TYPES[monster.typeId].color).getHexString();
+        colorDiv.style.backgroundColor = '#' + new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString();
         
         // Monster info
         const infoDiv = document.createElement('div');
@@ -204,11 +204,12 @@ function showSellConfirmation(monsterId) {
     const monster = gameState.player.storedMonsters.find(m => m.id.toString() === monsterId);
     if (!monster) return;
 
-    // Calculate sell price (same as capture cost)
-    let sellPrice = 10;
-    for (let i = 1; i <= monster.level; i++) {
-        sellPrice += i;
+    let effectiveLevel = monster.level;
+    if (monster.rareModifiers && Array.isArray(monster.rareModifiers)) {
+        effectiveLevel += monster.rareModifiers.length * 5;
     }
+    // Calculate sell price (same as capture cost)
+    let sellPrice = 10 + ((effectiveLevel * (effectiveLevel + 1)) / 2);
 
     // Show confirmation dialog
     if (confirm(`Are you sure you want to sell ${monster.name} (Level ${monster.level})${formatModifiers(monster)} for ${sellPrice} gold?`)) {
@@ -222,12 +223,6 @@ function sellMonster(monsterId, sellPrice) {
     
     if (index !== -1) {
         const monster = gameState.player.storedMonsters[index];
-        
-        // Check if monster is defeated
-        if (monster.defeated) {
-            addChatMessage("Cannot sell a defeated monster. Wait for it to revive.");
-            return;
-        }
         
         // Clear any color timeout before removing
         if (monster.colorResetTimeout) {
@@ -252,13 +247,15 @@ function sellMonster(monsterId, sellPrice) {
 // Show capture UI
 function showCaptureUI(captureInfo) {
     const monster = captureInfo.monster;
+
     
     // Calculate catch chance and cost
-    const catchChance = Math.min(100, Math.floor(10000 / (100 + 2 * monster.level)));
-    let cost = 10;
-    for (let i = 1; i <= monster.level; i++) {
-        cost += i;
+    let effectiveLevel = monster.level;
+    if (monster.rareModifiers && Array.isArray(monster.rareModifiers)) {
+        effectiveLevel += monster.rareModifiers.length * 5;
     }
+    const catchChance = Math.min(100, Math.floor(10000 / (100 + 2 * effectiveLevel)));
+    let cost = 10 + ((effectiveLevel * (effectiveLevel + 1)) / 2);
     
     // Update UI
     document.getElementById('captureText').textContent = 
@@ -288,11 +285,17 @@ function handleCapture() {
     const monsterId = button.dataset.monsterId;
     const cost = parseInt(button.dataset.cost);
     const chance = parseInt(button.dataset.chance);
+
+    // Find the monster in capture targets
+    const targetIndex = gameState.captureTargets.findIndex(
+        target => target.monster.id.toString() === monsterId
+    );
     
     // Check if player has enough gold
     if (gameState.player.gold < cost) {
         addChatMessage("Not enough gold!");
         document.getElementById('captureUI').style.display = 'none';
+        gameState.captureTargets[targetIndex].clicked = false;
         return;
     }
     
@@ -303,10 +306,6 @@ function handleCapture() {
     // Roll for capture
     const roll = Math.random() * 100;
     if (roll <= chance) {
-        // Find the monster in capture targets
-        const targetIndex = gameState.captureTargets.findIndex(
-            target => target.monster.id.toString() === monsterId
-        );
         
         if (targetIndex !== -1) {
             const monster = gameState.captureTargets[targetIndex].monster;
@@ -322,7 +321,8 @@ function handleCapture() {
                 newLevel,
                 monster.rareModifiers,
                 false,
-                monster.spawnLevel
+                monster.spawnLevel,
+                monster.element
             );
             
             // Ensure EXP formula is correct (halved requirement)
@@ -347,9 +347,6 @@ function handleCapture() {
     document.getElementById('captureUI').style.display = 'none';
     
     // Reset clicked flag for the capture target to allow retrying
-    const targetIndex = gameState.captureTargets.findIndex(
-        target => target.monster.id.toString() === monsterId
-    );
     if (targetIndex !== -1) {
         gameState.captureTargets[targetIndex].clicked = false;
     }
@@ -433,7 +430,7 @@ function showMonsterDetails(monsterId) {
     // Color and basic info
     let headerHTML = `
         <div class="monster-header">
-            <div class="monster-color" style="background-color: #${new THREE.Color(monsterType.color).getHexString()}"></div>
+            <div class="monster-color" style="background-color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}"></div>
             <div>
                 <h3>${monster.name} ${formatModifiers(monster)}</h3>
                 <p>${monster.element} Level ${monster.level}</p>

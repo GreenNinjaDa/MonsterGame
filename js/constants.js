@@ -57,6 +57,31 @@ const AREAS = {
         name: "Dragon's Domain",
         backgroundColor: 0x4B0082, // Indigo
         description: "The legendary realm of the most powerful monsters"
+    },
+    6: {
+        name: "Master's Keep",
+        backgroundColor: 0x505050, // Dark gray
+        description: "A place only the most ambitious of trainers dare to venture"
+    },
+    7: {
+        name: "Frozen Tundra",
+        backgroundColor: 0xE0FFFF, // Light cyan
+        description: "A frigid wasteland where only the most resilient monsters thrive"
+    },
+    8: {
+        name: "Storm Peaks",
+        backgroundColor: 0x2F4F4F, // Dark slate gray
+        description: "Treacherous mountain peaks crackling with electric energy"
+    },
+    9: {
+        name: "Mystic Marsh",
+        backgroundColor: 0x800080, // Purple
+        description: "A mysterious swampland where reality seems to bend"
+    },
+    10: {
+        name: "Celestial Summit",
+        backgroundColor: 0x191970, // Midnight blue
+        description: "The final frontier where cosmic forces shape the strongest beings"
     }
 };
 
@@ -79,6 +104,9 @@ const ELEMENT_RELATIONS = {
     "Water": { strong: "Fire", weak: "Electric" },
     "Fire": { strong: "Plant", weak: "Water" }
 };
+
+// List of all available elements
+const ELEMENTS = ["Plant", "Earth", "Electric", "Water", "Fire"];
 
 // Visual colors for elements (for effects)
 const ELEMENT_COLORS = {

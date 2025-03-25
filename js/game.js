@@ -38,7 +38,6 @@ function initThree() {
     gameState.renderer.domElement.addEventListener('mousemove', handleMouseMove);
     gameState.renderer.domElement.addEventListener('mouseup', handleMouseUp);
     gameState.renderer.domElement.addEventListener('touchstart', handleTouch);
-    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove);
     gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd);
     
     // Add capture button event listener
@@ -64,7 +63,7 @@ function initPlayer() {
     gameState.player.mesh = playerMesh;
     
     // Create starter monster (Stupid Fish)
-    const starterMonster = createMonster(1, 5, ["Strong"], false, 0);
+    const starterMonster = createMonster(1, 5, ["Strong"], false, 0, "Earth");
     
     // Add to player's monsters
     addMonsterToPlayer(starterMonster);
@@ -186,9 +185,6 @@ function isClickingUI(event) {
     const uiElements = [
         document.getElementById('captureUI'),
         document.getElementById('storageUI'),
-        document.getElementById('chatBox'),
-        document.getElementById('goldDisplay'),
-        document.getElementById('monsterInfo')
     ];
     
     // Check if click is within any UI element
@@ -409,48 +405,6 @@ function handleTouch(event) {
     }
 }
 
-// Handle touch move events for continuous movement
-function handleTouchMove(event) {
-    event.preventDefault();
-    
-    // Don't process if storage UI is open
-    if (gameState.storageUIOpen) {
-        return;
-    }
-    
-    // Don't process if not currently tracking movement or if touching UI
-    if (!gameState.isMouseDown || isClickingUI(event)) {
-        gameState.isMouseDown = false;
-        return;
-    }
-    
-    // Use first touch point
-    if (event.touches.length > 0) {
-        const touch = event.touches[0];
-        
-        // Store touch position
-        gameState.lastMousePosition.x = touch.clientX;
-        gameState.lastMousePosition.y = touch.clientY;
-        
-        // Convert touch position to world coordinates
-        const mouse = new THREE.Vector2();
-        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        
-        // Raycasting to get clicked position
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, gameState.camera);
-        
-        // Calculate intersection with z=0 plane
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        const targetPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, targetPoint);
-        
-        // Set target position for player movement
-        gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
-    }
-}
-
 // Handle touch end events to stop tracking
 function handleTouchEnd(event) {
     event.preventDefault();
@@ -587,6 +541,53 @@ function checkAreaTransition() {
     }
 }
 
+// Helper function to select a random enemy with distance-based weighting
+function selectWeightedRandomTarget(monster, potentialTargets) {
+    // Filter out invalid targets
+    const validTargets = potentialTargets.filter(target => 
+        target !== monster && 
+        !target.defeated && 
+        target.isWild !== monster.isWild
+    );
+    
+    if (validTargets.length === 0) return null;
+    
+    // Calculate distances and weights for each target
+    const targetWeights = validTargets.map(target => {
+        const distance = monster.mesh.position.distanceTo(target.mesh.position);
+        // Use inverse square of distance for weight calculation
+        // This makes closer targets much more likely to be chosen
+        return {
+            target,
+            distance,
+            weight: 1 / (distance * distance)
+        };
+    });
+    
+    // Calculate total weight
+    const totalWeight = targetWeights.reduce((sum, tw) => sum + tw.weight, 0);
+    
+    // Generate random value between 0 and total weight
+    let random = Math.random() * totalWeight;
+    
+    // Select target based on weights
+    for (const tw of targetWeights) {
+        random -= tw.weight;
+        if (random <= 0) {
+            return {
+                target: tw.target,
+                distance: tw.distance
+            };
+        }
+    }
+    
+    // Fallback to last target if we somehow didn't select one
+    return {
+        target: targetWeights[targetWeights.length - 1].target,
+        distance: targetWeights[targetWeights.length - 1].distance
+    };
+}
+
 // Update combat logic
 function updateCombat(deltaTime) {
     // Process each active combat
@@ -595,7 +596,7 @@ function updateCombat(deltaTime) {
         for (const monster of combat.participants) {
             if (monster.defeated) continue;
             
-            // Find the closest enemy
+            // Find the closest enemy for movement
             let closestEnemy = null;
             let closestDistance = Infinity;
             
@@ -614,7 +615,7 @@ function updateCombat(deltaTime) {
                 }
             }
             
-            // Update target to closest enemy
+            // Update movement target to closest enemy
             monster.target = closestEnemy;
             
             // If no valid target found and this is a wild monster, exit combat and return to origin
@@ -634,11 +635,14 @@ function updateCombat(deltaTime) {
                 attackRange = GAME_CONFIG.attackRangeSlot1;
             }
             
-            // If in attack range, attack
+            // If in attack range, select a random target to attack
             if (closestDistance <= attackRange) {
-                monsterAttack(monster, monster.target, deltaTime);
+                const attackTargetInfo = selectWeightedRandomTarget(monster, combat.participants);
+                if (attackTargetInfo) {
+                    monsterAttack(monster, attackTargetInfo.target, deltaTime);
+                }
             }
-            // Otherwise, move towards target
+            // Otherwise, move towards closest target
             else {
                 // Calculate direction
                 const direction = new THREE.Vector3()
@@ -681,25 +685,6 @@ function updateCombat(deltaTime) {
             }
         }
     }
-    
-    // Remove empty combats
-    gameState.activeCombats = gameState.activeCombats.filter(combat => {
-        // Check if the combat has both wild and player monsters
-        let hasWildMonster = false;
-        let hasPlayerMonster = false;
-        
-        for (const monster of combat.participants) {
-            if (!monster.defeated) {
-                if (monster.isWild) {
-                    hasWildMonster = true;
-                } else {
-                    hasPlayerMonster = true;
-                }
-            }
-        }
-        
-        return hasWildMonster && hasPlayerMonster;
-    });
 }
 
 // Update stamina regeneration
@@ -1042,8 +1027,18 @@ function spawnWildMonsters(areaLevel, count = null) {
             level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
         }
         
-        // Randomly choose monster type
-        const typeId = Math.floor(Math.random() * Object.keys(MONSTER_TYPES).length) + 1;
+        // Get available monster types for this area level
+        const availableTypes = Object.keys(MONSTER_TYPES)
+            .map(Number)
+            .filter(id => Math.ceil(id / 5) <= (areaLevel + 1));
+        
+        if (availableTypes.length === 0) {
+            console.warn(`No valid monster types for area level ${areaLevel}, skipping spawn`);
+            continue;
+        }
+        
+        // Randomly choose from available monster types
+        const typeId = availableTypes[Math.floor(Math.random() * availableTypes.length)];
         
         // Check for rare modifiers - each has a separate 2% chance
         let rareModifiers = [];
@@ -1058,7 +1053,7 @@ function spawnWildMonsters(areaLevel, count = null) {
         }
         
         // Create monster
-        const monster = createMonster(typeId, level, rareModifiers, true, level);
+        const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
         
         // Position monster
         monster.mesh.position.set(x, y, 1);
@@ -1157,8 +1152,18 @@ function scheduleMonsterRespawn() {
         level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
     }
     
-    // Randomly choose monster type
-    const typeId = Math.floor(Math.random() * Object.keys(MONSTER_TYPES).length) + 1;
+    // Get available monster types for this area level
+    const availableTypes = Object.keys(MONSTER_TYPES)
+        .map(Number)
+        .filter(id => Math.ceil(id / 5) <= (areaLevel + 2));
+    
+    if (availableTypes.length === 0) {
+        console.warn(`No valid monster types for area level ${areaLevel}, skipping respawn`);
+        return;
+    }
+    
+    // Randomly choose from available monster types
+    const typeId = availableTypes[Math.floor(Math.random() * availableTypes.length)];
     
     // Check for rare modifiers - each has a separate 2% chance
     let rareModifiers = [];
@@ -1173,7 +1178,7 @@ function scheduleMonsterRespawn() {
     }
     
     // Create monster
-    const monster = createMonster(typeId, level, rareModifiers, true, level);
+    const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
     
     // Position monster
     monster.mesh.position.set(x, y, 1);

@@ -153,8 +153,13 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
 }
 
 // Create monster object
-function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, spawnLevel = 0) {
+function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, spawnLevel = 0, tempElement = MONSTER_TYPES[typeId].element) {
     const monsterType = MONSTER_TYPES[typeId];
+
+    //Wild monsters have a 20% chance to spawn as a random element
+    if (isWild && Math.random() < 0.2) {
+        tempElement = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+    }
     
     // Convert string modifier to array for backward compatibility
     if (rareModifiers && typeof rareModifiers === 'string') {
@@ -165,19 +170,19 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     const calculatedStats = calculateMonsterStats(
         monsterType.stats, 
         level, 
-        monsterType.element, 
+        tempElement, 
         rareModifiers, 
         spawnLevel
     );
     
     // Create the monster's visual representation
     const geometry = new THREE.CircleGeometry(10 * calculatedStats.sizeMultiplier, 32);
-    const material = new THREE.MeshBasicMaterial({ color: monsterType.color });
+    const material = new THREE.MeshBasicMaterial({ color: ELEMENT_COLORS[tempElement] });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.z = 1; // Ensure it's above the ground
     
     // Store the original color for reference
-    const originalColor = monsterType.color;
+    const originalColor = ELEMENT_COLORS[tempElement];
     
     // Add UI label for HP and Stamina
     const uiLabel = createUILabel();
@@ -189,7 +194,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         id: Date.now() + Math.random(),
         typeId,
         name: monsterType.name,
-        element: monsterType.element,
+        element: tempElement,
         level,
         rareModifiers,
         isWild,
@@ -359,6 +364,12 @@ function monsterAttack(attacker, defender, deltaTime) {
     // Reset cooldown
     attacker.currentCooldown = attacker.attackCooldown * cooldownMultiplier;
     
+    // Move attacker in a random direction after attack
+    const randomAngle = Math.random() * Math.PI * 2;
+    const moveDistance = 5;
+    attacker.mesh.position.x += Math.cos(randomAngle) * moveDistance;
+    attacker.mesh.position.y += Math.sin(randomAngle) * moveDistance;
+    
     // Check if defender is defeated
     if (defender.currentHP <= 0) {
         handleMonsterDefeat(defender, attacker);
@@ -395,8 +406,14 @@ function handleMonsterDefeat(defeated, victor) {
             }
         }
         
-        // Add gold
-        const goldReward = defeated.level * 2;
+        // Calculate effective level for gold reward based on rare modifiers
+        let effectiveLevel = defeated.level;
+        if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
+            effectiveLevel += defeated.rareModifiers.length * 5;
+        }
+        
+        // Add gold based on effective level
+        const goldReward = 2 + Math.ceil((effectiveLevel * (effectiveLevel + 1)) / 10);
         gameState.player.gold += goldReward;
         updateGoldDisplay();
         
@@ -499,8 +516,14 @@ function addMonsterToPlayer(monster) {
 
 // Handle experience gain from defeating monsters
 function handleExperienceGain(victor, defeated) {
-    // Base EXP calculation
-    let baseExp = ((4 * defeated.level) + 20);
+    // Calculate effective level based on rare modifiers
+    let effectiveLevel = defeated.level;
+    if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
+        effectiveLevel += defeated.rareModifiers.length * 5;
+    }
+    
+    // Base EXP calculation using effective level
+    let baseExp = ((4 * effectiveLevel) + 20);
     
     // Check level difference
     const levelDifference = defeated.level - victor.level;
@@ -511,7 +534,7 @@ function handleExperienceGain(victor, defeated) {
     // Reduce EXP for lower-level monsters
     if (levelDifference < 0) {
         // For every level below, reduce EXP by 10%
-        expModifier = Math.max(0.1, 1 + (levelDifference * 0.1));
+        expModifier = Math.max(0, 1 + (levelDifference * 0.1));
     } else if (levelDifference > 0) {
         // For every level above, increase EXP by 10%
         expModifier = Math.min(2, 1 + (levelDifference * 0.1));
