@@ -20,24 +20,24 @@ canvas {
     pointer-events: none;
 }
 #goldCounter {
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 5px 10px;
-    border-radius: 5px;
     margin-bottom: 10px;
+    margin-top: 10px;
 }
 #storageButton {
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0.1);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
     border: 2px solid black;
-    color: yellow;
+    color: #ffdd57;
     padding: 30px 15px;
     text-align: center;
     text-decoration: none;
     display: block;
     font-size: 28px;
-    margin-top: 10px;
     cursor: pointer;
     border-radius: 5px;
     pointer-events: auto;
+    margin-top: 0px;
+    margin-bottom: 10px;
 }
 #captureUI {
     position: absolute;
@@ -57,7 +57,7 @@ canvas {
     background-color: #4CAF50;
     border: none;
     color: white;
-    padding: 10px 20px;
+    padding: 30px 40px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -123,23 +123,20 @@ canvas {
     background-color: #2980b9;
     border: none;
     color: white;
-    padding: 5px 10px;
+    padding: 25px 10px;
     border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
-}
-.monster-actions button.monster-active {
-    background-color: #27ae60;
 }
 .monster-actions button.details-button {
     background-color: #9b59b6;
 }
 .close-button {
     position: absolute;
-    top: 10px;
+    top: 5px;
     right: 15px;
-    font-size: 24px;
-    cursor: pointer;
+    font-size: 64px;
+    cursor: pointer
 }
 
 /* Monster Details Modal */
@@ -289,20 +286,20 @@ canvas {
     bottom: 20px;
     left: 20px;
     width: 300px;
-    max-height: 500px;
+    max-height: 600px;
     overflow-y: auto;
     pointer-events: none;
     z-index: 1000;
 }
 
 .chat-message {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.2);
     color: white;
     padding: 8px 12px;
     margin-bottom: 8px;
     border-radius: 5px;
     font-family: Arial, sans-serif;
-    font-size: 14px;
+    font-size: 22px;
     line-height: 1.4;
     opacity: 0;
     transform: translateY(20px);
@@ -337,7 +334,7 @@ canvas {
     background: none;
     border: none;
     color: white;
-    font-size: 24px;
+    font-size: 64px;
     cursor: pointer;
     padding: 5px;
     width: 40px;

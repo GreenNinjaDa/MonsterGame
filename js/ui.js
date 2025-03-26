@@ -30,7 +30,7 @@ function initStorageUI() {
     const musicButton = document.createElement('button');
     musicButton.id = 'musicToggleButton';
     musicButton.className = 'music-toggle';
-    musicButton.innerHTML = '🔊'; // Default to sound-on icon
+    musicButton.innerHTML = '🎶'; // Default to sound-on icon
     
     // Insert before the header text
     storageHeader.parentNode.insertBefore(musicButton, storageHeader);
@@ -47,15 +47,15 @@ function toggleMusic() {
         // If music hasn't started yet, start it
         backgroundMusic.play();
         musicInitialized = true;
-        button.innerHTML = '🔊';
+        button.innerHTML = '🎶';
     } else if (backgroundMusic.paused) {
         // If music is paused, resume it
         backgroundMusic.play();
-        button.innerHTML = '🔊';
+        button.innerHTML = '🎶';
     } else {
         // If music is playing, pause it
         backgroundMusic.pause();
-        button.innerHTML = '🔈';
+        button.innerHTML = '🎵';
     }
 }
 
@@ -635,9 +635,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // For Monster Details UI - close if clicked outside or on storage UI
-        if (detailsModal.style.display === 'block' && 
-            (!detailsModal.contains(target) || storageModal.contains(target))) {
-            detailsModal.style.display = 'none';
+        if (detailsModal.style.display === 'block') {
+            // If clicked on storage UI or outside both UIs
+            if (storageModal.contains(target) || (!detailsModal.contains(target) && !storageModal.contains(target))) {
+                detailsModal.style.display = 'none';
+            }
         }
         
         // For Storage UI - only close if clicked completely outside both UIs
@@ -653,15 +655,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('mousedown', handleOutsideInteraction);
     document.addEventListener('touchstart', handleOutsideInteraction, { passive: true });
 
-    // Prevent events inside the modals from triggering the outside handler
+    // Only prevent propagation for the details modal
     function stopPropagation(event) {
         event.stopPropagation();
     }
 
     detailsModal.addEventListener('mousedown', stopPropagation);
     detailsModal.addEventListener('touchstart', stopPropagation, { passive: true });
-    storageModal.addEventListener('mousedown', stopPropagation);
-    storageModal.addEventListener('touchstart', stopPropagation, { passive: true });
 });
 
 // Chat UI System

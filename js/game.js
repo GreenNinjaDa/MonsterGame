@@ -60,6 +60,7 @@ function initThree() {
     gameState.renderer.domElement.addEventListener('mousemove', handleMouseMove);
     gameState.renderer.domElement.addEventListener('mouseup', handleMouseUp);
     gameState.renderer.domElement.addEventListener('touchstart', handleTouch);
+    gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove);
     gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd);
     
     // Add capture button event listener
@@ -91,13 +92,12 @@ function initPlayer() {
     // Add to player's monsters
     addMonsterToPlayer(starterMonster);
     
-    addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Monster Storage", 30000)
     // Check if user is on mobile and show warning
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        if (confirm("This game is designed for desktop browsers. Please request the desktop version of the site for best experience.")) {
-        } else {
-            addChatMessage("Playing on mobile. Some features may be limited.", 10000);
-        }
+        confirm("This game is designed for desktop rendering. Please chagnge your settings to use the desktop version of the site for best experience.")
+        addChatMessage("Use the button in the top left of the monster storage to play/pause music.", 10000);
+    } else {
+        addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Monster Storage.", 30000)
     }
 }
 
@@ -313,8 +313,10 @@ function handleClick(event) {
         return; // Don't process movement if we just closed the UI
     }
     
-    // Set target position for player movement (only if capture UI is not open)
-    gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
+    // Set target position for player movement only if mouse is down
+    if (gameState.isMouseDown) {
+        gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
+    }
 }
 
 // Handle mouse down event to start tracking
@@ -458,6 +460,43 @@ function handleTouchEnd(event) {
     gameState.isMouseDown = false;
 }
 
+// Handle touch move events for continuous movement
+function handleTouchMove(event) {
+    event.preventDefault();
+    
+    // Don't process if not touching, if storage UI is open, or if touching UI elements
+    if (!gameState.isMouseDown || gameState.storageUIOpen || isClickingUI(event)) {
+        gameState.isMouseDown = false;
+        return;
+    }
+    
+    // Use first touch point
+    if (event.touches.length > 0) {
+        const touch = event.touches[0];
+        
+        // Store touch position
+        gameState.lastMousePosition.x = touch.clientX;
+        gameState.lastMousePosition.y = touch.clientY;
+        
+        // Convert touch position to world coordinates
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        // Raycasting to get touched position
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, gameState.camera);
+        
+        // Calculate intersection with z=0 plane
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const targetPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, targetPoint);
+        
+        // Set target position for player movement
+        gameState.clickTargetPosition = new THREE.Vector3(targetPoint.x, targetPoint.y, 0);
+    }
+}
+
 // Update player movement
 function updatePlayerMovement(deltaTime) {
     // Don't allow movement if capture UI is open
@@ -474,7 +513,7 @@ function updatePlayerMovement(deltaTime) {
     const distanceToTarget = gameState.player.position.distanceTo(gameState.clickTargetPosition);
     
     // Move player towards target
-    if (distanceToTarget > 5 || gameState.isMouseDown) {
+    if (distanceToTarget > 5) {
         const movement = Math.min(distanceToTarget, GAME_CONFIG.playerSpeed * deltaTime);
         gameState.player.position.x += direction.x * movement;
         gameState.player.position.y += direction.y * movement;
