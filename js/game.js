@@ -26,9 +26,16 @@ function initThree() {
     
     // Create camera
     const aspectRatio = window.innerWidth / window.innerHeight;
+    
+    // Check if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Adjust view size for mobile devices
+    const viewSize = isMobile ? GAME_CONFIG.baseViewSize * 1.5 : GAME_CONFIG.baseViewSize;
+    
     gameState.camera = new THREE.OrthographicCamera(
-        -GAME_CONFIG.baseViewSize * aspectRatio, GAME_CONFIG.baseViewSize * aspectRatio,
-        GAME_CONFIG.baseViewSize, -GAME_CONFIG.baseViewSize,
+        -viewSize * aspectRatio, viewSize * aspectRatio,
+        viewSize, -viewSize,
         1, 1000
     );
     gameState.camera.position.set(0, 0, 500);
@@ -38,16 +45,24 @@ function initThree() {
     gameState.renderer = new THREE.WebGLRenderer({ 
         antialias: true
     });
+    
+    // Use a higher pixel ratio to maintain quality when zoomed out
+    gameState.renderer.setPixelRatio(window.devicePixelRatio * 1);
+
     gameState.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(gameState.renderer.domElement);
     
     // Handle window resize
     window.addEventListener('resize', () => {
         const aspectRatio = window.innerWidth / window.innerHeight;
-        gameState.camera.left = -GAME_CONFIG.baseViewSize * aspectRatio;
-        gameState.camera.right = GAME_CONFIG.baseViewSize * aspectRatio;
+        const viewSize = isMobile ? GAME_CONFIG.baseViewSize * 2 : GAME_CONFIG.baseViewSize;
+        gameState.camera.left = -viewSize * aspectRatio;
+        gameState.camera.right = viewSize * aspectRatio;
         gameState.camera.updateProjectionMatrix();
         gameState.renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Update pixel ratio on resize for mobile
+        gameState.renderer.setPixelRatio(window.devicePixelRatio * 1);
     });
     
     // Add mouse/touch state tracking
@@ -94,10 +109,9 @@ function initPlayer() {
     
     // Check if user is on mobile and show warning
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        confirm("This game is designed for desktop rendering. Please chagnge your settings to use the desktop version of the site for best experience.")
-        addChatMessage("Use the button in the top left of the monster storage to play/pause music.", 10000);
+        addChatMessage("Use the button in the top left of the menu to play/pause music.", 10000);
     } else {
-        addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Monster Storage.", 30000)
+        addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Menu.", 30000)
     }
 }
 
@@ -106,6 +120,22 @@ function gameLoop(time) {
     // Calculate delta time
     const deltaTime = (time - gameState.lastTime) / 1000; // Convert to seconds
     gameState.lastTime = time;
+    let paused = false;
+
+    // Check if any UI is open
+    if (gameState.storageUIOpen) {
+        paused = true;
+    }
+
+    // Pause game if any UI is open
+    if (paused) {
+        // Render the scene
+        gameState.renderer.render(gameState.scene, gameState.camera);
+    
+        // Continue the game loop
+        requestAnimationFrame(gameLoop);
+        return
+    }
     
     // Cap delta time to prevent physics issues after tab switching
     const cappedDeltaTime = Math.min(deltaTime, 0.1);
