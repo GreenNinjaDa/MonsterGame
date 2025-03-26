@@ -239,7 +239,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     );
 
     // Create the monster's visual representation using a plane with texture
-    const geometry = new THREE.PlaneGeometry(40 * calculatedStats.sizeMultiplier, 40 * calculatedStats.sizeMultiplier);
+    const geometry = new THREE.PlaneGeometry(60 * calculatedStats.sizeMultiplier, 60 * calculatedStats.sizeMultiplier);
     const material = new THREE.MeshBasicMaterial({ 
         map: MONSTER_TEXTURES[typeId],
         transparent: true,

@@ -84,14 +84,21 @@ function initPlayer() {
     // Store player mesh
     gameState.player.mesh = playerMesh;
     
-    // Create starter monster (Stupid Fish)
+    // Create starter monster (Stupid Fish) with all rare modifiers
     const starterMonster = createMonster(1, 5, ["Strong"], false, 0, "Earth");
-    
+    //const starterMonster = createMonster(1, 5, ["Smooth", "Sharp", "Witty", "Shocking", "Athletic", "Strong", "Sturdy", "Slick", "Tough", "Decisive", "Aggressive", "Determined", "Smart", "Stoic", "Thoughtful"], false, 0, "Earth");
+
     // Add to player's monsters
     addMonsterToPlayer(starterMonster);
     
-    addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Monster Storage on mobile.", 60000)
-    
+    addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Monster Storage", 30000)
+    // Check if user is on mobile and show warning
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        if (confirm("This game is designed for desktop browsers. Please request the desktop version of the site for best experience.")) {
+        } else {
+            addChatMessage("Playing on mobile. Some features may be limited.", 10000);
+        }
+    }
 }
 
 // Main game loop

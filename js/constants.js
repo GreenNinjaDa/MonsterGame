@@ -88,12 +88,12 @@ const AREAS = {
 // Monster Types
 const MONSTER_TYPES = {
     // # - Name - Element - Speed, Phys Def, Phys Atk, Spec Def, Spec Atk, Endurance
-    1: { name: "Useless Fish", element: "Water", stats: { speed: 40, physDef: 60, physAtk: 70, specDef: 70, specAtk: 20, endur: 40 }, color: 0x3498db },
-    2: { name: "Emberling", element: "Fire", stats: { speed: 70, physDef: 40, physAtk: 50, specDef: 60, specAtk: 60, endur: 20 }, color: 0xe74c3c },
-    3: { name: "DownTwo", element: "Earth", stats: { speed: 30, physDef: 65, physAtk: 55, specDef: 65, specAtk: 55, endur: 30 }, color: 0x964b00 },
-    4: { name: "Potsy", element: "Plant", stats: { speed: 30, physDef: 60, physAtk: 60, specDef: 60, specAtk: 60, endur: 30 }, color: 0x2ecc71 },
-    5: { name: "Shockles", element: "Electric", stats: { speed: 60, physDef: 30, physAtk: 50, specDef: 40, specAtk: 60, endur: 60 }, color: 0xf1c40f },
-    6: { name: "Zappy Bird", element: "Electric", stats: { speed: 70, physDef: 40, physAtk: 30, specDef: 40, specAtk: 80, endur: 40 }, color: 0xf1c40f }
+    1: { name: "Useless Fish", element: "Water", stats: { speed: 40, physDef: 60, physAtk: 70, specDef: 70, specAtk: 20, endur: 40 }},
+    2: { name: "Emberling", element: "Fire", stats: { speed: 70, physDef: 40, physAtk: 50, specDef: 60, specAtk: 60, endur: 20 }},
+    3: { name: "DownTwo", element: "Earth", stats: { speed: 30, physDef: 65, physAtk: 55, specDef: 65, specAtk: 55, endur: 30 }},
+    4: { name: "Potsy", element: "Plant", stats: { speed: 30, physDef: 60, physAtk: 60, specDef: 60, specAtk: 60, endur: 30 }},
+    5: { name: "Shockles", element: "Electric", stats: { speed: 60, physDef: 30, physAtk: 50, specDef: 40, specAtk: 60, endur: 60 }},
+    6: { name: "Zappy Bird", element: "Electric", stats: { speed: 70, physDef: 40, physAtk: 30, specDef: 40, specAtk: 80, endur: 40 }}
 };
 
 // Element Relationships (bonus/penalty)

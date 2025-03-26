@@ -86,10 +86,13 @@ function updateStorageUI() {
         const monsterCard = document.createElement('div');
         monsterCard.className = 'monster-card';
         
-        // Monster color circle based on element
-        const colorDiv = document.createElement('div');
-        colorDiv.className = 'monster-color';
-        colorDiv.style.backgroundColor = '#' + new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString();
+        // Monster sprite image instead of color circle
+        const spriteDiv = document.createElement('div');
+        spriteDiv.className = 'monster-sprite';
+        const spriteImg = document.createElement('img');
+        spriteImg.src = `assets/monsterimg/${monster.typeId}.png`;
+        spriteImg.alt = monster.name;
+        spriteDiv.appendChild(spriteImg);
         
         // Monster info
         const infoDiv = document.createElement('div');
@@ -104,7 +107,7 @@ function updateStorageUI() {
             </div>
         `;
         
-        monsterCard.appendChild(colorDiv);
+        monsterCard.appendChild(spriteDiv);
         monsterCard.appendChild(infoDiv);
         activeList.appendChild(monsterCard);
     });
@@ -117,10 +120,13 @@ function updateStorageUI() {
         const monsterCard = document.createElement('div');
         monsterCard.className = 'monster-card';
         
-        // Monster color circle matching its type
-        const colorDiv = document.createElement('div');
-        colorDiv.className = 'monster-color';
-        colorDiv.style.backgroundColor = '#' + new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString();
+        // Monster sprite image instead of color circle
+        const spriteDiv = document.createElement('div');
+        spriteDiv.className = 'monster-sprite';
+        const spriteImg = document.createElement('img');
+        spriteImg.src = `assets/monsterimg/${monster.typeId}.png`;
+        spriteImg.alt = monster.name;
+        spriteDiv.appendChild(spriteImg);
         
         // Monster info
         const infoDiv = document.createElement('div');
@@ -136,7 +142,7 @@ function updateStorageUI() {
             </div>
         `;
         
-        monsterCard.appendChild(colorDiv);
+        monsterCard.appendChild(spriteDiv);
         monsterCard.appendChild(infoDiv);
         storageList.appendChild(monsterCard);
     });
@@ -459,19 +465,11 @@ function showMonsterDetails(monsterId) {
     // Create details content
     const detailsContent = document.getElementById('detailsContent');
     
-    // Color and basic info
+    // Sprite and basic info
     let headerHTML = `
         <div class="monster-header">
-            <div class="monster-color" style="background-color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}; position: relative;">
-                <div style="
-                    position: absolute;
-                    top: 15%;
-                    left: 15%;
-                    width: 70%;
-                    height: 70%;
-                    border-radius: 50%;
-                    background-color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()};
-                "></div>
+            <div class="monster-sprite">
+                <img src="assets/monsterimg/${monster.typeId}.png" alt="${monster.name}">
             </div>
             <div>
                 <h3>${monster.name} ${formatModifiers(monster)}</h3>
@@ -619,11 +617,51 @@ function showMonsterDetails(monsterId) {
 // Close the details modal when clicking the close button
 document.addEventListener('DOMContentLoaded', function() {
     const detailsModal = document.getElementById('monsterDetailsUI');
+    const storageModal = document.getElementById('storageUI');
     const closeButton = detailsModal.querySelector('.close-button');
     
     closeButton.addEventListener('click', function() {
         detailsModal.style.display = 'none';
     });
+
+    // Helper function to handle both mouse and touch events
+    function handleOutsideInteraction(event) {
+        // Get the actual target (handle both mouse and touch)
+        const target = (event.touches ? event.touches[0] : event).target;
+
+        // Ignore if the interaction started from a button
+        if (target.tagName === 'BUTTON') {
+            return;
+        }
+
+        // For Monster Details UI - close if clicked outside or on storage UI
+        if (detailsModal.style.display === 'block' && 
+            (!detailsModal.contains(target) || storageModal.contains(target))) {
+            detailsModal.style.display = 'none';
+        }
+        
+        // For Storage UI - only close if clicked completely outside both UIs
+        if (gameState.storageUIOpen && 
+            !storageModal.contains(target) && 
+            !detailsModal.contains(target) && 
+            !target.matches('#storageButton')) {
+            toggleStorageUI();
+        }
+    }
+
+    // Add mouse and touch event handlers for outside clicks/taps
+    document.addEventListener('mousedown', handleOutsideInteraction);
+    document.addEventListener('touchstart', handleOutsideInteraction, { passive: true });
+
+    // Prevent events inside the modals from triggering the outside handler
+    function stopPropagation(event) {
+        event.stopPropagation();
+    }
+
+    detailsModal.addEventListener('mousedown', stopPropagation);
+    detailsModal.addEventListener('touchstart', stopPropagation, { passive: true });
+    storageModal.addEventListener('mousedown', stopPropagation);
+    storageModal.addEventListener('touchstart', stopPropagation, { passive: true });
 });
 
 // Chat UI System
