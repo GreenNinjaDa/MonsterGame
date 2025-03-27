@@ -381,10 +381,8 @@ function calculateDamage(attacker, defender) {
     // Apply elemental relationships: Plant → Earth → Electric → Water → Fire → Plant
     if (ELEMENT_RELATIONS[attacker.element].strong === defender.element) {
         elementMultiplier = 1.5; // 50% more damage
-        elementMessage = "Elemental Weakness!";
     } else if (ELEMENT_RELATIONS[attacker.element].weak === defender.element) {
         elementMultiplier = 0.67; // 33% less damage
-        elementMessage = "Element Resisted...";
     }
     
     // Apply element multiplier to special damage only
@@ -392,11 +390,6 @@ function calculateDamage(attacker, defender) {
     
     // Total damage
     const totalDamage = physicalDamage + adjustedSpecialDamage;
-    
-    // Log elemental interaction for debugging
-    if (elementMultiplier !== 1) {
-        console.log(`${attacker.name} (${attacker.element}) vs ${defender.name} (${defender.element}): ${elementMessage} Multiplier: x${elementMultiplier.toFixed(2)}`);
-    }
     
     return {
         physical: physicalDamage,

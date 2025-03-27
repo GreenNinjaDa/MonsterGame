@@ -196,7 +196,7 @@ function gameLoop(time) {
         gameState.lastSaveTime = time;
         gameState.saveCounter = (gameState.saveCounter + 1) % 24;
         if (gameState.saveCounter === 0) {
-            addChatMessage("Game auto-saved. You can also save by opening the menu.", 5000);
+            addChatMessage("Game auto-saves every 5 seconds. You can also save by opening the menu.", 5000);
         }
     }
     
@@ -242,12 +242,12 @@ function init() {
         // Initialize new player with starter monster
         initPlayer(true);
         
-        // Set random position for next area entrance
-        setRandomNextAreaPosition();
-        
         // Spawn wild monsters (Area Level 1)
         spawnWildMonsters(1, null);
     }
+    
+    // Set random position for next area entrance
+    setRandomNextAreaPosition();
     
     // Add exit marker
     addAreaExit();
@@ -630,8 +630,6 @@ function updateMonsterRevival(deltaTime) {
                 
                 // Update UI
                 updateUILabel(monster.uiLabel, monster);
-                
-                console.log(`${monster.name} has revived!`);
             }
         }
     }

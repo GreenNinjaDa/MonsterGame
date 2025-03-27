@@ -2,7 +2,7 @@
 // It should also store the player's gold, and the level of the area the player is currently in. Also save music pause/play state.
 
 
-//List of things to save from each monster the player owns: typeId, level, experience, favoredStat, element, spawnLevel.
+//List of things to save from each monster the player owns: typeId, level, experience, favoredStat, element, spawnLevel, rare modifiers.
 
 //List of things to save from the player: gold, areaLevel, musicState.
 
@@ -23,7 +23,8 @@ window.saveGame = function() {
             experience: monster.experience,
             favoredStat: monster.favoredStat,
             element: monster.element,
-            spawnLevel: monster.spawnLevel
+            spawnLevel: monster.spawnLevel,
+            rareModifiers: monster.rareModifiers
         })),
         storedMonsters: storedMonsters.map(monster => ({
             typeId: monster.typeId,
@@ -31,7 +32,8 @@ window.saveGame = function() {
             experience: monster.experience,
             favoredStat: monster.favoredStat,
             element: monster.element,
-            spawnLevel: monster.spawnLevel
+            spawnLevel: monster.spawnLevel,
+            rareModifiers: monster.rareModifiers
         })),
         player: playerData
     };
@@ -86,12 +88,13 @@ window.loadGame = function() {
         const monster = createMonster(
             monsterData.typeId, 
             monsterData.level, 
-            monsterData.experience, 
+            monsterData.rareModifiers,
             false, // not wild
             monsterData.spawnLevel,
             monsterData.element,
             monsterData.favoredStat
         );
+        monster.experience = monsterData.experience;
         gameState.player.monsters.push(monster);
         gameState.scene.add(monster.mesh);
     }
@@ -101,12 +104,13 @@ window.loadGame = function() {
         const monster = createMonster(
             monsterData.typeId, 
             monsterData.level, 
-            monsterData.experience, 
+            monsterData.rareModifiers,
             false, // not wild
             monsterData.spawnLevel,
             monsterData.element,
             monsterData.favoredStat
         );
+        monster.experience = monsterData.experience;
         gameState.player.storedMonsters.push(monster);
     }
 }
