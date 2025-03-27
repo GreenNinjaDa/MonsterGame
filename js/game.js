@@ -190,10 +190,14 @@ function gameLoop(time) {
     // Auto-save every 5 seconds
     if (!gameState.lastSaveTime) {
         gameState.lastSaveTime = time;
-    } else if (time - gameState.lastSaveTime >= 50000) { // 5000ms = 5 seconds
+        gameState.saveCounter = 0;
+    } else if (time - gameState.lastSaveTime >= 5000) { // 5000ms = 5 seconds
         saveGame();
         gameState.lastSaveTime = time;
-        addChatMessage("Game auto-saved. You can also save by opening the menu.", 3000);
+        gameState.saveCounter = (gameState.saveCounter + 1) % 24;
+        if (gameState.saveCounter === 0) {
+            addChatMessage("Game auto-saved. You can also save by opening the menu.", 5000);
+        }
     }
     
     // Render the scene
@@ -205,6 +209,9 @@ function gameLoop(time) {
 
 // Initialize the game
 function init() {
+    // Initialize gameState first
+    initializeGameState();
+    
     // Initialize Three.js
     initThree();
     

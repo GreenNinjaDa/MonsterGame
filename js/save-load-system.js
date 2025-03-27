@@ -48,6 +48,8 @@ window.loadGame = function() {
     }
 
     gameState.player.gold = saveData.player.gold;   
+    updateGoldDisplay(); // Update the UI to show correct gold value
+    
     gameState.currentArea = saveData.player.areaLevel;
     
     // Handle music state

@@ -29,7 +29,8 @@ const GAME_CONFIG = {
     playerGracePeriod: 5, // 5 seconds grace period after being sent back to start
     rareModifierRate: 5, // Rate of rare modifiers in percentage, for each monster
     statGainRatePerLevel: 0.10, // % stat gain per level
-    statNames: { 1: "speed", 2: "physDef", 3: "specDef", 4: "physAtk", 5: "specAtk", 6: "endur" }
+    statNames: { 1: "speed", 2: "physDef", 3: "specDef", 4: "physAtk", 5: "specAtk", 6: "endur" },
+    statNamesProper: { 1: "Speed", 2: "Physical Defense", 3: "Special Defense", 4: "Physical Attack", 5: "Special Attack", 6: "Endurance" }
 };
 
 // Area Configuration
@@ -147,26 +148,39 @@ const ELEMENT_MODIFIERS = {
 };
 
 // Initial Game State
-const gameState = {
-    player: {
-        position: new THREE.Vector3(0, 0, 0),
-        gold: 100,
-        monsters: [], // Active monsters
-        storedMonsters: [], // Storage for additional monsters
-        gracePeriodTimer: 0 // Timer for grace period after teleportation
-    },
-    wildMonsters: [],
-    activeCombats: [],
-    captureTargets: [],
-    scene: null,
-    camera: null,
-    renderer: null,
-    clickTargetPosition: null,
-    lastTime: 0,
-    nextAreaPosition: new THREE.Vector3(4500, 4500, 0),
-    storageUIOpen: false,
-    directionArrow: null,
-    currentArea: 1 // Starting area
-}; 
+let gameState;
+
+function initializeGameState() {
+    // Try to load saved data first
+    const savedData = JSON.parse(localStorage.getItem('gameState'));
+    
+    // Create base gameState structure
+    gameState = {
+        player: {
+            position: new THREE.Vector3(0, 0, 0),
+            gold: savedData?.player?.gold ?? 100, // Use saved gold if it exists, otherwise 100
+            monsters: [], // Active monsters
+            storedMonsters: [], // Storage for additional monsters
+            gracePeriodTimer: 0 // Timer for grace period after teleportation
+        },
+        wildMonsters: [],
+        activeCombats: [],
+        captureTargets: [],
+        scene: null,
+        camera: null,
+        renderer: null,
+        clickTargetPosition: null,
+        lastTime: 0,
+        nextAreaPosition: new THREE.Vector3(4500, 4500, 0),
+        storageUIOpen: false,
+        directionArrow: null,
+        currentArea: savedData?.player?.areaLevel ?? 1 // Use saved area if it exists, otherwise 1
+    };
+    
+    return gameState;
+}
+
+// Export gameState initialization
+window.initializeGameState = initializeGameState;
 
 //Monster 
