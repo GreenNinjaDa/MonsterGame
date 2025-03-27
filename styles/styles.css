@@ -76,8 +76,8 @@ canvas {
     border-radius: 10px;
     color: white;
     font-family: Arial, sans-serif;
-    width: 100%;
-    max-width: 800px;
+    width: 90%;
+    max-width: 1000px;
     max-height: 80vh;
     overflow-y: auto;
     display: none;
@@ -150,8 +150,8 @@ canvas {
     border-radius: 10px;
     color: white;
     font-family: Arial, sans-serif;
-    width: 100%;
-    max-width: 600px;
+    width: 90%;
+    max-width: 800px;
     max-height: 80vh;
     overflow-y: auto;
     display: none;
@@ -267,6 +267,11 @@ canvas {
     text-align: right;
 }
 
+.boosted-stat {
+    color: #00ff00;
+    font-weight: bold;
+}
+
 .stat-modifier {
     color: #4CAF50;
     text-align: right;
@@ -299,7 +304,7 @@ canvas {
     margin-bottom: 8px;
     border-radius: 5px;
     font-family: Arial, sans-serif;
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1.4;
     opacity: 0;
     transform: translateY(20px);

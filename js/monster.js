@@ -60,17 +60,44 @@ function updateUILabel(uiLabel, monster) {
     context.fillRect(2, 17, (canvas.width - 4) * staminaPercent, 8);
     
     // Level display with element color
-    const elementColor = ELEMENT_COLORS[monster.element];
-    const color = new THREE.Color(elementColor);
-    context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 0.7)`;
-    context.fillRect(65, 30, 30, 30);
-    context.font = '20px Arial';
+    let elementColor = ELEMENT_COLORS[monster.element];
+    let color = new THREE.Color(elementColor);
+
+    // Check if monster is typeshifted (element different from original)
+    const isTypeshifted = monster.element !== MONSTER_TYPES[monster.typeId].element;
+    if (isTypeshifted) {
+        // Draw first half of outline for level text
+        context.lineWidth = 4;
+        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
+        context.fillRect(50, 30, 60, 20);
+        // Use element color for text when typeshifted
+        elementColor = ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element];
+        color = new THREE.Color(elementColor);
+        // Draw second half of outline for level text
+        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
+        context.fillRect(50, 50, 60, 10);
+    }
+    else {
+        // Draw an outline for level text
+        context.lineWidth = 4;
+        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
+        context.fillRect(50, 30, 60, 30);
+    }
+
+    // Use white for text
     context.fillStyle = 'white';
+    context.strokeStyle = 'black';
+
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     
     // Show level number
+    context.font = 'bold 25px Arial';
+    context.strokeText(monster.level, 80, 45);
     context.fillText(monster.level, 80, 45);
+    
+    // Reset font for the name
+    context.font = '25px Arial';
     
     // Add monster name below with larger font
     let displayName = monster.name;
@@ -91,13 +118,8 @@ function updateUILabel(uiLabel, monster) {
         }
     }
     
-    context.font = '25px Arial';
-    context.fillStyle = 'white';
     context.textAlign = 'center';
     
-    // Draw name with a black outline
-    context.strokeStyle = 'black';
-    context.lineWidth = 4;
     context.strokeText(displayName, canvas.width / 2, 70);
     context.fillText(displayName, canvas.width / 2, 70);
     
@@ -106,25 +128,37 @@ function updateUILabel(uiLabel, monster) {
 }
 
 // Calculate monster stats from base values, level, element, and rare modifiers
-function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0, typeId = null) {
+function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0, typeId = null, favoredStat = null) {
     // Create copies to avoid modifying original objects
     const stats = {};
     
     // Apply spawn level adjustment to base stats
     const baseStatAdjustment = 1 / (1 + spawnLevel / 100);
-    const statGainMultiplier = 1 + spawnLevel / 50;
+    const statGainMultiplier = 1 + (level+spawnLevel-Math.abs(level-spawnLevel)) / 130;
     
     // Step 1: Start with adjusted base stats
     Object.keys(baseStats).forEach(stat => {
         stats[stat] = Math.round(baseStats[stat] * baseStatAdjustment);
     });
     
-    // Step 2: Apply level-up stat bonuses (3% per level)
+    if (favoredStat === null) {
+        favoredStat = Math.floor(Math.random() * 6) + 1; // 1-6
+    }
+
+    // Step 2: Apply stat boost if present
+    if (favoredStat !== null) {
+        const boostedStat = GAME_CONFIG.statNames[favoredStat];
+        if (boostedStat && stats[boostedStat]) {
+            stats[boostedStat] += 10;
+        }
+    }
+    
+    // Step 3: Apply level-up stat bonuses
     Object.keys(stats).forEach(stat => {
         stats[stat] = Math.round(stats[stat] * (1 + GAME_CONFIG.statGainRatePerLevel * (level - 1) * statGainMultiplier));
     });
     
-    // Step 3: Apply element modifiers AFTER level-up stats
+    // Step 4: Apply element modifiers AFTER level-up stats
     // First, get the original element modifiers from the monster's type
     const originalElement = typeId ? MONSTER_TYPES[typeId].element : element;
     const originalElementMods = ELEMENT_MODIFIERS[originalElement];
@@ -155,7 +189,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
         }
     });
     
-    // Step 4: Apply rare modifiers if present - FIX: Sum all modifiers first, then apply once
+    // Step 5: Apply rare modifiers if present - FIX: Sum all modifiers first, then apply once
     let sizeMultiplier = 1;
     if (rareModifiers && Array.isArray(rareModifiers) && rareModifiers.length > 0) {
         // Create an object to track total modifier percentages per stat
@@ -184,7 +218,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
         });
     }
     
-    // Step 5: Calculate derived stats
+    // Step 6: Calculate derived stats
     const maxHP = Math.round(200 * (1 + 0.4 * stats.endur / 100));
     const maxStamina = Math.round(100 * (1 + 0.4 * stats.endur / 100));
     const attackCooldown = 5 / (1 + 0.006 * stats.speed); // 5 seconds base, reduced by speed
@@ -215,7 +249,7 @@ function updateMonsterDirection(monster, targetX) {
 }
 
 // Create monster object
-function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, spawnLevel = 0, tempElement = MONSTER_TYPES[typeId].element) {
+function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, spawnLevel = 0, tempElement = MONSTER_TYPES[typeId].element, favoredStat = null) {
     const monsterType = MONSTER_TYPES[typeId];
 
     //Wild monsters have a 20% chance to spawn as a random element this is called typeshifting
@@ -228,6 +262,11 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         rareModifiers = [rareModifiers];
     }
     
+    // If favoredStat not specified, randomly generate one
+    if (favoredStat === null) {
+        favoredStat = Math.floor(Math.random() * 6) + 1; // 1-6
+    }
+    
     // Calculate all stats using the centralized function
     const calculatedStats = calculateMonsterStats(
         monsterType.stats, 
@@ -235,7 +274,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         tempElement, 
         rareModifiers, 
         spawnLevel,
-        typeId
+        typeId,
+        favoredStat
     );
 
     // Create the monster's visual representation using a plane with texture
@@ -280,6 +320,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         rareModifiers,
         isWild,
         spawnLevel,
+        favoredStat,
         stats: calculatedStats.stats,
         maxHP: calculatedStats.maxHP,
         currentHP: calculatedStats.maxHP,
@@ -695,7 +736,8 @@ function checkLevelUp(monster) {
             monster.element, 
             monster.rareModifiers, 
             monster.spawnLevel,
-            monster.typeId
+            monster.typeId,
+            monster.favoredStat
         );
         
         // Store current HP and stamina percentages to maintain proportions

@@ -28,14 +28,15 @@ const GAME_CONFIG = {
     maxMonsterWanderDistance: 1000, // Maximum distance a monster can wander from spawn
     playerGracePeriod: 5, // 5 seconds grace period after being sent back to start
     rareModifierRate: 5, // Rate of rare modifiers in percentage, for each monster
-    statGainRatePerLevel: 0.10 // % stat gain per level
+    statGainRatePerLevel: 0.10, // % stat gain per level
+    statNames: { 1: "speed", 2: "physDef", 3: "specDef", 4: "physAtk", 5: "specAtk", 6: "endur" }
 };
 
 // Area Configuration
 const AREAS = {
     1: {
         name: "Starting Plains",
-        backgroundColor: 0x87CEEB, // Light blue sky color
+        backgroundColor: 0x66aa66, // Green background for grass
         description: "A peaceful starting area with gentle monsters"
     },
     2: {
@@ -167,3 +168,5 @@ const gameState = {
     directionArrow: null,
     currentArea: 1 // Starting area
 }; 
+
+//Monster 

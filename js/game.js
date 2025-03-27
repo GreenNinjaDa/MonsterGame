@@ -55,7 +55,7 @@ function initThree() {
     // Handle window resize
     window.addEventListener('resize', () => {
         const aspectRatio = window.innerWidth / window.innerHeight;
-        const viewSize = isMobile ? GAME_CONFIG.baseViewSize * 2 : GAME_CONFIG.baseViewSize;
+        const viewSize = isMobile ? GAME_CONFIG.baseViewSize * 1.5 : GAME_CONFIG.baseViewSize;
         gameState.camera.left = -viewSize * aspectRatio;
         gameState.camera.right = viewSize * aspectRatio;
         gameState.camera.updateProjectionMatrix();
@@ -89,7 +89,7 @@ function initThree() {
 }
 
 // Initialize player
-function initPlayer() {
+function initPlayer(hasStarterMonster) {
     // Create player visual
     const geometry = new THREE.CircleGeometry(12, 32);
     const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -100,18 +100,21 @@ function initPlayer() {
     // Store player mesh
     gameState.player.mesh = playerMesh;
     
-    // Create starter monster (Stupid Fish) with all rare modifiers
-    const starterMonster = createMonster(1, 5, ["Strong"], false, 0, "Earth");
-    //const starterMonster = createMonster(1, 5, ["Smooth", "Sharp", "Witty", "Shocking", "Athletic", "Strong", "Sturdy", "Slick", "Tough", "Decisive", "Aggressive", "Determined", "Smart", "Stoic", "Thoughtful"], false, 0, "Earth");
+    // Create starter monster only if needed
+    if (hasStarterMonster) {
+        // Create starter monster (Stupid Fish) with all rare modifiers
+        const starterMonster = createMonster(1, 5, ["Strong"], false, 5, "Earth", 1);
+        //const starterMonster = createMonster(1, 5, ["Smooth", "Sharp", "Witty", "Shocking", "Athletic", "Strong", "Sturdy", "Slick", "Tough", "Decisive", "Aggressive", "Determined", "Smart", "Stoic", "Thoughtful"], false, 0, "Earth");
 
-    // Add to player's monsters
-    addMonsterToPlayer(starterMonster);
-    
-    // Check if user is on mobile and show warning
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        addChatMessage("Use the button in the top left of the menu to play/pause music.", 10000);
-    } else {
-        addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Menu.", 30000)
+        // Add to player's monsters
+        addMonsterToPlayer(starterMonster);
+        
+        // Check if user is on mobile and show warning
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            addChatMessage("Use the button in the top left of the menu to play/pause music.", 10000);
+        } else {
+            addChatMessage("Welcome to the game! Press M to play/pause the music, or use the button in the top left of the Menu.", 30000)
+        }
     }
 }
 
@@ -184,6 +187,15 @@ function gameLoop(time) {
     // Cleanup defeated monsters and handle respawns
     cleanupDefeatedMonsters(cappedDeltaTime);
     
+    // Auto-save every 5 seconds
+    if (!gameState.lastSaveTime) {
+        gameState.lastSaveTime = time;
+    } else if (time - gameState.lastSaveTime >= 50000) { // 5000ms = 5 seconds
+        saveGame();
+        gameState.lastSaveTime = time;
+        addChatMessage("Game auto-saved. You can also save by opening the menu.", 3000);
+    }
+    
     // Render the scene
     gameState.renderer.render(gameState.scene, gameState.camera);
     
@@ -199,8 +211,39 @@ function init() {
     // Load monster textures
     loadMonsterTextures();
     
-    // Initialize player
-    initPlayer();
+    // Check for saved game
+    const saveData = JSON.parse(localStorage.getItem('gameState'));
+    const hasSaveGame = saveData !== null;
+    
+    if (hasSaveGame) {
+        // Initialize player without starter monster first
+        initPlayer(false);
+        
+        // Load the saved game data
+        loadGame();
+        
+        // Set up the area based on saved area level
+        const areaInfo = AREAS[gameState.currentArea];
+        if (gameState.scene) {
+            gameState.scene.background = new THREE.Color(areaInfo.backgroundColor);
+        }
+        updateAreaDisplay();
+        
+        // Spawn wild monsters for the saved area
+        spawnWildMonsters(gameState.currentArea);
+    } else {
+        // Initialize new player with starter monster
+        initPlayer(true);
+        
+        // Set random position for next area entrance
+        setRandomNextAreaPosition();
+        
+        // Spawn wild monsters (Area Level 1)
+        spawnWildMonsters(1, null);
+    }
+    
+    // Add exit marker
+    addAreaExit();
     
     // Initialize music but don't play yet
     initMusic();
@@ -214,15 +257,6 @@ function init() {
     for (const monster of gameState.player.monsters) {
         monster.experience.toNextLevel = 25 * monster.level;
     }
-    
-    // Set random position for next area entrance
-    setRandomNextAreaPosition();
-    
-    // Spawn wild monsters (Area Level 1)
-    spawnWildMonsters(1, null); // Use null to calculate based on density
-    
-    // Add exit marker
-    addAreaExit();
     
     // Initialize storage UI
     initStorageUI();

@@ -16,6 +16,8 @@ function toggleStorageUI() {
     
     // Update storage UI content if opening
     if (gameState.storageUIOpen) {
+        saveGame();
+        addChatMessage("Game saved.", 1000);
         updateStorageUI();
     }
 }
@@ -475,7 +477,7 @@ function showMonsterDetails(monsterId) {
                 <h3>${monster.name} ${formatModifiers(monster)}</h3>
                 <p>${monster.element}${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (${MONSTER_TYPES[monster.typeId].element})` : ''} Level ${monster.level}</p>
                 <p>Spawn Level (Potential): ${monster.spawnLevel}</p>
-                <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
+                <p>Favors ${GAME_CONFIG.statNamesProper[monster.favoredStat]}</p>
             </div>
         </div>
     `;
@@ -509,27 +511,17 @@ function showMonsterDetails(monsterId) {
         baseStats[stat] = Math.round(baseStats[stat] * (1 / (1 + monster.spawnLevel / 100)));
     });
     
-    // Stat names for display
-    const statDisplayNames = {
-        'speed': 'Speed',
-        'physDef': 'Physical Defense',
-        'physAtk': 'Physical Attack',
-        'specDef': 'Special Defense',
-        'specAtk': 'Special Attack',
-        'endur': 'Endurance'
-    };
+    //Add 10 to the stat that was boosted
+    baseStats[GAME_CONFIG.statNames[monster.favoredStat]] += 10;
     
     // Store intermediate values for calculating derived stats
-    let statsAfterLevel = {};
-    let statsBeforeRare = {};
     let statValues = {};
     
     // For each stat, calculate the modifiers
     Object.keys(monster.stats).forEach(stat => {
         const baseValue = baseStats[stat];
-        const levelModifier = Math.round(baseValue * (GAME_CONFIG.statGainRatePerLevel * (monster.level - 1) * (1 + monster.spawnLevel / 50)));
-        const afterLevel = baseValue + levelModifier;
-        statsAfterLevel[stat] = afterLevel;
+        const statGainMultiplier = 1 + (monster.level+monster.spawnLevel-Math.abs(monster.level-monster.spawnLevel)) / 130;
+        const levelModifier = Math.round(baseValue * (GAME_CONFIG.statGainRatePerLevel * (monster.level - 1) * statGainMultiplier));
         
         // Get element modifier percentages
         let elementModifierPercent = 0;
@@ -559,8 +551,8 @@ function showMonsterDetails(monsterId) {
         // Display the stat row
         statsHTML += `
             <tr>
-                <td>${statDisplayNames[stat]}</td>
-                <td class="stat-value">${baseValue}</td>
+                <td>${GAME_CONFIG.statNamesProper[stat]}</td>
+                <td class="stat-value ${stat === GAME_CONFIG.statNames[monster.favoredStat] ? 'boosted-stat' : ''}">${baseValue}</td>
                 <td class="stat-modifier">
                     ${levelModifier > 0 ? '+' + levelModifier : (levelModifier < 0 ? levelModifier : '')}
                 </td>
@@ -692,7 +684,3 @@ function addChatMessage(text, duration = 10000) {
         }, 300);
     }, duration);
 }
-
-// Example usage:
-// addChatMessage("Monster defeated!");
-// addChatMessage("Level up!", 5000); // Custom duration in ms 
