@@ -518,7 +518,10 @@ function showMonsterDetails(monsterId) {
     let statValues = {};
     
     // For each stat, calculate the modifiers
-    Object.keys(monster.stats).forEach(stat => {
+    Object.keys(baseStats).forEach(stat => {
+        // Find the stat index by looking up in GAME_CONFIG.statNames
+        const statIndex = Object.entries(GAME_CONFIG.statNames).find(([_, value]) => value === stat)[0];
+        
         const baseValue = baseStats[stat];
         const statGainMultiplier = 1 + (monster.level+monster.spawnLevel-Math.abs(monster.level-monster.spawnLevel)) / 130;
         const levelModifier = Math.round(baseValue * (GAME_CONFIG.statGainRatePerLevel * (monster.level - 1) * statGainMultiplier));
@@ -551,7 +554,7 @@ function showMonsterDetails(monsterId) {
         // Display the stat row
         statsHTML += `
             <tr>
-                <td>${GAME_CONFIG.statNamesProper[stat]}</td>
+                <td>${GAME_CONFIG.statNamesProper[statIndex]}</td>
                 <td class="stat-value ${stat === GAME_CONFIG.statNames[monster.favoredStat] ? 'boosted-stat' : ''}">${baseValue}</td>
                 <td class="stat-modifier">
                     ${levelModifier > 0 ? '+' + levelModifier : (levelModifier < 0 ? levelModifier : '')}
