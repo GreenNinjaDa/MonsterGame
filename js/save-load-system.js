@@ -53,13 +53,17 @@ window.loadGame = function() {
     updateGoldDisplay(); // Update the UI to show correct gold value
     
     gameState.currentArea = saveData.player.areaLevel;
-    
-    // Handle music state
-    if (backgroundMusic) {
-        if (saveData.player.musicState) {
-            backgroundMusic.play();
-        } else {
+
+    // Set music state
+    if (saveData.player.musicState === false) {
+        gameState.musicSavedOff = true;
+        if (backgroundMusic) {
             backgroundMusic.pause();
+        }
+        // Update music button icon
+        const musicButton = document.getElementById('musicToggleButton');
+        if (musicButton) {
+            musicButton.innerHTML = '🎵';
         }
     }
 

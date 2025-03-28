@@ -12,13 +12,19 @@ const GAME_CONFIG = {
     innerZoneRatio: 0.4,       // Ratio of map that maintains minimum level (40%)
     outerZoneRatio: 0.8,       // Ratio of map for level scaling (80%)
     
+    // Movement Speeds (units per second)
+    playerSpeed: 200,          // Base player movement speed
+    playerMonsterSpeed: 220,   // Player monster movement speed (all states)
+    wildMonsterSpeed: 160,     // Wild monster movement speed
+    monsterCollisionDistance: 30, // Distance to move monsters apart when they collide
+    
     // Existing properties...
-    playerSpeed: 200, // Units per second
     monsterFollowDistance: {
         slot1: 25,
         slot2: 50
     },
-    aggroRange: 300,
+    aggroRange: 350,           // Wild monster aggro range
+    playerMonsterAggroRange: 175, // Player monster aggro range
     attackRange: 100,
     attackRangeSlot1: 50, // Half the normal attack range for slot 1 monsters
     respawnTime: 50, // Time for player owned monsters to respawn after being defeated
@@ -164,7 +170,6 @@ function initializeGameState() {
             gracePeriodTimer: 0 // Timer for grace period after teleportation
         },
         wildMonsters: [],
-        activeCombats: [],
         captureTargets: [],
         scene: null,
         camera: null,
@@ -173,8 +178,11 @@ function initializeGameState() {
         lastTime: 0,
         nextAreaPosition: new THREE.Vector3(4500, 4500, 0),
         storageUIOpen: false,
+        captureUIOpen: false,
+        detailsUIOpen: false,
         directionArrow: null,
-        currentArea: savedData?.player?.areaLevel ?? 1 // Use saved area if it exists, otherwise 1
+        currentArea: savedData?.player?.areaLevel ?? 1, // Use saved area if it exists, otherwise 1
+        musicSavedOff: savedData?.player?.musicState === false // Music is off if saved state is false
     };
     
     return gameState;

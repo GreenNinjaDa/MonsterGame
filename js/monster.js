@@ -5,7 +5,7 @@ const MONSTER_TEXTURES = {};
 function loadMonsterTextures() {
     const textureLoader = new THREE.TextureLoader();
     for (let i = 1; i <= 6; i++) {
-        MONSTER_TEXTURES[i] = textureLoader.load(`assets/monsterimg/${i}.png`, (texture) => {
+        MONSTER_TEXTURES[i] = textureLoader.load(`./assets/monsterimg/${i}.png`, (texture) => {
             // Configure texture settings for better rendering
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
@@ -454,6 +454,10 @@ function monsterAttack(attacker, defender, deltaTime) {
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
     
+    // Set lastDamageTime for both monsters to indicate they are in combat
+    attacker.lastDamageTime = gameState.lastTime;
+    defender.lastDamageTime = gameState.lastTime;
+    
     // Visual feedback for elemental interactions
     if (damageResult.elementMultiplier !== 1) {
         // Clear any existing color flash timeout and revert material
@@ -539,42 +543,79 @@ function handleMonsterDefeat(defeated, victor) {
     if (defeated.colorResetTimeout) {
         clearTimeout(defeated.colorResetTimeout);
         defeated.colorResetTimeout = null;
-        
-        // Reset color to original if it exists
-        if (defeated.originalColor && defeated.mesh && defeated.mesh.material) {
-            defeated.mesh.material.color.copy(defeated.originalColor);
-        }
+    }
+    
+    // Reset material to original if it exists
+    if (defeated.monsterMesh && defeated.originalMaterial) {
+        defeated.monsterMesh.material = defeated.originalMaterial;
     }
     
     defeated.defeated = true;
     
-    // Remove from combat
-    removeFromCombat(defeated);
-    
     // Handle EXP gain if a wild monster was defeated by a player monster
     if (defeated.isWild && !victor.isWild) {
+        let avgLevel= 0;
+        let monstersGainedExp = 0;
         // Distribute EXP to all active player monsters
         for (const playerMonster of gameState.player.monsters) {
             if (!playerMonster.defeated) {
                 handleExperienceGain(playerMonster, defeated);
+                avgLevel += playerMonster.level;
+                monstersGainedExp++;
             }
         }
-        
-        // Calculate effective level for gold reward based on rare modifiers
-        let effectiveLevel = defeated.level;
-        if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
-            effectiveLevel += defeated.rareModifiers.length * 5;
+
+        if (monstersGainedExp > 0) {
+            avgLevel = Math.floor(avgLevel / monstersGainedExp);
         }
-        
-        // Add gold based on effective level
-        const goldReward = 2 + Math.ceil((effectiveLevel * (effectiveLevel + 1)) / 10);
-        gameState.player.gold += goldReward;
-        updateGoldDisplay();
-        
-        // Add to capture targets if it's a wild monster
-        if (defeated.isWild) {
-            addCaptureTarget(defeated);
+
+        //If the player's monsters are too high level, player gets no gold
+        if (monstersGainedExp == 0 || avgLevel > defeated.level + 10) {
+            goldReward = 0;
+            addChatMessage(`No gold gained from defeating ${defeated.name}.`);
         }
+        else {
+            // Calculate effective level for gold reward based on rare modifiers
+            let effectiveLevel = defeated.level;
+            if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
+                effectiveLevel += defeated.rareModifiers.length * 5;
+        
+            // Add gold based on effective level
+            const goldReward = 2 + Math.ceil((effectiveLevel * (effectiveLevel + 1)) / 10);
+            gameState.player.gold += goldReward;
+            updateGoldDisplay();
+
+            addChatMessage(`Defeated ${defeated.name} for ${goldReward} gold!`);
+            }
+        }
+
+        // Reduce level to 40% (rounded up) and recalculate stats
+        defeated.level = Math.max(1, Math.ceil(defeated.level * 0.4));
+        
+        // Get the base stats from the monster type
+        const monsterType = MONSTER_TYPES[defeated.typeId];
+        
+        // Calculate all stats from scratch using the centralized function
+        const calculatedStats = calculateMonsterStats(
+            monsterType.stats, 
+            defeated.level, 
+            defeated.element, 
+            defeated.rareModifiers, 
+            defeated.spawnLevel,
+            defeated.typeId,
+            defeated.favoredStat
+        );
+        
+        // Update monster with new stats
+        defeated.stats = calculatedStats.stats;
+        defeated.maxHP = calculatedStats.maxHP;
+        defeated.maxStamina = calculatedStats.maxStamina;
+        defeated.attackCooldown = calculatedStats.attackCooldown;
+        
+        // Update UI
+        updateUILabel(defeated.uiLabel, defeated);
+        
+        addCaptureTarget(defeated);
     }
     
     // Handle player monster defeat - set revival timer and move to storage
@@ -610,7 +651,7 @@ function handleMonsterDefeat(defeated, victor) {
 // Add a defeated wild monster to the capture targets
 function addCaptureTarget(monster) {
     // Create a capture icon
-    const geometry = new THREE.RingGeometry(12, 15, 32);
+    const geometry = new THREE.RingGeometry(18, 22.5, 32);
     const material = new THREE.MeshBasicMaterial({ 
         color: 0xffffff,
         transparent: true,
@@ -687,11 +728,11 @@ function handleExperienceGain(victor, defeated) {
     
     // Reduce EXP for lower-level monsters
     if (levelDifference < 0) {
-        // For every level below, reduce EXP by 10%
-        expModifier = Math.max(0, 1 + (levelDifference * 0.1));
+        // For every level below, reduce EXP by 5%
+        expModifier = Math.max(0, 1 + (levelDifference * 0.05));
     } else if (levelDifference > 0) {
-        // For every level above, increase EXP by 10%
-        expModifier = Math.min(2, 1 + (levelDifference * 0.1));
+        // For every level above, increase EXP by 5%
+        expModifier = Math.min(2, 1 + (levelDifference * 0.05));
     }
     
     // Calculate final EXP and apply the 2x bonus

@@ -1,5 +1,6 @@
 // Update gold display
 function updateGoldDisplay() {
+    gameState.player.gold = Math.floor(gameState.player.gold);
     document.getElementById('goldCounter').textContent = `Gold: ${gameState.player.gold}`;
 }
 
@@ -50,14 +51,17 @@ function toggleMusic() {
         backgroundMusic.play();
         musicInitialized = true;
         button.innerHTML = '🎶';
+        gameState.musicSavedOff = false;
     } else if (backgroundMusic.paused) {
         // If music is paused, resume it
         backgroundMusic.play();
         button.innerHTML = '🎶';
+        gameState.musicSavedOff = false;
     } else {
         // If music is playing, pause it
         backgroundMusic.pause();
         button.innerHTML = '🎵';
+        gameState.musicSavedOff = true;
     }
 }
 
@@ -249,7 +253,7 @@ function showSellConfirmation(monsterId) {
         effectiveLevel += monster.rareModifiers.length * 5;
     }
     // Calculate sell price (same as capture cost)
-    let sellPrice = 10 + ((effectiveLevel * (effectiveLevel + 1)) / 2);
+    let sellPrice = 5 + Math.ceil(Math.pow(effectiveLevel, 1.6));
 
     // Show confirmation dialog
     if (confirm(`Are you sure you want to sell ${monster.name} (Level ${monster.level})${formatModifiers(monster)} for ${sellPrice} gold?`)) {
@@ -288,19 +292,18 @@ function sellMonster(monsterId, sellPrice) {
 function showCaptureUI(captureInfo) {
     const monster = captureInfo.monster;
 
-    
     // Calculate catch chance and cost
-    let effectiveLevel = monster.level;
+    let effectiveLevel = monster.spawnLevel;
     if (monster.rareModifiers && Array.isArray(monster.rareModifiers)) {
         effectiveLevel += monster.rareModifiers.length * 5;
     }
     const catchChance = Math.min(100, Math.floor(10000 / (100 + 2 * effectiveLevel)));
-    let cost = 10 + ((effectiveLevel * (effectiveLevel + 1)) / 2);
+    let cost = 10 + Math.ceil(Math.pow(effectiveLevel, 1.5));
     
     // Update UI
     document.getElementById('captureText').textContent = 
-        `Capture ${monster.name} (Level ${monster.level})${formatModifiers(monster)}?`;
-    document.getElementById('captureCost').textContent = `Cost: ${cost} Gold`;
+        `${monster.name} Level ${Math.ceil(monster.level)} (${monster.spawnLevel} before defeat) ${formatModifiers(monster)}`;
+    document.getElementById('captureCost').innerHTML = `Cost: <span style="color: gold; font-weight: bold;">${cost}</span> Gold (50% refund on failure)`;
     document.getElementById('captureChance').textContent = `Chance: ${catchChance}%`;
     
     // Store info for the capture button
@@ -308,8 +311,21 @@ function showCaptureUI(captureInfo) {
     document.getElementById('captureButton').dataset.cost = cost;
     document.getElementById('captureButton').dataset.chance = catchChance;
     
+    // Store monster for details button and set up event listener
+    const detailsButton = document.getElementById('captureDetailsButton');
+    detailsButton.dataset.monsterId = monster.id;
+    detailsButton.addEventListener('click', function() {
+        const monsterId = this.dataset.monsterId;
+        // Find the monster in capture targets
+        const target = gameState.captureTargets.find(t => t.monster.id.toString() === monsterId);
+        if (target) {
+            showMonsterDetails(monsterId);
+        }
+    });
+    
     // Show the UI
     document.getElementById('captureUI').style.display = 'block';
+    gameState.captureUIOpen = true;
     
     // Cancel player movement
     gameState.clickTargetPosition = null;
@@ -327,42 +343,42 @@ function handleCapture() {
     const chance = parseInt(button.dataset.chance);
 
     // Find the monster in capture targets
-    const targetIndex = gameState.captureTargets.findIndex(
-        target => target.monster.id.toString() === monsterId
-    );
+    const target = gameState.captureTargets.find(t => t.monster.id.toString() === monsterId);
     
     // Check if player has enough gold
     if (gameState.player.gold < cost) {
         addChatMessage("Not enough gold!");
         document.getElementById('captureUI').style.display = 'none';
-        gameState.captureTargets[targetIndex].clicked = false;
+        target.clicked = false;
         return;
     }
     
-    // Deduct gold
-    gameState.player.gold -= cost;
-    updateGoldDisplay();
     
     // Roll for capture
     const roll = Math.random() * 100;
     if (roll <= chance) {
+
+        // Deduct gold
+        gameState.player.gold -= cost;
+        updateGoldDisplay();
         
-        if (targetIndex !== -1) {
-            const monster = gameState.captureTargets[targetIndex].monster;
+        if (target) {
+            const monster = target.monster;
             
             // Remove from capture targets
-            gameState.scene.remove(gameState.captureTargets[targetIndex].mesh);
-            gameState.captureTargets.splice(targetIndex, 1);
+            gameState.scene.remove(target.mesh);
+            gameState.captureTargets.splice(gameState.captureTargets.indexOf(target), 1);
             
             // Convert to player monster (revert to 40% of level)
-            const newLevel = Math.max(1, Math.floor(monster.level * 0.4));
+            const newLevel = Math.max(1, Math.ceil(monster.level * 0.4));
             const capturedMonster = createMonster(
                 monster.typeId,
                 newLevel,
                 monster.rareModifiers,
                 false,
                 monster.spawnLevel,
-                monster.element
+                monster.element,
+                monster.favoredStat
             );
             
             // Ensure EXP formula is correct (halved requirement)
@@ -381,14 +397,17 @@ function handleCapture() {
         }
     } else {
         addChatMessage("Failed to capture the monster! Try again!");
+        gameState.player.gold -= Math.ceil(cost * 0.5);
+        updateGoldDisplay();
     }
     
     // Hide the UI
     document.getElementById('captureUI').style.display = 'none';
+    gameState.captureUIOpen = false;
     
     // Reset clicked flag for the capture target to allow retrying
-    if (targetIndex !== -1) {
-            gameState.captureTargets[targetIndex].clicked = false;
+    if (target) {
+            target.clicked = false;
     }
 }
 
@@ -454,6 +473,13 @@ function showMonsterDetails(monsterId) {
     
     if (!monster) {
         monster = gameState.player.storedMonsters.find(m => m.id.toString() === monsterId);
+    }
+    
+    if (!monster) {
+        const captureTarget = gameState.captureTargets.find(t => t.monster.id.toString() === monsterId);
+        if (captureTarget) {
+            monster = captureTarget.monster;
+        }
     }
     
     if (!monster) {
@@ -607,6 +633,7 @@ function showMonsterDetails(monsterId) {
     
     // Show the modal
     document.getElementById('monsterDetailsUI').style.display = 'block';
+    gameState.detailsUIOpen = true;
 }
 
 // Close the details modal when clicking the close button
@@ -617,6 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     closeButton.addEventListener('click', function() {
         detailsModal.style.display = 'none';
+        gameState.detailsUIOpen = false;
     });
 
     // Helper function to handle both mouse and touch events
@@ -634,6 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // If clicked on storage UI or outside both UIs
             if (storageModal.contains(target) || (!detailsModal.contains(target) && !storageModal.contains(target))) {
                 detailsModal.style.display = 'none';
+                gameState.detailsUIOpen = false;
             }
         }
         
@@ -686,4 +715,34 @@ function addChatMessage(text, duration = 10000) {
             chatUI.removeChild(messageElement);
         }, 300);
     }, duration);
+}
+
+// Set up UI event handlers
+function setupUIEventHandlers() {
+    // Storage button
+    document.getElementById('storageButton').addEventListener('click', toggleStorageUI);
+    
+    // Close button for storage UI
+    document.querySelector('#storageUI .close-button').addEventListener('click', toggleStorageUI);
+    
+    // Capture button
+    document.getElementById('captureButton').addEventListener('click', handleCapture);
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(event) {
+        // 'S' key to toggle storage
+        if (event.key === 's' || event.key === 'S') {
+            toggleStorageUI();
+        }
+        // 'M' key to toggle music
+        if (event.key === 'm' || event.key === 'M') {
+            if (backgroundMusic.paused) {
+                backgroundMusic.play();
+                addChatMessage("Music playing, press M again to pause.", 6000)
+            } else {
+                backgroundMusic.pause();
+                addChatMessage("Music paused, press M again to play.", 6000)
+            }
+        }
+    });
 }

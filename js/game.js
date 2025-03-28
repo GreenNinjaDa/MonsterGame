@@ -10,7 +10,9 @@ function initMusic() {
 
 function startMusicOnFirstInput() {
     if (!musicInitialized) {
-        backgroundMusic.play();
+        if (!gameState.musicSavedOff) {
+            backgroundMusic.play();
+        }
         musicInitialized = true;
         // Remove all the input event listeners for music start
         document.removeEventListener('click', startMusicOnFirstInput);
@@ -94,7 +96,7 @@ function initPlayer(hasStarterMonster) {
     const geometry = new THREE.CircleGeometry(12, 32);
     const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const playerMesh = new THREE.Mesh(geometry, material);
-    playerMesh.position.z = 2; // Above ground
+    playerMesh.position.z = calculateZPosition(0, true);
     gameState.scene.add(playerMesh);
     
     // Store player mesh
@@ -123,15 +125,15 @@ function gameLoop(time) {
     // Calculate delta time
     const deltaTime = (time - gameState.lastTime) / 1000; // Convert to seconds
     gameState.lastTime = time;
-    let paused = false;
+    let gamePaused = false;
 
     // Check if any UI is open
-    if (gameState.storageUIOpen) {
-        paused = true;
+    if (gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen) {
+        gamePaused = true;
     }
 
     // Pause game if any UI is open
-    if (paused) {
+    if (gamePaused) {
         // Render the scene
         gameState.renderer.render(gameState.scene, gameState.camera);
     
@@ -142,6 +144,9 @@ function gameLoop(time) {
     
     // Cap delta time to prevent physics issues after tab switching
     const cappedDeltaTime = Math.min(deltaTime, 0.1);
+    
+    // Handle monster collisions first, before any other movement
+    handleMonsterCollisions();
     
     // Update player movement
     updatePlayerMovement(cappedDeltaTime);
@@ -154,11 +159,11 @@ function gameLoop(time) {
     // Update monster following
     updateMonsterFollowing(cappedDeltaTime);
     
-    // Check for combat conditions
-    checkCombatRange();
-    
     // Update wild monster aggro behaviors
     updateWildMonsterAggro(cappedDeltaTime);
+    
+    // Check for potential combat between monsters
+    checkAggroRange();
     
     // Update combat logic
     updateCombat(cappedDeltaTime);
@@ -205,6 +210,51 @@ function gameLoop(time) {
     
     // Continue the game loop
     requestAnimationFrame(gameLoop);
+}
+
+// Handle monster collisions
+function handleMonsterCollisions() {
+    // Combine all monsters into a single array
+    const allMonsters = [...gameState.player.monsters, ...gameState.wildMonsters];
+    
+    // Check each monster against every other monster
+    for (let i = 0; i < allMonsters.length; i++) {
+        const monster = allMonsters[i];
+        
+        // Skip if monster is defeated
+        if (monster.defeated) continue;
+        
+        // Check against all other monsters
+        for (let j = i + 1; j < allMonsters.length; j++) {
+            const target = allMonsters[j];
+            
+            // Skip if target is defeated
+            if (target.defeated) continue;
+            
+            // Calculate distance between monsters
+            const distance = monster.mesh.position.distanceTo(target.mesh.position);
+            
+            // Handle collision avoidance
+            if (distance < GAME_CONFIG.monsterCollisionDistance) {
+                // Calculate direction vector between monsters
+                const direction = new THREE.Vector3()
+                    .subVectors(monster.mesh.position, target.mesh.position)
+                    .normalize();
+                
+                // Calculate how far to move each monster to reach collision distance
+                const moveDistance = (GAME_CONFIG.monsterCollisionDistance - distance) / 2;
+                
+                // Move monsters apart instantly
+                monster.mesh.position.x += direction.x * moveDistance;
+                monster.mesh.position.y += direction.y * moveDistance;
+                monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+                
+                target.mesh.position.x -= direction.x * moveDistance;
+                target.mesh.position.y -= direction.y * moveDistance;
+                target.mesh.position.z = calculateZPosition(target.mesh.position.y);
+            }
+        }
+    }
 }
 
 // Initialize the game
@@ -301,6 +351,7 @@ function isClickingUI(event) {
     const uiElements = [
         document.getElementById('captureUI'),
         document.getElementById('storageUI'),
+        document.getElementById('monsterDetailsUI')
     ];
     
     // Check if click is within any UI element
@@ -374,6 +425,7 @@ function handleClick(event) {
     // Hide capture UI if visible
     if (captureUIOpen) {
         document.getElementById('captureUI').style.display = 'none';
+        gameState.captureUIOpen = false;
         // Reset clicked flag for the capture target
         for (const target of gameState.captureTargets) {
             if (target.clicked) {
@@ -414,8 +466,8 @@ function handleMouseDown(event) {
 function handleMouseMove(event) {
     event.preventDefault();
     
-    // Don't process if mouse is not down, if storage UI is open, or if clicking UI elements
-    if (!gameState.isMouseDown || gameState.storageUIOpen || isClickingUI(event)) {
+    // Don't process if mouse is not down, if any UI is open, or if clicking UI elements
+    if (!gameState.isMouseDown || gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen || isClickingUI(event)) {
         gameState.isMouseDown = false;
         return;
     }
@@ -508,6 +560,7 @@ function handleTouch(event) {
         // Hide capture UI if visible
         if (captureUIOpen) {
             document.getElementById('captureUI').style.display = 'none';
+            gameState.captureUIOpen = false;
             // Reset clicked flag for the capture target
             for (const target of gameState.captureTargets) {
                 if (target.clicked) {
@@ -535,8 +588,8 @@ function handleTouchEnd(event) {
 function handleTouchMove(event) {
     event.preventDefault();
     
-    // Don't process if not touching, if storage UI is open, or if touching UI elements
-    if (!gameState.isMouseDown || gameState.storageUIOpen || isClickingUI(event)) {
+    // Don't process if not touching, if any UI is open, or if touching UI elements
+    if (!gameState.isMouseDown || gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen || isClickingUI(event)) {
         gameState.isMouseDown = false;
         return;
     }
@@ -589,8 +642,9 @@ function updatePlayerMovement(deltaTime) {
         gameState.player.position.x += direction.x * movement;
         gameState.player.position.y += direction.y * movement;
         
-        // Update player mesh
+        // Update player mesh with Z position calculation
         gameState.player.mesh.position.copy(gameState.player.position);
+        gameState.player.mesh.position.z = calculateZPosition(gameState.player.position.y, true);
     } else {
         // Target reached
         gameState.clickTargetPosition = null;
@@ -637,61 +691,97 @@ function updateMonsterRevival(deltaTime) {
 
 // Check for next area transition
 function checkAreaTransition() {
+    // Check for next area entrance
     const distanceToNextArea = gameState.player.position.distanceTo(gameState.nextAreaPosition);
     
-    if (distanceToNextArea < 50) {
-        // Check if we can transition to next area
-        if (gameState.currentArea < Object.keys(AREAS).length) {
-            // Increment current area
-            gameState.currentArea++;
+    // Check for previous area entrance (250 units south of spawn)
+    const distanceToPreviousArea = gameState.player.position.distanceTo(new THREE.Vector3(0, -250, 0));
+    
+    // Check if player is near either entrance
+    const isNextArea = distanceToNextArea < 50;
+    if (isNextArea || distanceToPreviousArea < 50) {
+        
+        // Determine if area transition is allowed
+        const canTransition = isNextArea ? 
+            gameState.currentArea < Object.keys(AREAS).length :
+            gameState.currentArea > 1;
             
-            // Get area info
-            const areaInfo = AREAS[gameState.currentArea];
-            
-            // Update background color
-            if (gameState.scene) {
-                gameState.scene.background = new THREE.Color(areaInfo.backgroundColor);
+        if (!canTransition) {
+            // Show appropriate message if transition not allowed
+            if (isNextArea) {
+                addChatMessage("You've reached the final area! There's nowhere else to go...");
             }
-            
-            // Show transition message
-            addChatMessage(`Welcome to ${areaInfo.name}! ${areaInfo.description}`);
-            
-            // Update area display
-            updateAreaDisplay();
-            
-            // Reset player position to start of new area
-            gameState.player.position.set(0, 0, 0);
-            gameState.player.mesh.position.copy(gameState.player.position);
-            
-            // Move player's active monsters with them
-            for (const monster of gameState.player.monsters) {
-                monster.mesh.position.copy(gameState.player.position);
-                monster.lastPosition.copy(gameState.player.position);
-                monster.targetPosition.copy(gameState.player.position);
-            }
-            
-            // Update camera
-            gameState.camera.position.x = 0;
-            gameState.camera.position.y = 0;
-            gameState.camera.lookAt(0, 0, 0);
-            
-            // Clear existing wild monsters
-            gameState.wildMonsters.forEach(monster => {
-                if (monster.mesh && monster.mesh.parent) {
-                    monster.mesh.parent.remove(monster.mesh);
-                }
-            });
-            gameState.wildMonsters = [];
-            
-            // Set new random position for next area entrance
-            setRandomNextAreaPosition();
-            
-            // Spawn new monsters for the new area
-            spawnWildMonsters(gameState.currentArea);
+            return;
+        }
+        if (isNextArea) {
+            areaTransition(gameState.currentArea + 1);
         } else {
-            addChatMessage("You've reached the final area! There's nowhere else to go...");
+            areaTransition(gameState.currentArea - 1);
         }
     }
+}
+
+function areaTransition(newArea) {
+    // Update previous area mesh visibility
+    if (gameState.previousAreaMesh) {
+        gameState.previousAreaMesh.visible = gameState.currentArea > 1;
+    }
+    
+    const isNextArea = newArea > gameState.currentArea;
+    gameState.currentArea = newArea;
+
+    // Get area info
+    const areaInfo = AREAS[newArea];
+    
+    // Update background color
+    if (gameState.scene) {
+        gameState.scene.background = new THREE.Color(areaInfo.backgroundColor);
+    }
+    
+    // Show transition message
+    addChatMessage(isNextArea ?
+        `Ascending to ${areaInfo.name}! ${areaInfo.description}` :
+        `Descending to ${areaInfo.name}! ${areaInfo.description}`
+    );
+    
+    // Update area display
+    updateAreaDisplay();
+    
+    // Reset player position to start of new area
+    gameState.player.position.set(0, 0, 0);
+    gameState.player.mesh.position.copy(gameState.player.position);
+    gameState.player.mesh.position.z = calculateZPosition(gameState.player.position.y, true);
+    
+    // Move player's active monsters with them
+    for (const monster of gameState.player.monsters) {
+        monster.mesh.position.copy(gameState.player.position);
+        monster.lastPosition.copy(gameState.player.position);
+        monster.targetPosition.copy(gameState.player.position);
+    }
+    
+    // Update camera
+    gameState.camera.position.x = 0;
+    gameState.camera.position.y = 0;
+    gameState.camera.lookAt(0, 0, 0);
+    
+    // Clear existing wild monsters
+    gameState.wildMonsters.forEach(monster => {
+        if (monster.mesh && monster.mesh.parent) {
+            monster.mesh.parent.remove(monster.mesh);
+        }
+    });
+    gameState.wildMonsters = [];
+    
+    // Set new random position for next area entrance
+    setRandomNextAreaPosition();
+    
+    // Update next area mesh position
+    if (gameState.nextAreaMesh) {
+        gameState.nextAreaMesh.position.copy(gameState.nextAreaPosition);
+    }
+    
+    // Spawn new monsters for the new area
+    spawnWildMonsters(gameState.currentArea);
 }
 
 // Helper function to select a random enemy with distance-based weighting
@@ -743,102 +833,72 @@ function selectWeightedRandomTarget(monster, potentialTargets) {
 
 // Update combat logic
 function updateCombat(deltaTime) {
-    // Process each active combat
-    for (const combat of gameState.activeCombats) {
-        // For each monster in combat
-        for (const monster of combat.participants) {
-            if (monster.defeated) continue;
-            
-            // Find the closest enemy for movement
-            let closestEnemy = null;
-            let closestDistance = Infinity;
-            
-            for (const potentialTarget of combat.participants) {
-                // Skip same monster, defeated monsters, or friendly monsters (wild vs wild or player vs player)
-                if (potentialTarget === monster || 
-                    potentialTarget.defeated || 
-                    (potentialTarget.isWild === monster.isWild)) {
-                    continue;
-                }
-                
-                const distance = monster.mesh.position.distanceTo(potentialTarget.mesh.position);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestEnemy = potentialTarget;
-                }
-            }
-            
-            // Update movement target to closest enemy
-            monster.target = closestEnemy;
-            
-            // If no valid target found and this is a wild monster, exit combat and return to origin
-            if (!monster.target && monster.isWild && monster.originalPosition) {
-                monster.inCombat = false;
-                monster.returningToOrigin = true;
+    // Process each monster's movement and attacks
+    for (const monster of [...gameState.player.monsters, ...gameState.wildMonsters]) {
+        // Skip if defeated
+        if (monster.defeated) continue;
+        
+        // Check if player monster is too far from player
+        if (!monster.isWild) {
+            const distanceToPlayer = monster.mesh.position.distanceTo(gameState.player.position);
+            if (distanceToPlayer > 400) {
+                // Exit combat and chase player
+                monster.chasingPlayer = true;
+                monster.aggroTarget = null;
+                monster.isAggroed = false;
                 continue;
             }
-            
-            // If no valid target found, skip
-            if (!monster.target) continue;
-            
-            // Determine the appropriate attack range based on monster slot
-            let attackRange = GAME_CONFIG.attackRange;
-            if (!monster.isWild && gameState.player.monsters.indexOf(monster) === 0) {
-                // This is the first slot monster (index 0), use shorter range
-                attackRange = GAME_CONFIG.attackRangeSlot1;
-            }
-            
-            // If in attack range, select a random target to attack
-            if (closestDistance <= attackRange) {
-                const attackTargetInfo = selectWeightedRandomTarget(monster, combat.participants);
-                if (attackTargetInfo) {
-                    monsterAttack(monster, attackTargetInfo.target, deltaTime);
-                }
-            }
-            // Otherwise, move towards closest target
-            else {
-                // Calculate direction
-                const direction = new THREE.Vector3()
-                    .subVectors(monster.target.mesh.position, monster.mesh.position)
-                    .normalize();
-                
-                // Update monster direction before moving
-                updateMonsterDirection(monster, monster.target.mesh.position.x);
-                
-                // Calculate speed (wild monsters are slower)
-                const speed = GAME_CONFIG.playerSpeed * (monster.isWild ? 0.8 : 1.2) * deltaTime;
-                
-                // Move towards target
-                monster.mesh.position.x += direction.x * speed;
-                monster.mesh.position.y += direction.y * speed;
-            }
         }
         
-        // Check if combat has ended (only one type of monster left)
-        let hasWildMonster = false;
-        let hasPlayerMonster = false;
+        // Get target based on aggro
+        let target = monster.aggroTarget;
         
-        for (const monster of combat.participants) {
-            if (!monster.defeated) {
-                if (monster.isWild) {
-                    hasWildMonster = true;
-                } else {
-                    hasPlayerMonster = true;
-                }
-            }
+        // If no target or target is defeated, clear aggro
+        if (!target || target.defeated) {
+            monster.aggroTarget = null;
+            monster.isAggroed = false;
+            continue;
         }
         
-        // If only one type remains, end combat
-        if (!hasWildMonster || !hasPlayerMonster) {
-            for (const monster of combat.participants) {
-                monster.inCombat = false;
-                monster.target = null;
-                
-                // Set wild monsters to return to their original position
-                if (monster.isWild && monster.originalPosition && !monster.defeated) {
-                    monster.returningToOrigin = true;
-                }
-            }
+        // Calculate distance to target
+        const distance = monster.mesh.position.distanceTo(target.mesh.position);
+        
+        // If target is too far, clear aggro
+        const aggroRange = monster.isWild ? GAME_CONFIG.aggroRange : GAME_CONFIG.playerMonsterAggroRange;
+        if (distance > aggroRange) {
+            monster.aggroTarget = null;
+            monster.isAggroed = false;
+            continue;
+        }
+        
+        // Determine the appropriate attack range based on monster slot
+        let attackRange = GAME_CONFIG.attackRange;
+        if (!monster.isWild && gameState.player.monsters.indexOf(monster) === 0) {
+            // This is the first slot monster (index 0), use shorter range
+            attackRange = GAME_CONFIG.attackRangeSlot1;
+        }
+        
+        // If in attack range, attack target
+        if (distance <= attackRange) {
+            monsterAttack(monster, target, deltaTime);
+        }
+        // Otherwise, move towards target
+        else {
+            // Calculate direction
+            const direction = new THREE.Vector3()
+                .subVectors(target.mesh.position, monster.mesh.position)
+                .normalize();
+            
+            // Update monster direction before moving
+            updateMonsterDirection(monster, target.mesh.position.x);
+            
+            // Use appropriate speed based on monster type
+            const speed = (monster.isWild ? GAME_CONFIG.wildMonsterSpeed : GAME_CONFIG.playerMonsterSpeed) * deltaTime;
+            
+            // Move towards target
+            monster.mesh.position.x += direction.x * speed;
+            monster.mesh.position.y += direction.y * speed;
+            monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
         }
     }
 }
@@ -850,6 +910,9 @@ function updateStaminaRegen(deltaTime) {
     
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
+        
+        // Check if monster is in combat based on last damage time
+        monster.inCombat = monster.lastDamageTime && (gameState.lastTime - monster.lastDamageTime < 10000);
         
         // Calculate regen rate (1% in combat, 5% out of combat or always 5% for stored monsters)
         const isStored = gameState.player.storedMonsters.includes(monster);
@@ -872,13 +935,11 @@ function updateHPRegen(deltaTime) {
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
         
-        // Only regenerate if not in combat (active monsters) or always regenerate (stored monsters)
-        const canRegenerate = monster.inCombat ? false : true;
-        const isStored = gameState.player.storedMonsters.includes(monster);
         
-        if (canRegenerate || isStored) {
+        // Regenerate if not in combat (active monsters) or always regenerate (stored monsters)
+        if (!monster.inCombat || gameState.player.storedMonsters.includes(monster)) {
             // Regenerate HP using constant rate
-            const regenAmount = monster.maxHP * GAME_CONFIG.hpRegenRate * deltaTime;
+            const regenAmount = monster.maxHP * 0.03 * deltaTime; // 3% per second
             
             // Apply HP regeneration
             if (monster.currentHP < monster.maxHP) {
@@ -916,8 +977,41 @@ function updateMonsterFollowing(deltaTime) {
     for (let i = 0; i < gameState.player.monsters.length; i++) {
         const monster = gameState.player.monsters[i];
         
-        // Skip if in combat
-        if (monster.inCombat || monster.defeated) continue;
+        // Skip if defeated
+        if (monster.defeated) continue;
+        
+        // Skip if monster is aggroed (has a target)
+        if (monster.isAggroed && monster.aggroTarget) continue;
+        
+        // If monster is chasing player, move directly towards player
+        if (monster.chasingPlayer) {
+            const distanceToPlayer = monster.mesh.position.distanceTo(gameState.player.position);
+            
+            // If close enough to player, stop chasing
+            if (distanceToPlayer < 150) {
+                monster.chasingPlayer = false;
+                continue;
+            }
+            
+            // Move towards player
+            const direction = new THREE.Vector3()
+                .subVectors(gameState.player.position, monster.mesh.position)
+                .normalize();
+            
+            // Update monster direction before moving
+            updateMonsterDirection(monster, gameState.player.position.x);
+            
+            // Use player monster speed
+            const speed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
+            
+            monster.mesh.position.x += direction.x * speed;
+            monster.mesh.position.y += direction.y * speed;
+            monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+            
+            // Update last position
+            monster.lastPosition.copy(monster.mesh.position);
+            continue;
+        }
         
         // Calculate target position behind player
         const distanceFromPlayer = i === 0 ? 
@@ -944,13 +1038,14 @@ function updateMonsterFollowing(deltaTime) {
             .normalize();
         
         const distanceToTarget = monster.mesh.position.distanceTo(monster.targetPosition);
-        const speed = GAME_CONFIG.playerSpeed * 1.2 * deltaTime; // 120% of player speed
+        const speed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
         
         // Only move if not already at target
         if (distanceToTarget > 5) {
             const movement = Math.min(distanceToTarget, speed);
             monster.mesh.position.x += direction.x * movement;
             monster.mesh.position.y += direction.y * movement;
+            monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
         }
         
         // Update last position
@@ -961,8 +1056,8 @@ function updateMonsterFollowing(deltaTime) {
 // Update wild monster aggro behaviors (chasing without combat)
 function updateWildMonsterAggro(deltaTime) {
     for (const monster of gameState.wildMonsters) {
-        // Skip if already in combat or defeated
-        if (monster.inCombat || monster.defeated) continue;
+        // Skip if defeated or already aggroed
+        if (monster.defeated || monster.isAggroed) continue;
         
         // If player has no active monsters, check for player aggro
         if (gameState.player.monsters.length === 0) {
@@ -1000,6 +1095,7 @@ function updateWildMonsterAggro(deltaTime) {
                 
                 monster.aggroPlayer = true;
                 monster.aggroTarget = null;
+                monster.isAggroed = false;
                 monster.returningToOrigin = false;
                 
                 // Move toward player
@@ -1007,7 +1103,7 @@ function updateWildMonsterAggro(deltaTime) {
                     .subVectors(gameState.player.position, monster.mesh.position)
                     .normalize();
                 
-                // Move slightly faster than normal when chasing player
+                // Move slightly slower than the player when chasing player
                 const speed = GAME_CONFIG.playerSpeed * 0.9 * deltaTime;
                 
                 // Update monster direction before moving
@@ -1015,12 +1111,14 @@ function updateWildMonsterAggro(deltaTime) {
                 
                 monster.mesh.position.x += direction.x * speed;
                 monster.mesh.position.y += direction.y * speed;
+                monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
                 
                 // Check if reached the player
                 if (distanceToPlayer < 20) {
                     // Teleport player back to start
                     gameState.player.position.set(0, 0, 0);
                     gameState.player.mesh.position.copy(gameState.player.position);
+                    gameState.player.mesh.position.z = calculateZPosition(gameState.player.position.y, true);
                     
                     // Update camera
                     gameState.camera.position.x = 0;
@@ -1038,13 +1136,19 @@ function updateWildMonsterAggro(deltaTime) {
                         if (m.originalPosition) {
                             m.aggroPlayer = false;
                             m.aggroTarget = null;
+                            m.isAggroed = false;
                             m.returningToOrigin = true;
                         }
                     }
                     
                     // Show message
-                    addChatMessage("You were sent back to the starting point! You need monsters to protect you!");
+                    addChatMessage("You need monsters to protect you! Lost 10% of your gold and you've been sent back to the start.");
+                    gameState.player.gold -= Math.ceil(gameState.player.gold * 0.1);
+                    updateGoldDisplay();
                     
+                    //Send player back to area 1
+                    areaTransition(1);
+
                     // Break out of the loop
                     break;
                 }
@@ -1061,55 +1165,8 @@ function updateWildMonsterAggro(deltaTime) {
             }
         }
         
-        // If monster has an aggro target but isn't in combat
-        if (monster.aggroTarget) {
-            const targetMonster = monster.aggroTarget;
-            
-            // Check if target is valid
-            if (targetMonster.defeated) {
-                // Target is defeated, return to original position
-                monster.aggroTarget = null;
-                monster.returningToOrigin = true;
-                continue;
-            }
-            
-            // Calculate distance to target
-            const distanceToTarget = monster.mesh.position.distanceTo(targetMonster.mesh.position);
-            
-            // Calculate distance from original position
-            const distanceFromOrigin = monster.originalPosition ? 
-                monster.mesh.position.distanceTo(monster.originalPosition) : 0;
-            
-            // If monster has wandered too far, return to original position regardless of target
-            if (distanceFromOrigin > GAME_CONFIG.maxMonsterWanderDistance) {
-                monster.aggroTarget = null;
-                monster.returningToOrigin = true;
-            }
-            // If target moved outside of aggro range, return to original position
-            else if (distanceToTarget > GAME_CONFIG.aggroRange) {
-                monster.aggroTarget = null;
-                monster.returningToOrigin = true;
-            } 
-            // Otherwise, move toward target
-            else {
-                // Calculate direction to target
-                const direction = new THREE.Vector3()
-                    .subVectors(targetMonster.mesh.position, monster.mesh.position)
-                    .normalize();
-                
-                // Update monster direction before moving
-                updateMonsterDirection(monster, targetMonster.mesh.position.x);
-                
-                // Calculate speed (wild monsters are slower)
-                const speed = GAME_CONFIG.playerSpeed * 0.8 * deltaTime;
-                
-                // Move toward target
-                monster.mesh.position.x += direction.x * speed;
-                monster.mesh.position.y += direction.y * speed;
-            }
-        }
         // If monster is returning to its original position
-        else if (monster.returningToOrigin && monster.originalPosition) {
+        if (monster.returningToOrigin && monster.originalPosition) {
             // Calculate distance to original position
             const distanceToOrigin = monster.mesh.position.distanceTo(monster.originalPosition);
             
@@ -1126,11 +1183,12 @@ function updateWildMonsterAggro(deltaTime) {
                 updateMonsterDirection(monster, monster.originalPosition.x);
                 
                 // Speed is slower when returning
-                const speed = GAME_CONFIG.playerSpeed * 0.7 * deltaTime;
+                const speed = GAME_CONFIG.wildMonsterSpeed * 0.8 * deltaTime;
                 
                 // Move toward origin
                 monster.mesh.position.x += direction.x * speed;
                 monster.mesh.position.y += direction.y * speed;
+                monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
             }
         }
         // If monster is not aggroed, not returning to origin, and not in combat, do random movement
@@ -1148,7 +1206,6 @@ function updateWildMonsterAggro(deltaTime) {
             
             // If timer is up, set new random target
             if (monster.randomMoveTimer <= 0) {
-                
                 // Calculate random movement radius based on area level
                 const moveRadius = gameState.currentArea * 50;
                 
@@ -1168,14 +1225,16 @@ function updateWildMonsterAggro(deltaTime) {
                 const direction = new THREE.Vector3()
                     .subVectors(monster.randomMoveTarget, monster.mesh.position)
                     .normalize();
-            // Update monster direction before moving
-            updateMonsterDirection(monster, monster.randomMoveTarget.x);
-            
-            // Move at a slower speed for random movement
-            const speed = GAME_CONFIG.playerSpeed * 0.5 * deltaTime;
-            
-            monster.mesh.position.x += direction.x * speed;
-            monster.mesh.position.y += direction.y * speed;
+                
+                // Update monster direction before moving
+                updateMonsterDirection(monster, monster.randomMoveTarget.x);
+                
+                // Move at a slower speed for random movement
+                const speed = GAME_CONFIG.wildMonsterSpeed * 0.5 * deltaTime;
+                
+                monster.mesh.position.x += direction.x * speed;
+                monster.mesh.position.y += direction.y * speed;
+                monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
             }
         }
     }
@@ -1265,7 +1324,7 @@ function spawnWildMonsters(areaLevel, count = null) {
         const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
         
         // Position monster
-        monster.mesh.position.set(x, y, 1);
+        monster.mesh.position.set(x, y, calculateZPosition(y));
         monster.lastPosition.copy(monster.mesh.position);
         monster.targetPosition.copy(monster.mesh.position);
         
@@ -1318,6 +1377,15 @@ function cleanupDefeatedMonsters(deltaTime) {
                     monster.respawnTimer = GAME_CONFIG.respawnTime;
                 }
             }
+        }
+    }
+    
+    // Clean up any defeated player monsters that have been revived
+    for (let i = gameState.player.monsters.length - 1; i >= 0; i--) {
+        const monster = gameState.player.monsters[i];
+        if (monster.defeated && !monster.reviveTimer) {
+            // Monster has been defeated and is not being revived
+            gameState.player.monsters.splice(i, 1);
         }
     }
 }
@@ -1393,7 +1461,7 @@ function scheduleMonsterRespawn() {
     const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
     
     // Position monster
-    monster.mesh.position.set(x, y, 1);
+    monster.mesh.position.set(x, y, calculateZPosition(y));
     monster.lastPosition.copy(monster.mesh.position);
     monster.targetPosition.copy(monster.mesh.position);
     
@@ -1409,28 +1477,73 @@ function scheduleMonsterRespawn() {
 
 // Add exit marker for next area
 function addAreaExit() {
-    const geometry = new THREE.RingGeometry(20, 25, 32);
-    const material = new THREE.MeshBasicMaterial({ 
+    // Create arrow shape for next area (pointing up)
+    const nextArrowShape = new THREE.Shape();
+    nextArrowShape.moveTo(0, 24);    // Point of arrow (was 12)
+    nextArrowShape.lineTo(-12, -12); // Left wing (was -6)
+    nextArrowShape.lineTo(0, -6);    // Inner left notch (was -3)
+    nextArrowShape.lineTo(12, -12);  // Right wing (was 6)
+    nextArrowShape.lineTo(0, 24);    // Back to point (was 12)
+    
+    const nextGeometry = new THREE.ShapeGeometry(nextArrowShape);
+    const nextMaterial = new THREE.MeshBasicMaterial({ 
         color: 0x00ff00,
         transparent: true,
         opacity: 0.7
     });
-    const exitMesh = new THREE.Mesh(geometry, material);
-    exitMesh.position.copy(gameState.nextAreaPosition);
-    exitMesh.position.z = 0.5;
-    gameState.scene.add(exitMesh);
+    const nextExitMesh = new THREE.Mesh(nextGeometry, nextMaterial);
+    nextExitMesh.position.copy(gameState.nextAreaPosition);
+    nextExitMesh.position.z = 0.5;
+    gameState.scene.add(nextExitMesh);
     
-    // Add pulsing animation
+    // Store reference to next area mesh in gameState
+    gameState.nextAreaMesh = nextExitMesh;
+    
+    // Add pulsing animation for next area entrance
     const pulseTween = () => {
-        exitMesh.scale.set(1, 1, 1);
+        nextExitMesh.scale.set(1, 1, 1);
         setTimeout(() => {
-            exitMesh.scale.set(1.2, 1.2, 1);
+            nextExitMesh.scale.set(1.2, 1.2, 1);
             setTimeout(pulseTween, 1000);
         }, 1000);
     };
     pulseTween();
     
-    // Create direction arrow
+    // Create arrow shape for previous area (pointing down)
+    const prevArrowShape = new THREE.Shape();
+    prevArrowShape.moveTo(0, -24);   // Point of arrow (was -12)
+    prevArrowShape.lineTo(-12, 12);  // Left wing (was -6)
+    prevArrowShape.lineTo(0, 6);     // Inner left notch (was 3)
+    prevArrowShape.lineTo(12, 12);   // Right wing (was 6)
+    prevArrowShape.lineTo(0, -24);   // Back to point (was -12)
+    
+    const prevGeometry = new THREE.ShapeGeometry(prevArrowShape);
+    const prevMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.7
+    });
+    const prevExitMesh = new THREE.Mesh(prevGeometry, prevMaterial);
+    prevExitMesh.position.set(0, -250, 0.5);
+    gameState.scene.add(prevExitMesh);
+    
+    // Store reference to previous area mesh in gameState
+    gameState.previousAreaMesh = prevExitMesh;
+    
+    // Set initial visibility based on current area
+    prevExitMesh.visible = gameState.currentArea > 1;
+    
+    // Add pulsing animation for previous area entrance
+    const prevPulseTween = () => {
+        prevExitMesh.scale.set(1, 1, 1);
+        setTimeout(() => {
+            prevExitMesh.scale.set(1.2, 1.2, 1);
+            setTimeout(prevPulseTween, 1000);
+        }, 1000);
+    };
+    prevPulseTween();
+    
+    // Create direction arrow (only points to next area)
     addDirectionArrow();
 }
 
@@ -1480,127 +1593,6 @@ function updateDirectionArrow() {
     // Calculate rotation angle from direction vector
     const angle = Math.atan2(direction.y, direction.x) - Math.PI/2; // Subtract PI/2 because the arrow points up by default
     gameState.directionArrow.rotation.z = angle;
-}
-
-// Start combat between two monsters
-function startCombat(monster1, monster2) {
-    // Don't start combat if either monster is already defeated
-    if (monster1.defeated || monster2.defeated) {
-        return;
-    }
-    
-    // Set combat flags
-    monster1.inCombat = true;
-    monster2.inCombat = true;
-    
-    // Only set target if the monster doesn't have one already
-    if (!monster1.target) monster1.target = monster2;
-    if (!monster2.target) monster2.target = monster1;
-    
-    // Check if either monster is already in a combat
-    let foundCombat = false;
-    for (const combat of gameState.activeCombats) {
-        if (combat.participants.includes(monster1) || combat.participants.includes(monster2)) {
-            // Add the other monster to this combat if not already present
-            if (!combat.participants.includes(monster1)) {
-                combat.participants.push(monster1);
-            }
-            if (!combat.participants.includes(monster2)) {
-                combat.participants.push(monster2);
-            }
-            foundCombat = true;
-            break;
-        }
-    }
-    
-    // If no existing combat found, create a new one
-    if (!foundCombat) {
-        gameState.activeCombats.push({ participants: [monster1, monster2] });
-    }
-}
-
-// Remove a monster from combat
-function removeFromCombat(monster) {
-    // Clear combat flag and target
-    monster.inCombat = false;
-    monster.target = null;
-    
-    // If it's a wild monster and it has an original position, set it to return there
-    if (monster.isWild && monster.originalPosition) {
-        monster.returningToOrigin = true;
-    }
-    
-    // Remove from active combats
-    for (let i = gameState.activeCombats.length - 1; i >= 0; i--) {
-        const combat = gameState.activeCombats[i];
-        const index = combat.participants.indexOf(monster);
-        
-        if (index !== -1) {
-            // Remove from participants
-            combat.participants.splice(index, 1);
-            
-            // If only one participant left, clear their combat too
-            if (combat.participants.length === 1) {
-                combat.participants[0].inCombat = false;
-                combat.participants[0].target = null;
-                
-                // If it's a wild monster, set it to return to its original position
-                if (combat.participants[0].isWild && combat.participants[0].originalPosition) {
-                    combat.participants[0].returningToOrigin = true;
-                }
-                
-                // Remove the combat entry
-                gameState.activeCombats.splice(i, 1);
-            }
-        }
-    }
-}
-
-// Check for combat range and initialize combat
-function checkCombatRange() {
-    // Create a list of all monsters in aggro range of each other
-    const potentialCombatants = [];
-    
-    // Check player monsters against wild monsters - player monsters aggro at half range
-    for (const playerMonster of gameState.player.monsters) {
-        if (playerMonster.defeated) continue;
-        
-        for (const wildMonster of gameState.wildMonsters) {
-            if (wildMonster.defeated) continue;
-            
-            // Calculate distance
-            const distance = playerMonster.mesh.position.distanceTo(wildMonster.mesh.position);
-            
-            // Check if within player monster's aggro range (half the standard range)
-            const playerMonsterAggroRange = GAME_CONFIG.aggroRange / 2;
-            
-            if (distance <= playerMonsterAggroRange) {
-                potentialCombatants.push([playerMonster, wildMonster]);
-            }
-            // If wild monster is in its aggro range but player monster isn't close enough
-            else if (distance <= GAME_CONFIG.aggroRange) {
-                // Set wild monster to move toward player monster without starting combat
-                if (!wildMonster.inCombat) {
-                    // Store original position if not already tracking
-                    if (!wildMonster.originalPosition) {
-                        wildMonster.originalPosition = new THREE.Vector3().copy(wildMonster.mesh.position);
-                    }
-                    
-                    wildMonster.aggroTarget = playerMonster;
-                }
-            }
-        }
-    }
-    
-    // Start combat for each pair
-    for (const [monster1, monster2] of potentialCombatants) {
-        startCombat(monster1, monster2);
-        
-        // Clear aggro target since now in actual combat
-        if (monster2.aggroTarget) {
-            monster2.aggroTarget = null;
-        }
-    }
 }
 
 // Set up UI event handlers
@@ -1677,5 +1669,78 @@ function updateMonsterMovement(monster, targetPosition, deltaTime) {
     
     monster.mesh.position.x += direction.x * speed * deltaTime;
     monster.mesh.position.y += direction.y * speed * deltaTime;
-    monster.mesh.position.z = 0;
+    monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+}
+
+// Helper function to calculate Z position based on Y coordinate
+function calculateZPosition(y, isPlayer = false) {
+    // Base Z position is 1
+    // For every 1000 units of Y, decrease Z by 0.1
+    // This creates a subtle layering effect
+    return isPlayer ? 2 - (y / 10000) : 1 - (y / 10000);
+}
+
+// Check for potential combat between monsters
+function checkAggroRange() {
+    // Combine all monsters into a single array
+    const allMonsters = [...gameState.player.monsters, ...gameState.wildMonsters];
+    
+    // Check each monster against every other monster
+    for (const monster of allMonsters) {
+        // Skip if monster is defeated
+        if (monster.defeated) continue;
+        
+        // Find potential targets
+        let closestTarget = null;
+        let closestDistance = monster.isWild ? GAME_CONFIG.aggroRange : GAME_CONFIG.playerMonsterAggroRange;
+        
+        for (const target of allMonsters) {
+            // Skip invalid targets
+            if (target === monster || target.defeated) continue;
+            
+            // Skip if target is the same type (wild/wild or player/player)
+            if (target.isWild === monster.isWild) continue;
+            
+            // Calculate distance between monsters
+            const distance = monster.mesh.position.distanceTo(target.mesh.position);
+            
+            // Skip aggro logic if player monster is chasing player
+            if (!monster.isWild && monster.chasingPlayer) continue;
+            
+            // Check if within aggro range and closer than current closest target
+            const aggroRange = monster.isWild ? GAME_CONFIG.aggroRange : GAME_CONFIG.playerMonsterAggroRange;
+            if (distance <= aggroRange && distance < closestDistance) {
+                closestTarget = target;
+                closestDistance = distance;
+            }
+        }
+        
+        // Skip aggro logic if player monster is chasing player
+        if (!monster.isWild && monster.chasingPlayer) continue;
+        
+        // If we found a valid target
+        if (closestTarget) {
+            // If monster already has a target, only switch if new target is closer
+            if (monster.aggroTarget) {
+                const currentDistance = monster.mesh.position.distanceTo(monster.aggroTarget.mesh.position);
+                if (closestDistance < currentDistance) {
+                    // Switch to closer target
+                    monster.aggroTarget = closestTarget;
+                    monster.isAggroed = true;
+                    monster.returningToOrigin = false;
+                    monster.aggroPlayer = false;
+                }
+            } else {
+                // No current target, set the closest one
+                monster.aggroTarget = closestTarget;
+                monster.isAggroed = true;
+                monster.returningToOrigin = false;
+                monster.aggroPlayer = false;
+            }
+        } else {
+            // No valid targets found, clear aggro state
+            monster.aggroTarget = null;
+            monster.isAggroed = false;
+        }
+    }
 }
