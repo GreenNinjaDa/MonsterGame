@@ -66,7 +66,7 @@ function toggleMusic() {
 }
 
 // Helper function to format modifiers for display
-function formatModifiers(monster) {
+function formatModifiers(monster, showCount = true) {
     // Convert string modifier to array for backward compatibility
     let modifiers = monster.rareModifiers;
     if (!modifiers) return '';
@@ -76,6 +76,9 @@ function formatModifiers(monster) {
     }
     
     if (Array.isArray(modifiers) && modifiers.length > 0) {
+        if (showCount && modifiers.length > 3) {
+            return `(${modifiers.length} mods)`;
+        }
         return `(${modifiers.join(', ')})`;
     }
     
@@ -192,8 +195,8 @@ function storeMonster(monsterId) {
         // Remove from active monsters
         gameState.player.monsters.splice(index, 1);
         
-        // Add to stored monsters
-        gameState.player.storedMonsters.push(monster);
+        // Add to stored monsters at the beginning
+        gameState.player.storedMonsters.unshift(monster);
         
         // Update storage UI
         updateStorageUI();
@@ -302,7 +305,7 @@ function showCaptureUI(captureInfo) {
     
     // Update UI
     document.getElementById('captureText').textContent = 
-        `${monster.name} Level ${Math.ceil(monster.level)} (${monster.spawnLevel} before defeat) ${formatModifiers(monster)}`;
+        `${monster.name} Level ${Math.ceil(monster.level)} (Spawn level${monster.spawnLevel}) ${formatModifiers(monster)}`;
     document.getElementById('captureCost').innerHTML = `Cost: <span style="color: gold; font-weight: bold;">${cost}</span> Gold (50% refund on failure)`;
     document.getElementById('captureChance').textContent = `Chance: ${catchChance}%`;
     
@@ -369,11 +372,10 @@ function handleCapture() {
             gameState.scene.remove(target.mesh);
             gameState.captureTargets.splice(gameState.captureTargets.indexOf(target), 1);
             
-            // Convert to player monster (revert to 40% of level)
-            const newLevel = Math.max(1, Math.ceil(monster.level * 0.4));
+            // Convert to player monster
             const capturedMonster = createMonster(
                 monster.typeId,
-                newLevel,
+                monster.level,
                 monster.rareModifiers,
                 false,
                 monster.spawnLevel,
@@ -500,7 +502,7 @@ function showMonsterDetails(monsterId) {
                 <img src="assets/monsterimg/${monster.typeId}.png" alt="${monster.name}">
             </div>
             <div>
-                <h3>${monster.name} ${formatModifiers(monster)}</h3>
+                <h3>${monster.name} ${formatModifiers(monster, false)}</h3>
                 <p>${monster.element}${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (${MONSTER_TYPES[monster.typeId].element})` : ''} Level ${monster.level}</p>
                 <p>Spawn Level (Potential): ${monster.spawnLevel}</p>
                 <p>Favors ${GAME_CONFIG.statNamesProper[monster.favoredStat]}</p>
@@ -546,7 +548,12 @@ function showMonsterDetails(monsterId) {
     // For each stat, calculate the modifiers
     Object.keys(baseStats).forEach(stat => {
         // Find the stat index by looking up in GAME_CONFIG.statNames
-        const statIndex = Object.entries(GAME_CONFIG.statNames).find(([_, value]) => value === stat)[0];
+        const statIndex = Object.entries(GAME_CONFIG.statNames).find(([key, value]) => value === stat)?.[0];
+        
+        if (!statIndex) {
+            console.error(`Could not find index for stat: ${stat}`);
+            return;
+        }
         
         const baseValue = baseStats[stat];
         const statGainMultiplier = 1 + (monster.level+monster.spawnLevel-Math.abs(monster.level-monster.spawnLevel)) / 130;

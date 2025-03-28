@@ -11,12 +11,16 @@ const GAME_CONFIG = {
     hpRegenRate: 0.02,         // HP regeneration rate (2% per second)
     innerZoneRatio: 0.4,       // Ratio of map that maintains minimum level (40%)
     outerZoneRatio: 0.8,       // Ratio of map for level scaling (80%)
+    combatStatusTime: 10,      // Time in seconds before a monster exits combat status
     
     // Movement Speeds (units per second)
     playerSpeed: 200,          // Base player movement speed
     playerMonsterSpeed: 220,   // Player monster movement speed (all states)
     wildMonsterSpeed: 160,     // Wild monster movement speed
     monsterCollisionDistance: 30, // Distance to move monsters apart when they collide
+    
+    // Monster Properties
+    monsterBaseSize: 80,       // Base size for monster rendering
     
     // Existing properties...
     monsterFollowDistance: {
@@ -35,8 +39,9 @@ const GAME_CONFIG = {
     playerGracePeriod: 5, // 5 seconds grace period after being sent back to start
     rareModifierRate: 5, // Rate of rare modifiers in percentage, for each monster
     statGainRatePerLevel: 0.10, // % stat gain per level
-    statNames: { 1: "speed", 2: "physDef", 3: "specDef", 4: "physAtk", 5: "specAtk", 6: "endur" },
-    statNamesProper: { 1: "Speed", 2: "Physical Defense", 3: "Special Defense", 4: "Physical Attack", 5: "Special Attack", 6: "Endurance" }
+    statNames: { 1: "spd", 2: "pDef", 3: "sDef", 4: "pAtk", 5: "sAtk", 6: "endur" },
+    statNamesProper: { 1: "Speed", 2: "Physical Defense", 3: "Special Defense", 4: "Physical Attack", 5: "Special Attack", 6: "Endurance" },
+    monsterTextures: {}
 };
 
 // Area Configuration
@@ -95,14 +100,43 @@ const AREAS = {
 
 // Monster Types
 const MONSTER_TYPES = {
-    // # - Name - Element - Speed, Phys Def, Phys Atk, Spec Def, Spec Atk, Endurance
-    1: { name: "Derpy Fish", element: "Water", stats: { speed: 40, physDef: 60, physAtk: 70, specDef: 70, specAtk: 20, endur: 40 }},
-    2: { name: "Emberling", element: "Fire", stats: { speed: 70, physDef: 40, physAtk: 50, specDef: 60, specAtk: 60, endur: 20 }},
-    3: { name: "DownTwo", element: "Earth", stats: { speed: 30, physDef: 65, physAtk: 55, specDef: 65, specAtk: 55, endur: 30 }},
-    4: { name: "Potsy", element: "Plant", stats: { speed: 30, physDef: 60, physAtk: 60, specDef: 60, specAtk: 60, endur: 30 }},
-    5: { name: "Shockles", element: "Electric", stats: { speed: 60, physDef: 30, physAtk: 50, specDef: 40, specAtk: 60, endur: 60 }},
-    6: { name: "Zappy Bird", element: "Electric", stats: { speed: 70, physDef: 40, physAtk: 30, specDef: 40, specAtk: 80, endur: 40 }}
+    // # - Name - Element - Speed, Phyical Defense, Phyical Attack, Special Defense, Special Attack, Endurance, SizeAdjust
+    1: { name: "Derpfish", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 70, sDef: 70, sAtk: 20, endur: 40, size:1 }}, //Total: 300
+    2: { name: "Emberling", element: "Fire", stats: { spd: 70, pDef: 40, pAtk: 50, sDef: 60, sAtk: 60, endur: 20, size:1 }}, //Total: 300
+    3: { name: "DownTwo", element: "Earth", stats: { spd: 30, pDef: 65, pAtk: 55, sDef: 65, sAtk: 55, endur: 30, size:1 }}, //Total: 300
+    4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 60, sAtk: 60, endur: 30, size:1 }}, //Total: 300
+    5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, pAtk: 50, sDef: 40, sAtk: 60, endur: 60, size:1 }}, //Total: 300 //Pushes enemy away on attack???
+    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, pAtk: 30, sDef: 40, sAtk: 80, endur: 40, size:1 }}, //Total: 300
+    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, pAtk: 110, sDef: 40, sAtk: 70, endur: 20, size:1 }}, //Total: 300
+	8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 45, sDef: 50, sAtk: 35, endur: 70, size:1 }}, //Total: 300
+	9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, pAtk: 40, sDef: 20, sAtk: 10, endur: 80, size:1 }}, //Total: 300
+	10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 40, endur: 50, size:1 }}, //Total: 300
+	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 45, pAtk: 55, sDef: 50, sAtk: 70, endur: 30, size:1 }}, //Total: 280 Enrages when hit, dealing 50% increased damage for 2 seconds.
+	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60, size:1 }}, //Total: 280 Reflects 25% of special damage taken before reduction.
+	13: { name: "Tambleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60, size:1 }}, //Total: 320 Rolls around during combat.
+	14: { name: "Blazey", element: "Fire", stats: { spd: 50, pDef: 40, pAtk: 25, sDef: 80, sAtk: 80, endur: 20, size:1 }}, //Total: 250 Always considered out of combat.
+	
+	
+    
+    //Dragginball
+	//Corgknight
+	//Unicorg
 };
+
+/*const MONSTER_TYPE_STORIES = {
+
+    1: { story: "Even outside of water, the Derpfish lives! They can often be found sunbathing on the beach. Their lifecycle is unknown."},
+    2: { story: "Emberlings are the arsonists of the monster world. They are known to set fire to anything that moves. They are also known collapse from exhaustion regularly."},
+    3: { story: "DownTwo is a two-headed monster. Or maybe it's two monsters stuck together. It's *hard* to tell."},
+    4: { story: "Potsy is a plant monster that carries its sproutling pot with it everywhere it goes. Some pots have been passed down for generations."},
+    5: { story: "Shockles is descended from a water-type monster similar to a clam. According to legend, they are born when lightning strikes the ocean."},
+    6: { story: "Zappy Bird was undiscovered until recently. Where did they come from and where will they go? Better catch some before it's too late!"},
+	7:
+	8: 
+	9:
+    10: { story: "Despite being fire type, Embergi is known to extinguish the fires that Emberlings start. But they do sometimes ignite fires on accident when they sploot for a nap."},
+
+};*/
 
 // Element Relationships (bonus/penalty)
 const ELEMENT_RELATIONS = {
@@ -127,30 +161,30 @@ const ELEMENT_COLORS = {
 
 // Rare Modifiers and their bonuses in per
 const RARE_MODIFIERS = {
-    "Smooth": { speed: 10, physDef: 10 },
-    "Sharp": { speed: 10, physAtk: 10 },
-    "Witty": { speed: 10, specDef: 10 },
-    "Shocking": { speed: 10, specAtk: 10 },
-    "Athletic": { speed: 10, endur: 10 },
-    "Strong": { physDef: 10, physAtk: 10 },
-    "Sturdy": { physDef: 10, specDef: 10 },
-    "Slick": { physDef: 10, specAtk: 10 },
-    "Tough": { physDef: 10, endur: 10 },
-    "Decisive": { physAtk: 10, specDef: 10 },
-    "Aggressive": { physAtk: 10, specAtk: 10 },
-    "Determined": { physAtk: 10, endur: 10 },
-    "Smart": { specDef: 10, specAtk: 10 },
-    "Stoic": { specDef: 10, endur: 10 },
-    "Thoughtful": { specAtk: 10, endur: 10 }
+    "Smooth": { spd: 10, pDef: 10 },
+    "Sharp": { spd: 10, pAtk: 10 },
+    "Witty": { spd: 10, sDef: 10 },
+    "Shocking": { spd: 10, sAtk: 10 },
+    "Athletic": { spd: 10, endur: 10 },
+    "Strong": { pDef: 10, pAtk: 10 },
+    "Sturdy": { pDef: 10, sDef: 10 },
+    "Slick": { pDef: 10, sAtk: 10 },
+    "Tough": { pDef: 10, endur: 10 },
+    "Decisive": { pAtk: 10, sDef: 10 },
+    "Aggressive": { pAtk: 10, sAtk: 10 },
+    "Determined": { pAtk: 10, endur: 10 },
+    "Smart": { sDef: 10, sAtk: 10 },
+    "Stoic": { sDef: 10, endur: 10 },
+    "Thoughtful": { sAtk: 10, endur: 10 }
 };
 
 // Element Stat Modifiers in percentages
 const ELEMENT_MODIFIERS = {
-    "Plant": { specAtk: 10, endur: 10, speed: -15 },
-    "Earth": { physAtk: 10, physDef: 10, specAtk: -15 },
-    "Electric": { specAtk: 10, speed: 10, endur: -15 },
-    "Water": { endur: 10, speed: 10, physDef: -15 },
-    "Fire": { physAtk: 10, specAtk: 10, specDef: -15 }
+    "Plant": { sAtk: 10, endur: 10, spd: -15 },
+    "Earth": { pAtk: 10, pDef: 10, sAtk: -15 },
+    "Electric": { sAtk: 10, spd: 10, endur: -15 },
+    "Water": { endur: 10, spd: 10, pDef: -15 },
+    "Fire": { pAtk: 10, sAtk: 10, sDef: -15 }
 };
 
 // Initial Game State

@@ -23,6 +23,11 @@ canvas {
     margin-bottom: 10px;
     margin-top: 10px;
 }
+#fpsCounter {
+    margin-bottom: 10px;
+    margin-top: 10px;
+    color: #00ff00;
+}
 #storageButton {
     background-color: rgba(0, 0, 0, 0.1);
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);

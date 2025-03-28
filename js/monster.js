@@ -1,26 +1,33 @@
-// Global texture cache for monster images
-const MONSTER_TEXTURES = {};
-
 // Load all monster textures at startup
 function loadMonsterTextures() {
     const textureLoader = new THREE.TextureLoader();
-    for (let i = 1; i <= 6; i++) {
-        MONSTER_TEXTURES[i] = textureLoader.load(`./assets/monsterimg/${i}.png`, (texture) => {
+    // Load textures for all monster types
+    Object.keys(MONSTER_TYPES).forEach(typeId => {
+        GAME_CONFIG.monsterTextures[typeId] = textureLoader.load(`assets/monsterimg/${typeId}.png`, (texture) => {
             // Configure texture settings for better rendering
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
             texture.encoding = THREE.sRGBEncoding;
             texture.flipY = false; // Prevent texture from being flipped
             texture.needsUpdate = true;
+        }, undefined, () => {
+            // On error, load 1.png instead
+            GAME_CONFIG.monsterTextures[typeId] = textureLoader.load(`assets/monsterimg/1.png`, (texture) => {
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.encoding = THREE.sRGBEncoding;
+                texture.flipY = false;
+                texture.needsUpdate = true;
+            });
         });
-    }
+    });
 }
 
 // Create UI Labels for HP, Stamina, Level, and Name
 function createUILabel() {
     const canvas = document.createElement('canvas');
-    canvas.width = 150; // Even wider for larger name text
-    canvas.height = 90; // Taller for larger name text
+    canvas.width = 200; // Even wider for larger name text
+    canvas.height = 100; // Taller for larger name text
     const context = canvas.getContext('2d');
     
     // Create a texture from the canvas
@@ -30,8 +37,8 @@ function createUILabel() {
     // Create a sprite with the texture
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(60, 45, 1); // Larger scale for bigger text
-    sprite.position.y = 35; // Position higher above the monster
+    sprite.scale.set(90, 45, 1); // Larger scale for bigger text
+    sprite.position.y = 50; // Position higher above the monster
     sprite.position.z = 1; // Ensure UI is above monster
     
     return { sprite, context, texture };
@@ -69,19 +76,19 @@ function updateUILabel(uiLabel, monster) {
         // Draw first half of outline for level text
         context.lineWidth = 4;
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(50, 30, 60, 20);
+        context.fillRect(75, 30, 60, 20);
         // Use element color for text when typeshifted
         elementColor = ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element];
         color = new THREE.Color(elementColor);
         // Draw second half of outline for level text
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(50, 50, 60, 10);
+        context.fillRect(75, 50, 60, 10);
     }
     else {
         // Draw an outline for level text
         context.lineWidth = 4;
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(50, 30, 60, 30);
+        context.fillRect(75, 30, 60, 30);
     }
 
     // Use white for text
@@ -93,11 +100,11 @@ function updateUILabel(uiLabel, monster) {
     
     // Show level number
     context.font = 'bold 25px Arial';
-    context.strokeText(monster.level, 80, 45);
-    context.fillText(monster.level, 80, 45);
+    context.strokeText(monster.level, 100, 45);
+    context.fillText(monster.level, 100, 45);
     
     // Reset font for the name
-    context.font = '25px Arial';
+    context.font = '30px Arial';
     
     // Add monster name below with larger font
     let displayName = monster.name;
@@ -205,8 +212,8 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
                     }
                     totalRareModifiers[stat] += rareMods[stat];
                 });
-                // Increase size by 10% for each modifier
-                sizeMultiplier += 0.1;
+                // Increase size by 5% for each modifier
+                sizeMultiplier += 0.05;
             }
         }
         
@@ -221,7 +228,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     // Step 6: Calculate derived stats
     const maxHP = Math.round(200 * (1 + 0.4 * stats.endur / 100));
     const maxStamina = Math.round(100 * (1 + 0.4 * stats.endur / 100));
-    const attackCooldown = 5 / (1 + 0.006 * stats.speed); // 5 seconds base, reduced by speed
+    const attackCooldown = 5 / (1 + 0.006 * stats.spd); // 5 seconds base, reduced by speed
     
     return {
         stats,
@@ -279,9 +286,9 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     );
 
     // Create the monster's visual representation using a plane with texture
-    const geometry = new THREE.PlaneGeometry(60 * calculatedStats.sizeMultiplier, 60 * calculatedStats.sizeMultiplier);
+    const geometry = new THREE.PlaneGeometry(GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier, GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier);
     const material = new THREE.MeshBasicMaterial({ 
-        map: MONSTER_TEXTURES[typeId],
+        map: GAME_CONFIG.monsterTextures[typeId],
         transparent: true,
         side: THREE.DoubleSide,
         color: 0xffffff,
@@ -298,7 +305,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     mesh.rotation.x = Math.PI; // Flip only the monster mesh
     
     // Store the original texture for reference
-    const originalTexture = MONSTER_TEXTURES[typeId];
+    const originalTexture = GAME_CONFIG.monsterTextures[typeId];
     const originalMaterial = material;
     
     // Add UI label for HP and Stamina
@@ -333,6 +340,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         uiLabel,
         target: null,
         inCombat: false,
+        timeSinceLastDamage: 0,
         experience: {
             current: 0,
             toNextLevel: 25 * level
@@ -364,14 +372,14 @@ function calculateDamage(attacker, defender) {
     
     // Calculate physical damage
     const physicalDamage = Math.floor(
-        (physicalBase * (100 + attacker.stats.physAtk)) / 
-        (100 + defender.stats.physDef)
+        (physicalBase * (100 + attacker.stats.pAtk)) / 
+        (100 + defender.stats.pDef)
     );
     
     // Calculate special damage
     const specialDamage = Math.floor(
-        (specialBase * (100 + attacker.stats.specAtk)) / 
-        (100 + defender.stats.specDef)
+        (specialBase * (100 + attacker.stats.sAtk)) / 
+        (100 + defender.stats.sDef)
     );
     
     // Check for elemental advantage
@@ -454,9 +462,9 @@ function monsterAttack(attacker, defender, deltaTime) {
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
     
-    // Set lastDamageTime for both monsters to indicate they are in combat
-    attacker.lastDamageTime = gameState.lastTime;
-    defender.lastDamageTime = gameState.lastTime;
+    // Reset time since last damage for both monsters
+    attacker.timeSinceLastDamage = 0;
+    defender.timeSinceLastDamage = 0;
     
     // Visual feedback for elemental interactions
     if (damageResult.elementMultiplier !== 1) {
@@ -623,7 +631,7 @@ function handleMonsterDefeat(defeated, victor) {
         defeated.reviveTimer = GAME_CONFIG.respawnTime; // 50 seconds to revive
 
         //Notify the player that their monster was defeated and will respawn in 50 seconds.
-        addChatMessage(`${defeated.name} was defeated. Reviving in storage in ${defeated.reviveTimer} seconds...`, 50000);
+        addChatMessage(`${defeated.name} was defeated. Reviving in storage in ${defeated.reviveTimer} seconds...`, 10000);
         
         // Move defeated monster to storage automatically
         const monsterIndex = gameState.player.monsters.findIndex(m => m.id === defeated.id);
@@ -635,12 +643,7 @@ function handleMonsterDefeat(defeated, victor) {
             gameState.player.monsters.splice(monsterIndex, 1);
             
             // Add to stored monsters
-            gameState.player.storedMonsters.push(defeated);
-            
-            // Update storage UI if it's open
-            if (gameState.storageUIOpen) {
-                updateStorageUI();
-            }
+            gameState.player.storedMonsters.unshift(defeated);
         }
     }
     

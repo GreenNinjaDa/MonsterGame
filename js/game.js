@@ -127,6 +127,20 @@ function gameLoop(time) {
     gameState.lastTime = time;
     let gamePaused = false;
 
+    // Calculate and display framerate
+    const frameRate = 1 / deltaTime;
+    
+    // Update framerate display with moving average
+    if (!gameState.fpsHistory) {
+        gameState.fpsHistory = [];
+    }
+    gameState.fpsHistory.push(frameRate);
+    if (gameState.fpsHistory.length > 10) {
+        gameState.fpsHistory.shift();
+    }
+    const avgFps = Math.round(gameState.fpsHistory.reduce((a, b) => a + b, 0) / gameState.fpsHistory.length);
+    document.getElementById('fpsCounter').textContent = `FPS: ${avgFps}`;
+    
     // Check if any UI is open
     if (gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen) {
         gamePaused = true;
@@ -144,6 +158,14 @@ function gameLoop(time) {
     
     // Cap delta time to prevent physics issues after tab switching
     const cappedDeltaTime = Math.min(deltaTime, 0.1);
+    
+    // Update time since last damage for all monsters (only when game is not paused)
+    const allMonsters = [...gameState.player.monsters, ...gameState.player.storedMonsters, ...gameState.wildMonsters];
+    for (const monster of allMonsters) {
+        if (monster.defeated) continue;
+        monster.timeSinceLastDamage += cappedDeltaTime;
+        monster.inCombat = monster.timeSinceLastDamage < GAME_CONFIG.combatStatusTime;
+    }
     
     // Handle monster collisions first, before any other movement
     handleMonsterCollisions();
@@ -691,6 +713,7 @@ function updateMonsterRevival(deltaTime) {
 
 // Check for next area transition
 function checkAreaTransition() {
+
     // Check for next area entrance
     const distanceToNextArea = gameState.player.position.distanceTo(gameState.nextAreaPosition);
     
@@ -709,7 +732,7 @@ function checkAreaTransition() {
         if (!canTransition) {
             // Show appropriate message if transition not allowed
             if (isNextArea) {
-                addChatMessage("You've reached the final area! There's nowhere else to go...");
+                addChatMessage("You've reached the final area! There's nowhere else to go...", 3000);
             }
             return;
         }
@@ -722,13 +745,16 @@ function checkAreaTransition() {
 }
 
 function areaTransition(newArea) {
+    const isNextArea = newArea > gameState.currentArea;
+    gameState.currentArea = newArea;
+    
+    //Stop player movement
+    gameState.clickTargetPosition = null;
+
     // Update previous area mesh visibility
     if (gameState.previousAreaMesh) {
         gameState.previousAreaMesh.visible = gameState.currentArea > 1;
     }
-    
-    const isNextArea = newArea > gameState.currentArea;
-    gameState.currentArea = newArea;
 
     // Get area info
     const areaInfo = AREAS[newArea];
@@ -911,12 +937,9 @@ function updateStaminaRegen(deltaTime) {
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
         
-        // Check if monster is in combat based on last damage time
-        monster.inCombat = monster.lastDamageTime && (gameState.lastTime - monster.lastDamageTime < 10000);
-        
-        // Calculate regen rate (1% in combat, 5% out of combat or always 5% for stored monsters)
+        // Calculate regen rate (1% in combat, 10% out of combat or always 10% for stored monsters)
         const isStored = gameState.player.storedMonsters.includes(monster);
-        const regenRate = (monster.inCombat && !isStored) ? 0.01 : 0.05;
+        const regenRate = (monster.inCombat && !isStored) ? 0.01 : 0.1;
         const regenAmount = monster.maxStamina * regenRate * deltaTime;
         
         // Apply stamina regeneration
@@ -939,7 +962,7 @@ function updateHPRegen(deltaTime) {
         // Regenerate if not in combat (active monsters) or always regenerate (stored monsters)
         if (!monster.inCombat || gameState.player.storedMonsters.includes(monster)) {
             // Regenerate HP using constant rate
-            const regenAmount = monster.maxHP * 0.03 * deltaTime; // 3% per second
+            const regenAmount = monster.maxHP * 0.05 * deltaTime; // 5% per second
             
             // Apply HP regeneration
             if (monster.currentHP < monster.maxHP) {
@@ -958,7 +981,7 @@ function updateCaptureTargets(deltaTime) {
         // Reduce time left
         target.timeLeft -= deltaTime;
         
-        // Remove if time expired
+        // Remove monster's mesh if time expired
         if (target.timeLeft <= 0) {
             gameState.scene.remove(target.mesh);
             gameState.captureTargets.splice(i, 1);
@@ -1195,7 +1218,7 @@ function updateWildMonsterAggro(deltaTime) {
         else if (!monster.aggroPlayer && !monster.returningToOrigin && !monster.inCombat) {
             // Initialize random movement target if not set
             if (!monster.randomMoveTarget) {
-                monster.randomMoveTimer = 2 + Math.random() * 3;
+                monster.randomMoveTimer = 1 + Math.random() * 9;
                 monster.randomMoveTarget = new THREE.Vector3();
                 monster.randomMoveTarget.x = monster.originalPosition.x;
                 monster.randomMoveTarget.y = monster.originalPosition.y;
@@ -1216,8 +1239,8 @@ function updateWildMonsterAggro(deltaTime) {
                 monster.randomMoveTarget.x = monster.originalPosition.x + Math.cos(angle) * moveRadius;
                 monster.randomMoveTarget.y = monster.originalPosition.y + Math.sin(angle) * moveRadius;
                 
-                // Set new random timer (between 2 and 5 seconds)
-                monster.randomMoveTimer = 2 + Math.random() * 3;
+                // Set new random timer (between 1 and 10 seconds)
+                monster.randomMoveTimer = 1 + Math.random() * 9;
             }
             
             // Move toward random target if distance is greater than 5
@@ -1242,7 +1265,7 @@ function updateWildMonsterAggro(deltaTime) {
 
 // Spawn wild monsters
 function spawnWildMonsters(areaLevel, count = null) {
-    // Clear any existing wild monsters
+    // Clear any existing wild monsters and remove their data
     for (const monster of gameState.wildMonsters) {
         if (monster.mesh) {
             gameState.scene.remove(monster.mesh);
@@ -1285,6 +1308,7 @@ function spawnWildMonsters(areaLevel, count = null) {
         
         // Apply a curve where monsters close to center are always minimum level
         // The minimum level zone extends for 40% of the map radius
+
         let level;
         if (distanceRatio < GAME_CONFIG.innerZoneRatio) {
             level = minAreaLevel; // Minimum level for this area (level 1 for area level 1)
@@ -1295,14 +1319,43 @@ function spawnWildMonsters(areaLevel, count = null) {
             level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
         }
         
-        // Get available monster types for this area level
-        const availableTypes = Object.keys(MONSTER_TYPES)
-            .map(Number)
-            .filter(id => Math.ceil(id / 5) <= (areaLevel + 1));
+        // Have a 50% chance to spawn a monster from this area level, 40% chance to spawn one from any level below,
+        // 5% chance to spawn one from the area level above, and 5% chance to spawn any random monster.
+        const spawnRoll = Math.random() * 100;
+        let availableTypes;
+        
+        if (spawnRoll < 50) {
+            // 50% chance - spawn from current area level
+            availableTypes = Object.keys(MONSTER_TYPES)
+                .map(Number)
+                .filter(id => Math.ceil(id / 5) === areaLevel);
+        } else if (spawnRoll < 90) {
+            // 40% chance - spawn from any level below
+            availableTypes = Object.keys(MONSTER_TYPES)
+                .map(Number)
+                .filter(id => Math.ceil(id / 5) < areaLevel);
+        } else if (spawnRoll < 95) {
+            // 5% chance - spawn from area level above
+            availableTypes = Object.keys(MONSTER_TYPES)
+                .map(Number)
+                .filter(id => Math.ceil(id / 5) === areaLevel + 1);
+                level +=5;
+        } else {
+            // 5% chance - spawn any random monster
+            availableTypes = Object.keys(MONSTER_TYPES).map(Number);
+            level +=10;
+        }
         
         if (availableTypes.length === 0) {
-            console.warn(`No valid monster types for area level ${areaLevel}, skipping spawn`);
-            continue;
+            // If initial spawn attempt fails, try spawning from monster types 1-10
+            availableTypes = Object.keys(MONSTER_TYPES)
+                .map(Number)
+                .filter(id => id <= 10);
+                
+            if (availableTypes.length === 0) {
+                console.warn(`No valid monster types for area level ${areaLevel}, skipping spawn`);
+                continue;
+            }
         }
         
         // Randomly choose from available monster types
@@ -1380,7 +1433,7 @@ function cleanupDefeatedMonsters(deltaTime) {
         }
     }
     
-    // Clean up any defeated player monsters that have been revived
+    // Clean up any defeated player monsters that have been revived WARNING: THIS CODE MAY NOT DO ANYTHING EVER
     for (let i = gameState.player.monsters.length - 1; i >= 0; i--) {
         const monster = gameState.player.monsters[i];
         if (monster.defeated && !monster.reviveTimer) {
@@ -1593,36 +1646,6 @@ function updateDirectionArrow() {
     // Calculate rotation angle from direction vector
     const angle = Math.atan2(direction.y, direction.x) - Math.PI/2; // Subtract PI/2 because the arrow points up by default
     gameState.directionArrow.rotation.z = angle;
-}
-
-// Set up UI event handlers
-function setupUIEventHandlers() {
-    // Storage button
-    document.getElementById('storageButton').addEventListener('click', toggleStorageUI);
-    
-    // Close button for storage UI
-    document.querySelector('#storageUI .close-button').addEventListener('click', toggleStorageUI);
-    
-    // Capture button
-    document.getElementById('captureButton').addEventListener('click', handleCapture);
-    
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', function(event) {
-        // 'S' key to toggle storage
-        if (event.key === 's' || event.key === 'S') {
-            toggleStorageUI();
-        }
-        // 'M' key to toggle music
-        if (event.key === 'm' || event.key === 'M') {
-            if (backgroundMusic.paused) {
-                backgroundMusic.play();
-                addChatMessage("Music playing, press M again to pause.", 6000)
-            } else {
-                backgroundMusic.pause();
-                addChatMessage("Music paused, press M again to play.", 6000)
-            }
-        }
-    });
 }
 
 // Set a random position for the next area entrance
