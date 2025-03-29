@@ -107,7 +107,7 @@ function updateStorageUI() {
         const infoDiv = document.createElement('div');
         infoDiv.innerHTML = `
             <h4>${monster.name} ${formatModifiers(monster)}</h4>
-            <p>Lvl: ${monster.level} | Type: ${monster.element}</p>
+            <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
             <p>HP: ${Math.round(monster.currentHP)}/${monster.maxHP}</p>
             <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             <div class="monster-actions">
@@ -141,7 +141,7 @@ function updateStorageUI() {
         const infoDiv = document.createElement('div');
         infoDiv.innerHTML = `
             <h4>${monster.name} ${formatModifiers(monster)}</h4>
-            <p>Lvl: ${monster.level} | Type: ${monster.element}</p>
+            <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
             <p>HP: ${Math.round(monster.currentHP)}/${monster.maxHP}</p>
             <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             <div class="monster-actions">
@@ -503,7 +503,7 @@ function showMonsterDetails(monsterId) {
             </div>
             <div>
                 <h3>${monster.name} ${formatModifiers(monster, false)}</h3>
-                <p>${monster.element}${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (${MONSTER_TYPES[monster.typeId].element})` : ''} Level ${monster.level}</p>
+                <p><span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''} Level ${monster.level}</p>
                 <p>Spawn Level (Potential): ${monster.spawnLevel}</p>
                 <p>Favors ${GAME_CONFIG.statNamesProper[monster.favoredStat]}</p>
             </div>

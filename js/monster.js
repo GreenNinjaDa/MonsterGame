@@ -38,7 +38,7 @@ function createUILabel() {
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(90, 45, 1); // Larger scale for bigger text
-    sprite.position.y = 50; // Position higher above the monster
+    sprite.position.y = 70; // Position higher above the monster
     sprite.position.z = 1; // Ensure UI is above monster
     
     return { sprite, context, texture };
@@ -50,63 +50,10 @@ function updateUILabel(uiLabel, monster) {
     const canvas = context.canvas;
     context.clearRect(0, 0, canvas.width, canvas.height);
     
-    // HP bar
-    context.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    context.fillRect(0, 0, canvas.width, 12);
-    
-    const hpPercent = Math.max(0, monster.currentHP / monster.maxHP);
-    context.fillStyle = hpPercent > 0.5 ? 'lime' : hpPercent > 0.2 ? 'yellow' : 'red';
-    context.fillRect(2, 2, (canvas.width - 4) * hpPercent, 8);
-    
-    // Stamina bar
-    context.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    context.fillRect(0, 15, canvas.width, 12);
-    
-    const staminaPercent = Math.max(0, monster.currentStamina / monster.maxStamina);
-    context.fillStyle = 'skyblue';
-    context.fillRect(2, 17, (canvas.width - 4) * staminaPercent, 8);
-    
-    // Level display with element color
-    let elementColor = ELEMENT_COLORS[monster.element];
-    let color = new THREE.Color(elementColor);
-
-    // Check if monster is typeshifted (element different from original)
-    const isTypeshifted = monster.element !== MONSTER_TYPES[monster.typeId].element;
-    if (isTypeshifted) {
-        // Draw first half of outline for level text
-        context.lineWidth = 4;
-        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(75, 30, 60, 20);
-        // Use element color for text when typeshifted
-        elementColor = ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element];
-        color = new THREE.Color(elementColor);
-        // Draw second half of outline for level text
-        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(75, 50, 60, 10);
-    }
-    else {
-        // Draw an outline for level text
-        context.lineWidth = 4;
-        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(75, 30, 60, 30);
-    }
-
-    // Use white for text
-    context.fillStyle = 'white';
-    context.strokeStyle = 'black';
-
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    
-    // Show level number
-    context.font = 'bold 25px Arial';
-    context.strokeText(monster.level, 100, 45);
-    context.fillText(monster.level, 100, 45);
-    
     // Reset font for the name
     context.font = '30px Arial';
     
-    // Add monster name below with larger font
+    // Add monster name at the top with larger font
     let displayName = monster.name;
     
     // Add stars for monsters with rare modifiers
@@ -127,8 +74,61 @@ function updateUILabel(uiLabel, monster) {
     
     context.textAlign = 'center';
     
-    context.strokeText(displayName, canvas.width / 2, 70);
-    context.fillText(displayName, canvas.width / 2, 70);
+    context.strokeText(displayName, canvas.width / 2, 30);
+    context.fillText(displayName, canvas.width / 2, 30);
+    
+    // HP bar
+    context.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    context.fillRect(0, 40, canvas.width, 12);
+    
+    const hpPercent = Math.max(0, monster.currentHP / monster.maxHP);
+    context.fillStyle = hpPercent > 0.5 ? 'lime' : hpPercent > 0.2 ? 'yellow' : 'red';
+    context.fillRect(2, 42, (canvas.width - 4) * hpPercent, 8);
+    
+    // Stamina bar
+    context.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    context.fillRect(0, 55, canvas.width, 12);
+    
+    const staminaPercent = Math.max(0, monster.currentStamina / monster.maxStamina);
+    context.fillStyle = 'skyblue';
+    context.fillRect(2, 57, (canvas.width - 4) * staminaPercent, 8);
+    
+    // Level display with element color
+    let elementColor = ELEMENT_COLORS[monster.element];
+    let color = new THREE.Color(elementColor);
+
+    // Check if monster is typeshifted (element different from original)
+    const isTypeshifted = monster.element !== MONSTER_TYPES[monster.typeId].element;
+    if (isTypeshifted) {
+        // Draw first part of outline for level text
+        context.lineWidth = 4;
+        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
+        context.fillRect(70, 69, 60, 20);
+        // Use element color for text when typeshifted
+        elementColor = ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element];
+        color = new THREE.Color(elementColor);
+        // Draw second part of outline for level text
+        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
+        context.fillRect(70, 89, 60, 10);
+    }
+    else {
+        // Draw an outline for level text
+        context.lineWidth = 4;
+        context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
+        context.fillRect(70, 69, 60, 30);
+    }
+
+    // Use white for text
+    context.fillStyle = 'white';
+    context.strokeStyle = 'black';
+
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    // Show level number
+    context.font = 'bold 25px Arial';
+    context.strokeText(monster.level, 100, 85);
+    context.fillText(monster.level, 100, 85);
     
     // Update the texture
     texture.needsUpdate = true;
@@ -198,6 +198,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     
     // Step 5: Apply rare modifiers if present - FIX: Sum all modifiers first, then apply once
     let sizeMultiplier = 1;
+    let sizeMultiplierCount = 0;
     if (rareModifiers && Array.isArray(rareModifiers) && rareModifiers.length > 0) {
         // Create an object to track total modifier percentages per stat
         const totalRareModifiers = {};
@@ -213,9 +214,11 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
                     totalRareModifiers[stat] += rareMods[stat];
                 });
                 // Increase size by 5% for each modifier
-                sizeMultiplier += 0.05;
+                sizeMultiplierCount++;
             }
         }
+
+        sizeMultiplier = 2 - (1 / (1 + (sizeMultiplierCount * 0.1)));
         
         // Apply the total modifier percentages once
         Object.keys(totalRareModifiers).forEach(stat => {
@@ -286,7 +289,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     );
 
     // Create the monster's visual representation using a plane with texture
-    const geometry = new THREE.PlaneGeometry(GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier, GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier);
+    const size = monsterType.size * GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier;
+    const geometry = new THREE.PlaneGeometry(size, size);
     const material = new THREE.MeshBasicMaterial({ 
         map: GAME_CONFIG.monsterTextures[typeId],
         transparent: true,
@@ -357,7 +361,10 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         originalMaterial,
         facingLeft: false, // Track which direction monster is facing
     };
-    
+
+    //Make sure it's not considered in combat
+    monster.timeSinceLastDamage = 9999;
+
     // Update the UI label
     updateUILabel(uiLabel, monster);
     

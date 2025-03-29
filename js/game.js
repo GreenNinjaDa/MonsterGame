@@ -1,6 +1,7 @@
 // Initialize Three.js
 let backgroundMusic;
 let musicInitialized = false;
+let preloadedTextures = new Map(); // Store preloaded textures
 
 function initMusic() {
     backgroundMusic = new Audio('assets/sound/Music.mp3');
@@ -21,10 +22,84 @@ function startMusicOnFirstInput() {
     }
 }
 
+// Function to preload background textures
+function preloadBackgroundTexture(areaNumber) {
+    // Skip if texture is already preloaded
+    if (preloadedTextures.has(areaNumber)) return;
+    
+    // Create new texture loader
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Load texture
+    const backgroundTexture = textureLoader.load(`assets/backgrounds/${areaNumber}.jpeg`, () => {
+        // Once loaded, store it in our preloaded textures map
+        backgroundTexture.wrapS = THREE.RepeatWrapping;
+        backgroundTexture.wrapT = THREE.RepeatWrapping;
+        backgroundTexture.repeat.set(9, 9);
+        preloadedTextures.set(areaNumber, backgroundTexture);
+    });
+}
+
+// Function to update background texture based on current area
+function updateBackgroundTexture() {
+    if (!gameState.backgroundPlane) return;
+    
+    // Get the preloaded texture for current area
+    const backgroundTexture = preloadedTextures.get(gameState.currentArea);
+    
+    if (backgroundTexture) {
+        // Use preloaded texture
+        gameState.backgroundPlane.material.map = backgroundTexture;
+        gameState.backgroundPlane.material.needsUpdate = true;
+    } else {
+        // Fallback to loading texture directly if not preloaded
+        const textureLoader = new THREE.TextureLoader();
+        const backgroundTexture = textureLoader.load(`assets/backgrounds/${gameState.currentArea}.jpeg`);
+        backgroundTexture.wrapS = THREE.RepeatWrapping;
+        backgroundTexture.wrapT = THREE.RepeatWrapping;
+        backgroundTexture.repeat.set(9, 9);
+        gameState.backgroundPlane.material.map = backgroundTexture;
+        gameState.backgroundPlane.material.needsUpdate = true;
+    }
+}
+
+// Function to preload adjacent area textures
+function preloadAdjacentAreaTextures(currentArea) {
+    // Always preload area 1 texture
+    preloadBackgroundTexture(1);
+    
+    // Preload next area texture if it exists
+    const nextArea = currentArea + 1;
+    if (AREAS[nextArea]) {
+        preloadBackgroundTexture(nextArea);
+    }
+    
+    // Preload previous area texture if it exists
+    const prevArea = currentArea - 1;
+    if (AREAS[prevArea]) {
+        preloadBackgroundTexture(prevArea);
+    }
+}
+
 function initThree() {
     // Create scene
     gameState.scene = new THREE.Scene();
-    gameState.scene.background = new THREE.Color(0x66aa66); // Green background for grass
+    
+    // Create background plane
+    const planeGeometry = new THREE.PlaneGeometry(5000, 5000);
+    const planeMaterial = new THREE.MeshBasicMaterial({ 
+        side: THREE.DoubleSide,
+        color: 0xD0D0D0  // Add a gray tint to darken the texture
+    });
+    gameState.backgroundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+    gameState.backgroundPlane.position.z = -1; // Place slightly behind everything
+    gameState.scene.add(gameState.backgroundPlane);
+    
+    // Preload initial textures
+    preloadAdjacentAreaTextures(gameState.currentArea);
+    
+    // Set initial background texture based on current area
+    updateBackgroundTexture();
     
     // Create camera
     const aspectRatio = window.innerWidth / window.innerHeight;
@@ -759,9 +834,13 @@ function areaTransition(newArea) {
     // Get area info
     const areaInfo = AREAS[newArea];
     
-    // Update background color
+    // Update background color and texture
     if (gameState.scene) {
         gameState.scene.background = new THREE.Color(areaInfo.backgroundColor);
+        updateBackgroundTexture();
+        
+        // Preload textures for the new area's adjacent areas
+        preloadAdjacentAreaTextures(newArea);
     }
     
     // Show transition message
