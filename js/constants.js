@@ -4,7 +4,7 @@ const GAME_CONFIG = {
     baseViewSize: 500,  // Base size for camera view and calculations
     
     // World Size
-    worldSpawnDiameter: 3000,  // Total diameter of monster spawn area
+    worldSpawnDiameter: 4000,  // Total diameter of monster spawn area
     minSpawnDistance: 500,     // Minimum spawn distance from origin/player
     
     // Game Balance

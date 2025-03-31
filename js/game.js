@@ -952,7 +952,7 @@ function checkAreaTransition() {
     const distanceToNextArea = gameState.player.position.distanceTo(gameState.nextAreaPosition);
     
     // Check for previous area entrance (250 units south of spawn)
-    const distanceToPreviousArea = gameState.player.position.distanceTo(new THREE.Vector3(0, -500, 0));
+    const distanceToPreviousArea = gameState.player.position.distanceTo(new THREE.Vector3(0, -250, 0));
     
     // Check if player is near either entrance
     const isNextArea = distanceToNextArea < 50;
@@ -1207,11 +1207,19 @@ function updateHPRegen(deltaTime) {
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
         
-        
         // Regenerate if not in combat (active monsters) or always regenerate (stored monsters)
         if (!monster.inCombat || gameState.player.storedMonsters.includes(monster)) {
             // Regenerate HP using constant rate
             const regenAmount = monster.maxHP * 0.05 * deltaTime; // 5% per second
+            
+            // Apply HP regeneration
+            if (monster.currentHP < monster.maxHP) {
+                monster.currentHP = Math.min(monster.maxHP, monster.currentHP + regenAmount);
+                updateUILabel(monster.uiLabel, monster);
+            }
+        } else {
+            // Regenerate HP during combat at 0.5% per second
+            const regenAmount = monster.maxHP * 0.005 * deltaTime;
             
             // Apply HP regeneration
             if (monster.currentHP < monster.maxHP) {
@@ -1905,7 +1913,7 @@ function setRandomNextAreaPosition() {
     const randomAngle = Math.random() * Math.PI * 2;
     
     // Fixed distance from center (at the edge of spawn area)
-    const distance = 1500;
+    const distance = 1800;
     
     // Calculate new position using polar coordinates
     const x = Math.cos(randomAngle) * distance;
