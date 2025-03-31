@@ -2,11 +2,27 @@
 let backgroundMusic;
 let musicInitialized = false;
 let preloadedTextures = new Map(); // Store preloaded textures
+let currentMusicIndex = 1;
+const totalMusicTracks = 8; // Update this number based on how many music files you have
 
 function initMusic() {
-    backgroundMusic = new Audio('assets/sound/Music.mp3');
-    backgroundMusic.loop = true;
+    // Create audio element
+    backgroundMusic = new Audio();
     backgroundMusic.volume = 0.5;
+    
+    // Set up event listener for when a track ends
+    backgroundMusic.addEventListener('ended', () => {
+        // Move to next track
+        currentMusicIndex = (currentMusicIndex % totalMusicTracks) + 1;
+        // Load and play next track
+        backgroundMusic.src = `assets/sound/Music${currentMusicIndex}.mp3`;
+        if (!gameState.musicSavedOff) {
+            backgroundMusic.play();
+        }
+    });
+    
+    // Load first track
+    backgroundMusic.src = 'assets/sound/Music1.mp3';
 }
 
 function startMusicOnFirstInput() {
@@ -163,13 +179,88 @@ function initThree() {
     
     // Add close button event listener for storage UI
     document.querySelector('#storageUI .close-button').addEventListener('click', toggleStorageUI);
+
+    // Create portal if starting in level 1 and it doesn't exist yet
+    if (gameState.currentArea === 1 && !gameState.portalMesh) {
+        createPortal();
+    }
+}
+
+// Create portal mesh and label
+function createPortal() {
+    // Create portal mesh (using CircleGeometry instead of EllipseGeometry)
+    const portalGeometry = new THREE.CircleGeometry(25, 32);
+    const portalMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.8
+    });
+    const portalMesh = new THREE.Mesh(portalGeometry, portalMaterial);
+    portalMesh.position.set(0, -500, 1); // South of start
+    gameState.scene.add(portalMesh);
+    gameState.portalMesh = portalMesh;
+
+    // Create portal label
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 384; // Increased canvas width to accommodate larger text
+    canvas.height = 144;  // Increased canvas height to accommodate two lines of text
+    
+    // Set up text
+    context.fillStyle = 'white';
+    context.font = 'bold 48px Arial'; // Increased from 32px to 48px (50% larger)
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('Vibeverse Portal', canvas.width/2, canvas.height/3);
+    
+    // Add second line of text
+    context.fillText('(Leaves Game!)', canvas.width/2, (canvas.height/3) * 2);
+    
+    // Create texture from canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    const labelGeometry = new THREE.PlaneGeometry(150, 56.25); // Increased height proportionally for two lines
+    const labelMaterial = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+    const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+    labelMesh.position.set(0, -460, 2); // Slightly above portal
+    gameState.scene.add(labelMesh);
+    gameState.portalLabel = labelMesh;
+
+    // Add pulsing animation
+    const pulsePortal = () => {
+        if (gameState.currentArea === 1) {
+            portalMesh.visible = true;
+            labelMesh.visible = true;
+            portalMesh.scale.set(1, 1, 1);
+            setTimeout(() => {
+                if (gameState.currentArea === 1) {
+                    portalMesh.scale.set(1.2, 1.2, 1);
+                }
+                setTimeout(pulsePortal, 1000);
+            }, 1000);
+        } else {
+            portalMesh.visible = false;
+            labelMesh.visible = false;
+            setTimeout(pulsePortal, 1000);
+        }
+    };
+    pulsePortal();
 }
 
 // Initialize player
 function initPlayer(hasStarterMonster) {
-    // Create player visual
-    const geometry = new THREE.CircleGeometry(12, 32);
-    const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    // Create player visual using texture
+    const textureLoader = new THREE.TextureLoader();
+    const playerTexture = textureLoader.load('assets/player.png');
+    const geometry = new THREE.PlaneGeometry(48, 48); // Same size as original circle
+    const material = new THREE.MeshBasicMaterial({ 
+        map: playerTexture,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
     const playerMesh = new THREE.Mesh(geometry, material);
     playerMesh.position.z = calculateZPosition(0, true);
     gameState.scene.add(playerMesh);
@@ -234,6 +325,28 @@ function gameLoop(time) {
     // Cap delta time to prevent physics issues after tab switching
     const cappedDeltaTime = Math.min(deltaTime, 0.1);
     
+    // Check portal interaction if in level 1
+    if (gameState.currentArea === 1 && gameState.portalMesh) {
+        const distanceToPortal = gameState.player.position.distanceTo(gameState.portalMesh.position);
+        if (distanceToPortal < 15) {
+            // Reset player position first
+            gameState.player.position.set(0, 0, 0);
+            gameState.player.mesh.position.copy(gameState.player.position);
+            gameState.player.mesh.position.z = calculateZPosition(gameState.player.position.y, true);
+            
+            // Update camera
+            gameState.camera.position.x = 0;
+            gameState.camera.position.y = 0;
+            gameState.camera.lookAt(0, 0, 0);
+            
+            // Reset click target
+            gameState.clickTargetPosition = null;
+            
+            // Redirect to website
+            window.location.href = 'http://portal.pieter.com/';
+        }
+    }
+    
     // Update time since last damage for all monsters (only when game is not paused)
     const allMonsters = [...gameState.player.monsters, ...gameState.player.storedMonsters, ...gameState.wildMonsters];
     for (const monster of allMonsters) {
@@ -297,8 +410,8 @@ function gameLoop(time) {
         saveGame();
         gameState.lastSaveTime = time;
         gameState.saveCounter = (gameState.saveCounter + 1) % 24;
-        if (gameState.saveCounter === 0) {
-            addChatMessage("Game auto-saves every 5 seconds. You can also save by opening the menu.", 5000);
+        if (gameState.saveCounter === 2) {
+            addChatMessage("Game auto-saves every 5 seconds.", 5000);
         }
     }
     
@@ -386,6 +499,9 @@ function init() {
         // Spawn wild monsters for the saved area
         spawnWildMonsters(gameState.currentArea);
     } else {
+        // Show welcome popup for new players
+        showWelcomePopup();
+        
         // Initialize new player with starter monster
         initPlayer(true);
         
@@ -733,17 +849,35 @@ function updatePlayerMovement(deltaTime) {
     // Distance to target
     const distanceToTarget = gameState.player.position.distanceTo(gameState.clickTargetPosition);
     
-    // Move player towards target
-    if (distanceToTarget > 5) {
-        const movement = Math.min(distanceToTarget, GAME_CONFIG.playerSpeed * deltaTime);
-        gameState.player.position.x += direction.x * movement;
-        gameState.player.position.y += direction.y * movement;
+    // Calculate new position
+    const newPosition = new THREE.Vector3(
+        gameState.player.position.x + direction.x * Math.min(distanceToTarget, GAME_CONFIG.playerSpeed * deltaTime),
+        gameState.player.position.y + direction.y * Math.min(distanceToTarget, GAME_CONFIG.playerSpeed * deltaTime),
+        0
+    );
+    
+    // Define boundaries (half of the background plane size)
+    const boundary = 2500; // 5000/2
+    
+    // Check if new position would be within square bounds
+    if (Math.abs(newPosition.x) <= boundary && Math.abs(newPosition.y) <= boundary) {
+        // Update player position
+        gameState.player.position.copy(newPosition);
         
         // Update player mesh with Z position calculation
         gameState.player.mesh.position.copy(gameState.player.position);
         gameState.player.mesh.position.z = calculateZPosition(gameState.player.position.y, true);
     } else {
-        // Target reached
+        // If target is outside bounds, clamp to the nearest valid position on the square boundary
+        const clampedX = Math.max(-boundary, Math.min(boundary, newPosition.x));
+        const clampedY = Math.max(-boundary, Math.min(boundary, newPosition.y));
+        
+        // Update player position to the clamped position
+        gameState.player.position.set(clampedX, clampedY, 0);
+        gameState.player.mesh.position.copy(gameState.player.position);
+        gameState.player.mesh.position.z = calculateZPosition(gameState.player.position.y, true);
+        
+        // Clear target position to stop movement
         gameState.clickTargetPosition = null;
     }
     
@@ -776,11 +910,36 @@ function updateMonsterRevival(deltaTime) {
                 monster.currentHP = Math.floor(monster.maxHP * 0.5);
                 monster.currentStamina = monster.maxStamina;
                 
+                // Set timeSinceLastDamage to a high value to ensure monster is considered out of combat
+                monster.timeSinceLastDamage = 9999;
+                
                 // Make visible again
                 monster.mesh.visible = true;
                 
                 // Update UI
                 updateUILabel(monster.uiLabel, monster);
+
+                // Check if monster is in stored monsters and player has less than 2 active monsters
+                const isStored = gameState.player.storedMonsters.includes(monster);
+                if (isStored && gameState.player.monsters.length < 2) {
+                    // Remove from stored monsters
+                    const storedIndex = gameState.player.storedMonsters.indexOf(monster);
+                    if (storedIndex !== -1) {
+                        gameState.player.storedMonsters.splice(storedIndex, 1);
+                    }
+                    
+                    // Add to active monsters using addMonsterToPlayer
+                    addMonsterToPlayer(monster);
+                    
+                    // Add chat message
+                    addChatMessage(`${monster.name} has revived and joined your active team!`, 5000);
+                    
+                    // Update storage UI
+                    updateStorageUI();
+                } else {
+                    // Add chat message for normal revival
+                    addChatMessage(`${monster.name} has revived!`, 5000);
+                }
             }
         }
     }
@@ -793,7 +952,7 @@ function checkAreaTransition() {
     const distanceToNextArea = gameState.player.position.distanceTo(gameState.nextAreaPosition);
     
     // Check for previous area entrance (250 units south of spawn)
-    const distanceToPreviousArea = gameState.player.position.distanceTo(new THREE.Vector3(0, -250, 0));
+    const distanceToPreviousArea = gameState.player.position.distanceTo(new THREE.Vector3(0, -500, 0));
     
     // Check if player is near either entrance
     const isNextArea = distanceToNextArea < 50;
@@ -887,6 +1046,17 @@ function areaTransition(newArea) {
     
     // Spawn new monsters for the new area
     spawnWildMonsters(gameState.currentArea);
+
+    // Create portal if in level 1 and it doesn't exist yet
+    if (newArea === 1 && !gameState.portalMesh) {
+        createPortal();
+    }
+    
+    // Update portal visibility based on current area
+    if (gameState.portalMesh && gameState.portalLabel) {
+        gameState.portalMesh.visible = newArea === 1;
+        gameState.portalLabel.visible = newArea === 1;
+    }
 }
 
 // Helper function to select a random enemy with distance-based weighting
@@ -1359,8 +1529,10 @@ function spawnWildMonsters(areaLevel, count = null) {
     if (count === null) {
         const spawnRegions = Math.floor(spawnArea / GAME_CONFIG.spawnAreaSize);
         const spawnRegionCount = spawnRegions * spawnRegions;
-        count = spawnRegionCount * GAME_CONFIG.monsterDensity;
-        console.log(`Spawning ${count} monsters based on density of ${GAME_CONFIG.monsterDensity} per ${GAME_CONFIG.spawnAreaSize}x${GAME_CONFIG.spawnAreaSize} area`);
+        // Use half density for area level 1
+        const density = areaLevel === 1 ? GAME_CONFIG.monsterDensity * 0.5 : GAME_CONFIG.monsterDensity;
+        count = spawnRegionCount * density;
+        console.log(`Spawning ${count} monsters based on density of ${density} per ${GAME_CONFIG.spawnAreaSize}x${GAME_CONFIG.spawnAreaSize} area`);
     }
     
     for (let i = 0; i < count; i++) {
@@ -1407,20 +1579,20 @@ function spawnWildMonsters(areaLevel, count = null) {
             // 50% chance - spawn from current area level
             availableTypes = Object.keys(MONSTER_TYPES)
                 .map(Number)
-                .filter(id => Math.ceil(id / 5) === areaLevel);
+                .filter(id => Math.ceil(id / 5) === areaLevel + 1);
         } else if (spawnRoll < 90) {
             // 40% chance - spawn from any level below
             availableTypes = Object.keys(MONSTER_TYPES)
                 .map(Number)
                 .filter(id => Math.ceil(id / 5) < areaLevel);
-        } else if (spawnRoll < 95) {
-            // 5% chance - spawn from area level above
+        } else if (spawnRoll < 97) {
+            // 7% chance - spawn from area level above with +5 levels
             availableTypes = Object.keys(MONSTER_TYPES)
                 .map(Number)
                 .filter(id => Math.ceil(id / 5) === areaLevel + 1);
                 level +=5;
         } else {
-            // 5% chance - spawn any random monster
+            // 3% chance - spawn any random monster with +10 levels
             availableTypes = Object.keys(MONSTER_TYPES).map(Number);
             level +=10;
         }
@@ -1845,4 +2017,15 @@ function checkAggroRange() {
             monster.isAggroed = false;
         }
     }
+}
+
+// Function to show welcome popup
+function showWelcomePopup() {
+    const popup = document.getElementById('welcomePopup');
+    popup.style.display = 'flex';
+    
+    // Add click handler for close button
+    document.getElementById('welcomeCloseButton').addEventListener('click', () => {
+        popup.style.display = 'none';
+    });
 }

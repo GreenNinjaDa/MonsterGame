@@ -635,10 +635,10 @@ function handleMonsterDefeat(defeated, victor) {
     
     // Handle player monster defeat - set revival timer and move to storage
     if (!defeated.isWild) {
-        defeated.reviveTimer = GAME_CONFIG.respawnTime; // 50 seconds to revive
+        defeated.reviveTimer = defeated.level * 2; // 2x monster level seconds to revive
 
-        //Notify the player that their monster was defeated and will respawn in 50 seconds.
-        addChatMessage(`${defeated.name} was defeated. Reviving in storage in ${defeated.reviveTimer} seconds...`, 10000);
+        //Notify the player that their monster was defeated and will respawn in 2x level seconds.
+        addChatMessage(`${defeated.name} was defeated. Reviving in ${defeated.reviveTimer} seconds...`, 10000);
         
         // Move defeated monster to storage automatically
         const monsterIndex = gameState.player.monsters.findIndex(m => m.id === defeated.id);

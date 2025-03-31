@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monster Catching Game</title>
+    <title>Monsterbound</title>
     <link rel="stylesheet" href="styles/styles.css">
 </head>
 <body>
     <div id="ui">
         <button id="storageButton">Menu/Monsters</button>
-        <div id="areaDisplay">Area: Starting Plains v0.2.2</div>
+        <div id="areaDisplay">Area: Starting Plains v0.5.1</div>
         <div id="goldCounter">Gold: 100</div>
         <div id="fpsCounter">FPS: 60</div>
     </div>
@@ -44,6 +44,14 @@
     
     <div id="chatUI"></div>
     
+    <div id="welcomePopup">
+        <div class="welcome-content">
+            <h2>Welcome to Monsterbound!</h2>
+            <p>This is a game about capturing monsters and training them. It saves and loads automatically. Be careful at the start to not get mobbed by two or more monsters. After you defeat a monster, you can capture them by tapping/clicking on the white circle that appears. You can enable and disable music in the menu. Have fun!</p>
+            <button id="welcomeCloseButton">Got it!</button>
+        </div>
+    </div>
+    
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
     
@@ -53,5 +61,6 @@
     <script src="js/ui.js"></script>
     <script src="js/save-load-system.js"></script>
     <script src="js/game.js"></script>
+    <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
 </body>
 </html> 

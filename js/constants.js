@@ -46,50 +46,50 @@ const GAME_CONFIG = {
 
 // Area Configuration
 const AREAS = {
-    1: {
+    1: { //Mixed elements
         name: "Starting Plains",
         backgroundColor: 0x66aa66, // Green background for grass
         description: "A peaceful starting area with gentle monsters"
     },
-    2: {
-        name: "Forest of Growth",
+    2: { //Plant
+        name: "Jungle of Growth",
         backgroundColor: 0x228B22, // Forest green
         description: "A dense forest teeming with stronger monsters"
     },
-    3: {
-        name: "Volcanic Wasteland",
-        backgroundColor: 0x8B0000, // Dark red
-        description: "A scorched land where only the strongest survive"
+    3: { //Water
+        name: "Mystic Marsh",
+        backgroundColor: 0x800080, // Purple
+        description: "A mysterious swampland where reality seems to bend"
     },
-    4: {
+    4: { //Earth
         name: "Crystal Caverns",
         backgroundColor: 0x483D8B, // Dark slate blue
         description: "Ancient caves filled with crystalline formations"
     },
-    5: {
-        name: "Dragon's Domain",
-        backgroundColor: 0x4B0082, // Indigo
-        description: "The legendary realm of the most powerful monsters"
+    5: { //Fire
+        name: "Volcanic Wasteland",
+        backgroundColor: 0x8B0000, // Dark red
+        description: "A scorched land where only the strongest survive"
     },
-    6: {
-        name: "Master's Keep",
-        backgroundColor: 0x505050, // Dark gray
-        description: "A place only the most ambitious of trainers dare to venture"
-    },
-    7: {
-        name: "Frozen Tundra",
-        backgroundColor: 0xE0FFFF, // Light cyan
-        description: "A frigid wasteland where only the most resilient monsters thrive"
-    },
-    8: {
+    6: { //Electric
         name: "Storm Peaks",
         backgroundColor: 0x2F4F4F, // Dark slate gray
         description: "Treacherous mountain peaks crackling with electric energy"
     },
+    7: { //Master's Keep
+        name: "Master's Keep",
+        backgroundColor: 0x505050, // Dark gray
+        description: "A place only the most ambitious of adventurers dare to venture"
+    },
+    8: {
+        name: "Frozen Tundra",
+        backgroundColor: 0xE0FFFF, // Light cyan
+        description: "A frigid wasteland where only the most resilient monsters thrive"
+    },
     9: {
-        name: "Mystic Marsh",
-        backgroundColor: 0x800080, // Purple
-        description: "A mysterious swampland where reality seems to bend"
+        name: "Dragon's Domain",
+        backgroundColor: 0x4B0082, // Indigo
+        description: "The legendary realm of the most powerful monsters"
     },
     10: {
         name: "Celestial Summit",
@@ -107,14 +107,14 @@ const MONSTER_TYPES = {
     4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 60, sAtk: 60, endur: 30}, size: 1}, //Total: 300
     5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, pAtk: 50, sDef: 40, sAtk: 60, endur: 60}, size: 0.9}, //Total: 300 //Pushes enemy away on attack???
     6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, pAtk: 30, sDef: 40, sAtk: 80, endur: 40}, size: 0.8}, //Total: 300
-    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, pAtk: 110, sDef: 40, sAtk: 70, endur: 20}, size: 0.8}, //Total: 300
+    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, pAtk: 100, sDef: 40, sAtk: 70, endur: 30}, size: 0.8}, //Total: 300
 	8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 45, sDef: 50, sAtk: 35, endur: 70}, size: 1.2}, //Total: 300
 	9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, pAtk: 40, sDef: 20, sAtk: 10, endur: 80}, size: 1}, //Total: 300
 	10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 40, endur: 50}, size: 1}, //Total: 300
 	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 45, pAtk: 55, sDef: 50, sAtk: 70, endur: 30}, size: 1}, //Total: 280 Enrages when hit, dealing 50% increased damage for 2 seconds.
-	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, size: 1}, //Total: 280 Reflects 25% of special damage taken before reduction.
-	13: { name: "Tambleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, size: 1}, //Total: 320 Rolls around during combat.
-	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 40, pAtk: 25, sDef: 80, sAtk: 80, endur: 20 }, size: 1}, //Total: 250 Always considered out of combat.
+	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, size: 0.8}, //Total: 280 Reflects 25% of special damage taken before reduction.
+	13: { name: "Tambleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, size: 0.9}, //Total: 320 Rolls around during combat.
+	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 40, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, size: 1}, //Total: 250 Always considered out of combat.
 	15: { name: "Treezard", element: "Plant", stats: { spd: 60, pDef: 70, pAtk: 20, sDef: 40, sAtk: 70, endur: 40 }, size: 1}, //Total: 300
 	
 	
