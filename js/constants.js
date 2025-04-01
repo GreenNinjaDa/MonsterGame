@@ -212,7 +212,7 @@ function initializeGameState() {
     gameState = {
         player: {
             position: new THREE.Vector3(0, 0, 0),
-            gold: savedData?.player?.gold ?? 0, // Use saved gold if it exists, otherwise 100
+            gold: savedData?.player?.gold ?? 100, // Use saved gold if it exists, otherwise 100
             monsters: [], // Active monsters
             storedMonsters: [], // Storage for additional monsters
             gracePeriodTimer: 0 // Timer for grace period after teleportation
