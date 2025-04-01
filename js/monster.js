@@ -373,10 +373,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
 }
 
 // Calculate damage based on stats and elemental relations
-function calculateDamage(attacker, defender) {
-    // Base damage components
-    const physicalBase = 25;
-    const specialBase = 25;
+function dealDamage(attacker, defender, physicalBase = GAME_CONFIG.physicalBase, specialBase = GAME_CONFIG.specialBase) {
     
     // Calculate physical damage
     const physicalDamage = Math.floor(
@@ -400,7 +397,7 @@ function calculateDamage(attacker, defender) {
         elementMultiplier = 0.67; // 33% less damage
     }
 
-    // Add 5% damage for each level above 1 if attacker is a wild monster
+    // Add damage bonus/reduction for wild monsters based on area level
     let tempMultiplier = 1
 
     if (attacker.isWild) {
@@ -465,18 +462,18 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     // Check if attacker has enough stamina
     const staminaCost = 25;
-    let cooldownMultiplier = 1;
+    let damageMulti = 1;
     
     if (attacker.currentStamina < staminaCost) {
         // Not enough stamina, double cooldown and don't consume stamina
-        cooldownMultiplier = 2;
+        damageMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
     } else {
         // Consume stamina
         attacker.currentStamina -= staminaCost;
     }
     
     // Calculate damage
-    const damageResult = calculateDamage(attacker, defender);
+    const damageResult = dealDamage(attacker, defender, GAME_CONFIG.physicalBase * damageMulti, GAME_CONFIG.specialBase * damageMulti);
     
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
@@ -547,7 +544,7 @@ function monsterAttack(attacker, defender, deltaTime) {
     updateUILabel(attacker.uiLabel, attacker);
     
     // Reset cooldown
-    attacker.currentCooldown = attacker.attackCooldown * cooldownMultiplier;
+    attacker.currentCooldown = attacker.attackCooldown;
     
     // Move attacker in a random direction after attack
     const randomAngle = Math.random() * Math.PI * 2;
@@ -606,16 +603,17 @@ function handleMonsterDefeat(defeated, victor) {
             let effectiveLevel = defeated.level;
             if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
                 effectiveLevel += defeated.rareModifiers.length * 5;
+            }
         
             // Add gold based on effective level
             const goldReward = 2 + Math.ceil((effectiveLevel * (effectiveLevel + 1)) / 10);
             gameState.player.gold += goldReward;
             updateGoldDisplay();
 
-            createFloatingText(`+${goldReward} gold`, defeated.mesh.position, 0xffff00, 0);
+            // Create floating gold coin animation
+            createFloatingGoldCoin(defeated.mesh.position);
 
             addChatMessage(`Defeated ${defeated.name} for ${goldReward} gold!`);
-            }
         }
 
         // Reduce level to 40% (rounded up) and recalculate stats

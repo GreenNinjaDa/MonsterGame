@@ -21,8 +21,9 @@ function initMusic() {
         }
     });
     
-    // Load first track
-    backgroundMusic.src = 'assets/sound/Music1.mp3';
+    // Randomly select initial track (1 to totalMusicTracks)
+    currentMusicIndex = Math.floor(Math.random() * totalMusicTracks) + 1;
+    backgroundMusic.src = `assets/sound/Music${currentMusicIndex}.mp3`;
 }
 
 function startMusicOnFirstInput() {

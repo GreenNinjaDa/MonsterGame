@@ -11,9 +11,12 @@ const GAME_CONFIG = {
     hpRegenRate: 0.02,         // HP regeneration rate (2% per second)
     innerZoneRatio: 0.4,       // Ratio of map that maintains minimum level (40%)
     outerZoneRatio: 0.8,       // Ratio of map for level scaling (80%)
-    combatStatusTime: 10,      // Time in seconds before a monster exits combat status
+    combatStatusTime: 5,      // Time in seconds before a monster exits combat status
     wildMonsterDamageBonus: 0.03, // 3% damage bonus for wild monsters (for each area level above 1)
     wildMonsterDamageReduction: 0.03, // 3% damage reduction for wild monsters (for each area level above 1)
+    outOfStaminaDamageMultiplier: 0.25, // 75% less damage for out of stamina monsters
+    physicalBase: 25, // Base physical damage for normal attacks
+    specialBase: 25, // Base special damage for normal attacks
     
     // Movement Speeds (units per second)
     playerSpeed: 200,          // Base player movement speed

@@ -185,7 +185,7 @@ function storeMonster(monsterId) {
         
         // Check if monster is in combat
         if (inCombat(monster)) {
-            addChatMessage("Cannot store a monster that has been in combat recently! (10 seconds)");
+            addChatMessage("Cannot store a monster that has been in combat recently! (5 seconds)");
             return;
         }
         
@@ -754,3 +754,96 @@ function setupUIEventHandlers() {
         }
     });
 }
+
+// Create floating gold coin that moves towards player
+function createFloatingGoldCoin(position) {
+    // Create a canvas for the coin
+    const canvas = document.createElement('canvas');
+    canvas.width = 60;
+    canvas.height = 60;
+    const context = canvas.getContext('2d');
+    
+    // Draw a gold circle
+    context.beginPath();
+    context.arc(30, 30, 25, 0, Math.PI * 2);
+    context.fillStyle = '#FFD700'; // Gold color
+    context.fill();
+    context.strokeStyle = '#B8860B'; // Darker gold for border
+    context.lineWidth = 3;
+    context.stroke();
+    
+    // Add a $ symbol
+    context.fillStyle = '#B8860B';
+    context.font = 'bold 30px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('$', 30, 30);
+    
+    // Create a texture from the canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    
+    // Create a sprite with the texture
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    
+    // Position the sprite
+    sprite.position.copy(position);
+    sprite.position.z = 10;  // In front of everything
+    sprite.scale.set(30, 30, 1);
+    
+    // Add to scene
+    gameState.scene.add(sprite);
+    
+    // Animation properties
+    let time = 0;
+    const floatDuration = 1; // 1 second of floating
+    const moveDuration = 0.5; // 0.5 seconds of moving to player
+    const floatHeight = 30; // How high it floats
+    const floatSpeed = 2; // Speed of floating motion
+    
+    // Animate the coin
+    const animateCoin = () => {
+        if (time >= floatDuration + moveDuration) {
+            gameState.scene.remove(sprite);
+            return;
+        }
+        
+        if (time < floatDuration) {
+            // Floating phase
+            sprite.position.y = position.y + Math.sin(time * floatSpeed) * floatHeight;
+        } else {
+            // Moving to player phase
+            const moveProgress = (time - floatDuration) / moveDuration;
+            const startPos = new THREE.Vector3(position.x, position.y + Math.sin(floatDuration * floatSpeed) * floatHeight, 10);
+            const endPos = new THREE.Vector3(gameState.player.position.x, gameState.player.position.y, 10);
+            
+            // Use easing function for smooth acceleration
+            const easedProgress = moveProgress * moveProgress * (3 - 2 * moveProgress);
+            sprite.position.lerpVectors(startPos, endPos, easedProgress);
+        }
+        
+        time += 0.016; // Assuming 60fps
+        requestAnimationFrame(animateCoin);
+    };
+    
+    animateCoin();
+    
+    return sprite;
+}
+
+// Help Button Functionality
+const helpButton = document.getElementById('helpButton');
+const helpPopup = document.getElementById('helpPopup');
+
+helpButton.addEventListener('click', () => {
+    helpPopup.style.display = 'block';
+    helpButton.style.display = 'none';
+});
+
+helpPopup.addEventListener('click', (e) => {
+    if (e.target === helpPopup) {
+        helpPopup.style.display = 'none';
+        helpButton.style.display = 'flex';
+    }
+});
