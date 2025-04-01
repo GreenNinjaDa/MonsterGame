@@ -12,10 +12,12 @@ const GAME_CONFIG = {
     innerZoneRatio: 0.4,       // Ratio of map that maintains minimum level (40%)
     outerZoneRatio: 0.8,       // Ratio of map for level scaling (80%)
     combatStatusTime: 10,      // Time in seconds before a monster exits combat status
+    wildMonsterDamageBonus: 0.03, // 3% damage bonus for wild monsters (for each area level above 1)
+    wildMonsterDamageReduction: 0.03, // 3% damage reduction for wild monsters (for each area level above 1)
     
     // Movement Speeds (units per second)
     playerSpeed: 200,          // Base player movement speed
-    playerMonsterSpeed: 220,   // Player monster movement speed (all states)
+    playerMonsterSpeed: 210,   // Player monster movement speed (all states)
     wildMonsterSpeed: 160,     // Wild monster movement speed
     monsterCollisionDistance: 30, // Distance to move monsters apart when they collide
     
@@ -54,7 +56,7 @@ const AREAS = {
     2: { //Plant
         name: "Jungle of Growth",
         backgroundColor: 0x228B22, // Forest green
-        description: "A dense forest teeming with stronger monsters"
+        description: "A dense jungle teeming with stronger monsters"
     },
     3: { //Water
         name: "Mystic Marsh",
@@ -101,21 +103,21 @@ const AREAS = {
 // Monster Types
 const MONSTER_TYPES = {
     // # - Name - Element - Speed, Phyical Defense, Phyical Attack, Special Defense, Special Attack, Endurance, SizeAdjust
-    1: { name: "Derpfish", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 70, sDef: 70, sAtk: 20, endur: 40}, size: 1}, //Total: 300
-    2: { name: "Emberling", element: "Fire", stats: { spd: 70, pDef: 40, pAtk: 50, sDef: 60, sAtk: 60, endur: 20}, size: 1}, //Total: 300
-    3: { name: "DownTwo", element: "Earth", stats: { spd: 30, pDef: 65, pAtk: 55, sDef: 65, sAtk: 55, endur: 30}, size: 1}, //Total: 300
-    4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 60, sAtk: 60, endur: 30}, size: 1}, //Total: 300
-    5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, pAtk: 50, sDef: 40, sAtk: 60, endur: 60}, size: 0.9}, //Total: 300 //Pushes enemy away on attack???
-    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, pAtk: 30, sDef: 40, sAtk: 80, endur: 40}, size: 0.8}, //Total: 300
-    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, pAtk: 100, sDef: 40, sAtk: 70, endur: 30}, size: 0.8}, //Total: 300
-	8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 45, sDef: 50, sAtk: 35, endur: 70}, size: 1.2}, //Total: 300
-	9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, pAtk: 40, sDef: 20, sAtk: 10, endur: 80}, size: 1}, //Total: 300
-	10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 40, endur: 50}, size: 1}, //Total: 300
-	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 45, pAtk: 55, sDef: 50, sAtk: 70, endur: 30}, size: 1}, //Total: 280 Enrages when hit, dealing 50% increased damage for 2 seconds.
-	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, size: 0.8}, //Total: 280 Reflects 25% of special damage taken before reduction.
-	13: { name: "Tambleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, size: 0.9}, //Total: 320 Rolls around during combat.
-	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 40, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, size: 1}, //Total: 250 Always considered out of combat.
-	15: { name: "Treezard", element: "Plant", stats: { spd: 60, pDef: 70, pAtk: 20, sDef: 40, sAtk: 70, endur: 40 }, size: 1}, //Total: 300
+    1: { name: "Derpfish", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 70, sDef: 70, sAtk: 20, endur: 40}, abilId: 0, size: 1}, //Total: 300
+    2: { name: "Emberling", element: "Fire", stats: { spd: 70, pDef: 40, pAtk: 50, sDef: 60, sAtk: 60, endur: 20}, abilId: 0, size: 1}, //Total: 300
+    3: { name: "DownTwo", element: "Earth", stats: { spd: 30, pDef: 65, pAtk: 55, sDef: 65, sAtk: 55, endur: 30}, abilId: 0, size: 1}, //Total: 300
+    4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 60, sAtk: 60, endur: 30}, abilId: 0, size: 1}, //Total: 300
+    5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, pAtk: 50, sDef: 40, sAtk: 60, endur: 60}, abilId: 0, size: 0.9}, //Total: 300 //Pushes enemy away on attack???
+    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, pAtk: 30, sDef: 40, sAtk: 80, endur: 40}, abilId: 0, size: 0.8}, //Total: 300
+    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, pAtk: 100, sDef: 40, sAtk: 70, endur: 30}, abilId: 0, size: 0.8}, //Total: 300
+	8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 45, sDef: 50, sAtk: 35, endur: 70}, abilId: 0, size: 1.2}, //Total: 300
+	9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, pAtk: 40, sDef: 20, sAtk: 10, endur: 80}, abilId: 0, size: 1}, //Total: 300
+	10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 40, endur: 50}, abilId: 0, size: 1}, //Total: 300
+	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 45, pAtk: 55, sDef: 50, sAtk: 70, endur: 30}, abilId: 11, size: 1}, //Total: 280
+	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, abilId: 12, size: 0.8}, //Total: 280
+	13: { name: "Rumbleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, abilId: 13, size: 0.85}, //Total: 320
+	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 40, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 250
+	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 30 }, abilId: 15, size: 1}, //Total: 300
 	
 	
     
@@ -123,6 +125,14 @@ const MONSTER_TYPES = {
 	//Corgknight
 	//Unicorg
 };
+
+const MONSTER_ABIL_TEXT = {
+    11: { name: "Berserker", description: "Enrages when hit, dealing 50% increased damage for 2 seconds." },
+    12: { name: "Magic thorns", description: "Reflects 25% of special damage taken before reduction." },
+    13: { name: "Rumbler", description: "Rolls around during combat." },
+    14: { name: "Lazy", description: "Always regenerates HP at half out of combat rates." },
+    15: { name: "Double team", description: "Enemies have a 20% chance to miss." }
+}
 
 /*const MONSTER_TYPE_STORIES = {
 
@@ -199,7 +209,7 @@ function initializeGameState() {
     gameState = {
         player: {
             position: new THREE.Vector3(0, 0, 0),
-            gold: savedData?.player?.gold ?? 100, // Use saved gold if it exists, otherwise 100
+            gold: savedData?.player?.gold ?? 0, // Use saved gold if it exists, otherwise 100
             monsters: [], // Active monsters
             storedMonsters: [], // Storage for additional monsters
             gracePeriodTimer: 0 // Timer for grace period after teleportation

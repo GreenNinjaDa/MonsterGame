@@ -322,8 +322,8 @@ canvas {
 }
 
 .chat-message {
-    background-color: rgba(0, 0, 0, 0.2);
-    color: white;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: gold;
     padding: 8px 12px;
     margin-bottom: 8px;
     border-radius: 5px;

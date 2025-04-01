@@ -325,6 +325,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     const monster = {
         id: Date.now() + Math.random(),
         typeId,
+        abilId: monsterType.abilId,
         name: monsterType.name,
         element: tempElement,
         level,
@@ -344,7 +345,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         uiLabel,
         target: null,
         inCombat: false,
-        timeSinceLastDamage: 0,
+        timeSinceCombat: 0,
         experience: {
             current: 0,
             toNextLevel: 25 * level
@@ -363,7 +364,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     };
 
     //Make sure it's not considered in combat
-    monster.timeSinceLastDamage = 9999;
+    monster.timeSinceCombat = 9999;
 
     // Update the UI label
     updateUILabel(uiLabel, monster);
@@ -391,7 +392,6 @@ function calculateDamage(attacker, defender) {
     
     // Check for elemental advantage
     let elementMultiplier = 1;
-    let elementMessage = "";
     
     // Apply elemental relationships: Plant → Earth → Electric → Water → Fire → Plant
     if (ELEMENT_RELATIONS[attacker.element].strong === defender.element) {
@@ -399,19 +399,31 @@ function calculateDamage(attacker, defender) {
     } else if (ELEMENT_RELATIONS[attacker.element].weak === defender.element) {
         elementMultiplier = 0.67; // 33% less damage
     }
+
+    // Add 5% damage for each level above 1 if attacker is a wild monster
+    let tempMultiplier = 1
+
+    if (attacker.isWild) {
+        tempMultiplier = tempMultiplier * (2 - (1 / (1 + (gameState.currentArea - 1) * GAME_CONFIG.wildMonsterDamageBonus)));
+    }
+    if (defender.isWild) {
+        tempMultiplier = tempMultiplier * (1 / (1 + (gameState.currentArea - 1) * GAME_CONFIG.wildMonsterDamageReduction));
+    }
+
+    tempMultiplier = tempMultiplier * elementMultiplier;
     
-    // Apply element multiplier to special damage only
-    const adjustedSpecialDamage = Math.floor(specialDamage * elementMultiplier);
+    // Apply element multiplier to both damage types
+    const adjustedSpecialDamage = Math.floor(specialDamage * tempMultiplier);
+    const adjustedPhysicalDamage = Math.floor(physicalDamage * tempMultiplier);
     
     // Total damage
-    const totalDamage = physicalDamage + adjustedSpecialDamage;
+    const totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
     
     return {
-        physical: physicalDamage,
+        physical: adjustedPhysicalDamage,
         special: adjustedSpecialDamage,
         total: totalDamage,
-        elementMultiplier,
-        elementMessage
+        elementMultiplier
     };
 }
 
@@ -470,11 +482,11 @@ function monsterAttack(attacker, defender, deltaTime) {
     defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
     
     // Reset time since last damage for both monsters
-    attacker.timeSinceLastDamage = 0;
-    defender.timeSinceLastDamage = 0;
+    attacker.timeSinceCombat = 0;
+    defender.timeSinceCombat = 0;
     
     // Visual feedback for elemental interactions
-    if (damageResult.elementMultiplier !== 1) {
+    if (damageResult.elementMultiplier < 1.1 && damageResult.elementMultiplier > 0.9) {
         // Clear any existing color flash timeout and revert material
         if (defender.colorResetTimeout) {
             clearTimeout(defender.colorResetTimeout);
@@ -517,10 +529,10 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     // Show damage number with color based on effectiveness
     let textColor;
-    if (damageResult.elementMultiplier > 1) {
+    if (damageResult.elementMultiplier >= 1.1) {
         // Super effective - red text
         textColor = 0xff0000;
-    } else if (damageResult.elementMultiplier < 1) {
+    } else if (damageResult.elementMultiplier <= 0.9) {
         // Not very effective - blue text
         textColor = 0x0000ff;
     } else {
@@ -599,6 +611,8 @@ function handleMonsterDefeat(defeated, victor) {
             const goldReward = 2 + Math.ceil((effectiveLevel * (effectiveLevel + 1)) / 10);
             gameState.player.gold += goldReward;
             updateGoldDisplay();
+
+            createFloatingText(`+${goldReward} gold`, defeated.mesh.position, 0xffff00, 0);
 
             addChatMessage(`Defeated ${defeated.name} for ${goldReward} gold!`);
             }
@@ -805,3 +819,7 @@ function checkLevelUp(monster) {
         updateUILabel(monster.uiLabel, monster);
     }
 } 
+
+function inCombat(monster) {
+    return monster.timeSinceCombat < GAME_CONFIG.combatStatusTime;
+}

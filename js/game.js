@@ -351,8 +351,7 @@ function gameLoop(time) {
     const allMonsters = [...gameState.player.monsters, ...gameState.player.storedMonsters, ...gameState.wildMonsters];
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
-        monster.timeSinceLastDamage += cappedDeltaTime;
-        monster.inCombat = monster.timeSinceLastDamage < GAME_CONFIG.combatStatusTime;
+        monster.timeSinceCombat += cappedDeltaTime;
     }
     
     // Handle monster collisions first, before any other movement
@@ -910,8 +909,8 @@ function updateMonsterRevival(deltaTime) {
                 monster.currentHP = Math.floor(monster.maxHP * 0.5);
                 monster.currentStamina = monster.maxStamina;
                 
-                // Set timeSinceLastDamage to a high value to ensure monster is considered out of combat
-                monster.timeSinceLastDamage = 9999;
+                // Set timeSinceCombat to a high value to ensure monster is considered out of combat
+                monster.timeSinceCombat = 9999;
                 
                 // Make visible again
                 monster.mesh.visible = true;
@@ -1146,6 +1145,71 @@ function updateCombat(deltaTime) {
             continue;
         }
         
+        // Special rolling behavior for abilId 13
+        if (monster.abilId === 13) {
+            // Initialize rolling state if not exists
+            if (monster.rollingState === undefined) {
+                monster.rollingState = 'approaching';
+            }
+            
+            // Get direction to target
+            const direction = new THREE.Vector3()
+                .subVectors(target.mesh.position, monster.mesh.position)
+                .normalize();
+            
+            if (monster.rollingState === 'approaching') {
+                // If in attack range, start rolling forward
+                if (distance <= GAME_CONFIG.attackRange) {
+                    monster.rollingState = 'rolling';
+                    monster.rollDirection = direction.clone();
+                    // Randomly decide turn direction (-1 for left, 1 for right)
+                    monster.rollTurnDirection = Math.random() < 0.5 ? -1 : 1;
+                } else {
+                    // Move towards target normally
+                    const speed = (monster.isWild ? GAME_CONFIG.wildMonsterSpeed : GAME_CONFIG.playerMonsterSpeed) * deltaTime;
+                    monster.mesh.position.x += direction.x * speed;
+                    monster.mesh.position.y += direction.y * speed;
+                    monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+                }
+            } else if (monster.rollingState === 'rolling') {
+                // Roll forward at 200 units per second
+                const rollSpeed = 200 * deltaTime;
+                
+                // Apply a slight rotation to the roll direction (30 degrees per second)
+                const turnAngle = (Math.PI / 6) * deltaTime * monster.rollTurnDirection; // π/6 radians = 30 degrees
+                const cos = Math.cos(turnAngle);
+                const sin = Math.sin(turnAngle);
+                
+                // Rotate the roll direction vector
+                const newX = monster.rollDirection.x * cos - monster.rollDirection.y * sin;
+                const newY = monster.rollDirection.x * sin + monster.rollDirection.y * cos;
+                monster.rollDirection.x = newX;
+                monster.rollDirection.y = newY;
+                monster.rollDirection.normalize();
+                
+                // Apply movement
+                monster.mesh.position.x += monster.rollDirection.x * rollSpeed;
+                monster.mesh.position.y += monster.rollDirection.y * rollSpeed;
+                monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+                
+                // If distance is over 45 units, switch back to approaching
+                if (distance > 45) {
+                    monster.rollingState = 'approaching';
+                }
+                
+                // Attack if in range
+                if (distance <= GAME_CONFIG.attackRange) {
+                    monsterAttack(monster, target, deltaTime);
+                }
+            }
+            
+            // Update monster direction
+            updateMonsterDirection(monster, target.mesh.position.x);
+            
+            // Skip regular combat movement
+            continue;
+        }
+
         // Determine the appropriate attack range based on monster slot
         let attackRange = GAME_CONFIG.attackRange;
         if (!monster.isWild && gameState.player.monsters.indexOf(monster) === 0) {
@@ -1188,7 +1252,7 @@ function updateStaminaRegen(deltaTime) {
         
         // Calculate regen rate (1% in combat, 10% out of combat or always 10% for stored monsters)
         const isStored = gameState.player.storedMonsters.includes(monster);
-        const regenRate = (monster.inCombat && !isStored) ? 0.01 : 0.1;
+        let regenRate = (inCombat(monster) && !isStored) ? 0.01 : 0.1;
         const regenAmount = monster.maxStamina * regenRate * deltaTime;
         
         // Apply stamina regeneration
@@ -1201,31 +1265,22 @@ function updateStaminaRegen(deltaTime) {
 
 // Update HP regeneration (out of combat only)
 function updateHPRegen(deltaTime) {
-    // Player monsters (both active and stored) and wild monsters regenerate HP when not in combat
+    // Update all monsters (both player and wild)
     const allMonsters = [...gameState.player.monsters, ...gameState.player.storedMonsters, ...gameState.wildMonsters];
     
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
         
-        // Regenerate if not in combat (active monsters) or always regenerate (stored monsters)
-        if (!monster.inCombat || gameState.player.storedMonsters.includes(monster)) {
-            // Regenerate HP using constant rate
-            const regenAmount = monster.maxHP * 0.05 * deltaTime; // 5% per second
-            
-            // Apply HP regeneration
-            if (monster.currentHP < monster.maxHP) {
-                monster.currentHP = Math.min(monster.maxHP, monster.currentHP + regenAmount);
-                updateUILabel(monster.uiLabel, monster);
-            }
-        } else {
-            // Regenerate HP during combat at 0.5% per second
-            const regenAmount = monster.maxHP * 0.005 * deltaTime;
-            
-            // Apply HP regeneration
-            if (monster.currentHP < monster.maxHP) {
-                monster.currentHP = Math.min(monster.maxHP, monster.currentHP + regenAmount);
-                updateUILabel(monster.uiLabel, monster);
-            }
+        // Calculate regen rate (0.5% in combat, 5% out of combat or always 5% for stored monsters)
+        const isStored = gameState.player.storedMonsters.includes(monster);
+        let regenRate = (inCombat(monster) && !isStored) ? 0.005 : 0.05;
+        if (monster.abilId == 14) {regenRate = 0.025} //Blazey always regens HP at half out of combat rates
+        const regenAmount = monster.maxHP * regenRate * deltaTime;
+        
+        // Apply HP regeneration
+        if (monster.currentHP < monster.maxHP) {
+            monster.currentHP = Math.min(monster.maxHP, monster.currentHP + regenAmount);
+            updateUILabel(monster.uiLabel, monster);
         }
     }
 }
@@ -1472,7 +1527,7 @@ function updateWildMonsterAggro(deltaTime) {
             }
         }
         // If monster is not aggroed, not returning to origin, and not in combat, do random movement
-        else if (!monster.aggroPlayer && !monster.returningToOrigin && !monster.inCombat) {
+        else if (!monster.aggroPlayer && !monster.returningToOrigin && !inCombat(monster)) {
             // Initialize random movement target if not set
             if (!monster.randomMoveTarget) {
                 monster.randomMoveTimer = 1 + Math.random() * 9;

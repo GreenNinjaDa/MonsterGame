@@ -184,8 +184,8 @@ function storeMonster(monsterId) {
         const monster = gameState.player.monsters[index];
         
         // Check if monster is in combat
-        if (monster.inCombat) {
-            addChatMessage("Cannot store a monster that is currently in combat!");
+        if (inCombat(monster)) {
+            addChatMessage("Cannot store a monster that has been in combat recently! (10 seconds)");
             return;
         }
         
@@ -351,8 +351,8 @@ function handleCapture() {
     // Check if player has enough gold
     if (gameState.player.gold < cost) {
         addChatMessage("Not enough gold!");
-        document.getElementById('captureUI').style.display = 'none';
         target.clicked = false;
+        //document.getElementById('captureUI').style.display = 'none'; //Do not close the UI anymore
         return;
     }
     
@@ -401,6 +401,7 @@ function handleCapture() {
         addChatMessage("Failed to capture the monster! Try again!");
         gameState.player.gold -= Math.ceil(cost * 0.5);
         updateGoldDisplay();
+        return;
     }
     
     // Hide the UI
@@ -414,7 +415,7 @@ function handleCapture() {
 }
 
 // Create floating text indicator
-function createFloatingText(text, position, color = 0xffffff) {
+function createFloatingText(text, position, color = 0xffffff, floatRate = 0.5) {
     // Create a canvas for the text
     const canvas = document.createElement('canvas');
     canvas.width = 200;
@@ -456,8 +457,8 @@ function createFloatingText(text, position, color = 0xffffff) {
             return;
         }
         
-        opacity -= 0.01;
-        sprite.position.y += 0.5;
+        opacity -= 0.005;
+        sprite.position.y += floatRate;
         sprite.material.opacity = opacity;
         
         requestAnimationFrame(animateText);
