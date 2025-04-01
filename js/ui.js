@@ -325,6 +325,12 @@ function showCaptureUI(captureInfo) {
             showMonsterDetails(monsterId);
         }
     });
+
+    // Store current target index and update next target button visibility
+    const currentIndex = gameState.captureTargets.findIndex(t => t.monster.id === monster.id);
+    const nextTargetButton = document.getElementById('nextTargetButton');
+    nextTargetButton.dataset.currentIndex = currentIndex;
+    nextTargetButton.style.display = gameState.captureTargets.filter(t => !t.clicked).length > 1 ? 'inline-block' : 'none';
     
     // Show the UI
     document.getElementById('captureUI').style.display = 'block';
@@ -352,15 +358,12 @@ function handleCapture() {
     if (gameState.player.gold < cost) {
         addChatMessage("Not enough gold!");
         target.clicked = false;
-        //document.getElementById('captureUI').style.display = 'none'; //Do not close the UI anymore
         return;
     }
-    
     
     // Roll for capture
     const roll = Math.random() * 100;
     if (roll <= chance) {
-
         // Deduct gold
         gameState.player.gold -= cost;
         updateGoldDisplay();
@@ -396,6 +399,9 @@ function handleCapture() {
                 updateStorageUI();
                 addChatMessage(`Successfully captured ${monster.name} and added to storage!`);
             }
+
+            // Create capture success animation
+            createFloatingCaptureOrb(target.mesh.position);
         }
     } else {
         addChatMessage("Failed to capture the monster! Try again!");
@@ -410,7 +416,36 @@ function handleCapture() {
     
     // Reset clicked flag for the capture target to allow retrying
     if (target) {
-            target.clicked = false;
+        target.clicked = false;
+    }
+}
+
+// Handle next target button click
+function handleNextTarget() {
+    const button = document.getElementById('nextTargetButton');
+    const currentIndex = parseInt(button.dataset.currentIndex);
+    
+    // Find the next non-clicked target
+    let nextIndex = (currentIndex + 1) % gameState.captureTargets.length;
+    let attempts = 0;
+    
+    while (gameState.captureTargets[nextIndex].clicked && attempts < gameState.captureTargets.length) {
+        nextIndex = (nextIndex + 1) % gameState.captureTargets.length;
+        attempts++;
+    }
+    
+    // If we found a non-clicked target, show its UI
+    if (!gameState.captureTargets[nextIndex].clicked) {
+        // Reset clicked flag for current target
+        gameState.captureTargets[currentIndex].clicked = false;
+        // Show UI for next target
+        showCaptureUI(gameState.captureTargets[nextIndex]);
+    } else {
+        // If all targets are clicked, close the UI
+        document.getElementById('captureUI').style.display = 'none';
+        gameState.captureUIOpen = false;
+        // Reset all clicked flags
+        gameState.captureTargets.forEach(target => target.clicked = false);
     }
 }
 
@@ -736,10 +771,13 @@ function setupUIEventHandlers() {
     // Capture button
     document.getElementById('captureButton').addEventListener('click', handleCapture);
     
+    // Next target button
+    document.getElementById('nextTargetButton').addEventListener('click', handleNextTarget);
+    
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(event) {
-        // 'S' key to toggle storage
-        if (event.key === 's' || event.key === 'S') {
+        // 'ESC' key to toggle storage
+        if (event.key === 'Escape') {
             toggleStorageUI();
         }
         // 'M' key to toggle music
@@ -753,6 +791,9 @@ function setupUIEventHandlers() {
             }
         }
     });
+    
+    // Initialize help UI
+    initHelpUI();
 }
 
 // Create floating gold coin that moves towards player
@@ -832,18 +873,131 @@ function createFloatingGoldCoin(position) {
     return sprite;
 }
 
-// Help Button Functionality
-const helpButton = document.getElementById('helpButton');
-const helpPopup = document.getElementById('helpPopup');
-
-helpButton.addEventListener('click', () => {
-    helpPopup.style.display = 'block';
-    helpButton.style.display = 'none';
-});
-
-helpPopup.addEventListener('click', (e) => {
-    if (e.target === helpPopup) {
-        helpPopup.style.display = 'none';
-        helpButton.style.display = 'flex';
+// Initialize help button and arrow
+function initHelpUI() {
+    const helpButton = document.getElementById('helpButton');
+    const helpArrow = document.querySelector('.help-arrow');
+    const helpPopup = document.getElementById('helpPopup');
+    const helpCloseButton = document.getElementById('helpCloseButton');
+    
+    // Check if help has been viewed before
+    const hasViewedHelp = localStorage.getItem('hasViewedHelp') === 'true';
+    
+    if (!hasViewedHelp) {
+        // Show flashing help button and arrow
+        helpButton.classList.add('flash');
+        helpArrow.classList.add('visible');
     }
-});
+    
+    // Handle help button click
+    helpButton.addEventListener('click', () => {
+        // Remove flashing and arrow
+        helpButton.classList.remove('flash');
+        helpArrow.classList.remove('visible');
+        
+        // Mark help as viewed
+        localStorage.setItem('hasViewedHelp', 'true');
+        
+        // Show help popup
+        helpPopup.style.display = 'block';
+    });
+    
+    // Handle help popup close
+    helpCloseButton.addEventListener('click', () => {
+        helpPopup.style.display = 'none';
+    });
+}
+
+// Create floating capture success orb that moves to menu button
+function createFloatingCaptureOrb(position) {
+    // Create a canvas for the orb
+    const canvas = document.createElement('canvas');
+    canvas.width = 60;
+    canvas.height = 60;
+    const context = canvas.getContext('2d');
+    
+    // Draw a white circle with glow effect
+    context.beginPath();
+    context.arc(30, 30, 25, 0, Math.PI * 2);
+    
+    // Create gradient for glow effect
+    const gradient = context.createRadialGradient(30, 30, 0, 30, 30, 30);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.8)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    context.fillStyle = gradient;
+    context.fill();
+    
+    // Add a pulsing border
+    context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    context.lineWidth = 3;
+    context.stroke();
+    
+    // Create a texture from the canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    
+    // Create a sprite with the texture
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    
+    // Position the sprite
+    sprite.position.copy(position);
+    sprite.position.z = 10;  // In front of everything
+    sprite.scale.set(30, 30, 1);
+    
+    // Add to scene
+    gameState.scene.add(sprite);
+    
+    // Get the menu button position (top left corner)
+    const menuButton = document.getElementById('storageButton');
+    const menuRect = menuButton.getBoundingClientRect();
+    const menuX = (menuRect.left + menuRect.right) / 2;
+    const menuY = (menuRect.top + menuRect.bottom) / 2;
+    
+    // Convert screen coordinates to world coordinates
+    const vector = new THREE.Vector3();
+    vector.set(
+        (menuX / window.innerWidth) * 2 - 1,
+        -(menuY / window.innerHeight) * 2 + 1,
+        0.5
+    );
+    vector.unproject(gameState.camera);
+    vector.z = 10;
+    
+    // Animation properties
+    let time = 0;
+    const floatDuration = 1; // 1 second of floating
+    const moveDuration = 0.5; // 0.5 seconds of moving to menu
+    const floatHeight = 30; // How high it floats
+    const floatSpeed = 2; // Speed of floating motion
+    
+    // Animate the orb
+    const animateOrb = () => {
+        if (time >= floatDuration + moveDuration) {
+            gameState.scene.remove(sprite);
+            return;
+        }
+        
+        if (time < floatDuration) {
+            // Floating phase
+            sprite.position.y = position.y + Math.sin(time * floatSpeed) * floatHeight;
+        } else {
+            // Moving to menu phase
+            const moveProgress = (time - floatDuration) / moveDuration;
+            const startPos = new THREE.Vector3(position.x, position.y + Math.sin(floatDuration * floatSpeed) * floatHeight, 10);
+            
+            // Use easing function for smooth acceleration
+            const easedProgress = moveProgress * moveProgress * (3 - 2 * moveProgress);
+            sprite.position.lerpVectors(startPos, vector, easedProgress);
+        }
+        
+        time += 0.016; // Assuming 60fps
+        requestAnimationFrame(animateOrb);
+    };
+    
+    animateOrb();
+    
+    return sprite;
+}

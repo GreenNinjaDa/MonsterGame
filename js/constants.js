@@ -37,7 +37,7 @@ const GAME_CONFIG = {
     attackRange: 100,
     attackRangeSlot1: 50, // Half the normal attack range for slot 1 monsters
     respawnTime: 50, // Time for player owned monsters to respawn after being defeated
-    catchTimeout: 20, // 20 seconds during with the player can capture a monster
+    catchTimeout: 30, // 30 seconds during which the player can capture a monster
     monsterDensity: 1, // Monsters per 500x500 area (reduced from 2)
     spawnAreaSize: 500, // Size of each spawn region
     maxMonsterWanderDistance: 1000, // Maximum distance a monster can wander from spawn
@@ -119,7 +119,7 @@ const MONSTER_TYPES = {
 	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 45, pAtk: 55, sDef: 50, sAtk: 70, endur: 30}, abilId: 11, size: 1}, //Total: 280
 	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, abilId: 12, size: 0.8}, //Total: 280
 	13: { name: "Rumbleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, abilId: 13, size: 0.85}, //Total: 320
-	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 40, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 250
+	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 260
 	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 30 }, abilId: 15, size: 1}, //Total: 300
 	
 	

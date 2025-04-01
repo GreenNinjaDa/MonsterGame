@@ -309,7 +309,7 @@ function gameLoop(time) {
     document.getElementById('fpsCounter').textContent = `FPS: ${avgFps}`;
     
     // Check if any UI is open
-    if (gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen) {
+    if (gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen || gameState.helpUIOpen) {
         gamePaused = true;
     }
 
@@ -499,8 +499,12 @@ function init() {
         // Spawn wild monsters for the saved area
         spawnWildMonsters(gameState.currentArea);
     } else {
-        // Show welcome popup for new players
-        showWelcomePopup();
+        // Show help screen for new players
+        const helpPopup = document.getElementById('helpPopup');
+        const helpButton = document.getElementById('helpButton');
+        helpPopup.style.display = 'block';
+        helpButton.style.display = 'none';
+        gameState.helpUIOpen = true;
         
         // Initialize new player with starter monster
         initPlayer(true);
@@ -938,7 +942,7 @@ function updateMonsterRevival(deltaTime) {
                     updateStorageUI();
                 } else {
                     // Add chat message for normal revival
-                    addChatMessage(`${monster.name} has revived!`, 5000);
+                    addChatMessage(`${monster.name} has revived in your storage!`, 5000);
                 }
             }
         }
@@ -988,6 +992,25 @@ function areaTransition(newArea) {
     // Update previous area mesh visibility
     if (gameState.previousAreaMesh) {
         gameState.previousAreaMesh.visible = gameState.currentArea > 1;
+    }
+    if (gameState.previousAreaLabel) {
+        gameState.previousAreaLabel.visible = gameState.currentArea > 1;
+        
+        // Update previous area label text
+        const prevAreaName = AREAS[gameState.currentArea - 1]?.name || "Unknown Area";
+        const prevCanvas = document.createElement('canvas');
+        const prevContext = prevCanvas.getContext('2d');
+        prevCanvas.width = 384;
+        prevCanvas.height = 96;
+        
+        prevContext.fillStyle = 'white';
+        prevContext.font = 'bold 38px Arial';
+        prevContext.textAlign = 'center';
+        prevContext.textBaseline = 'middle';
+        prevContext.fillText(`${prevAreaName}`, prevCanvas.width/2, prevCanvas.height/2);
+        
+        gameState.previousAreaLabel.material.map = new THREE.CanvasTexture(prevCanvas);
+        gameState.previousAreaLabel.material.needsUpdate = true;
     }
 
     // Get area info
@@ -1042,6 +1065,28 @@ function areaTransition(newArea) {
     // Update next area mesh position
     if (gameState.nextAreaMesh) {
         gameState.nextAreaMesh.position.copy(gameState.nextAreaPosition);
+    }
+
+    // Update next area label position and text
+    if (gameState.nextAreaLabel) {
+        gameState.nextAreaLabel.position.copy(gameState.nextAreaPosition);
+        gameState.nextAreaLabel.position.y += 50; // Reduced from 100 to 50 units
+        
+        // Update label text
+        const nextAreaName = AREAS[gameState.currentArea + 1]?.name || "Unknown Area";
+        const nextCanvas = document.createElement('canvas');
+        const nextContext = nextCanvas.getContext('2d');
+        nextCanvas.width = 384;
+        nextCanvas.height = 96;
+        
+        nextContext.fillStyle = 'white';
+        nextContext.font = 'bold 38px Arial';
+        nextContext.textAlign = 'center';
+        nextContext.textBaseline = 'middle';
+        nextContext.fillText(`${nextAreaName}`, nextCanvas.width/2, nextCanvas.height/2);
+        
+        gameState.nextAreaLabel.material.map = new THREE.CanvasTexture(nextCanvas);
+        gameState.nextAreaLabel.material.needsUpdate = true;
     }
     
     // Spawn new monsters for the new area
@@ -1576,6 +1621,100 @@ function updateWildMonsterAggro(deltaTime) {
     }
 }
 
+// Create a wild monster with proper level and type selection
+function createWildMonster(areaLevel, x, y) {
+    // Determine monster level based on area and distance from center
+    const distanceFromCenter = Math.sqrt(x * x + y * y);
+    const maxAreaLevel = areaLevel * 10;
+    const minAreaLevel = (areaLevel - 1) * 10 + 1;
+    
+    // Calculate level strictly based on distance from center (origin)
+    // The closer to center, the lower the level (minimum is minAreaLevel)
+    const levelRange = maxAreaLevel - minAreaLevel;
+    
+    // Get ratio between 0 and 1 of how far from center (0 = center, 1 = edge)
+    const distanceRatio = Math.min(1, distanceFromCenter / (GAME_CONFIG.worldSpawnDiameter / 2));
+    
+    // Apply a curve where monsters close to center are always minimum level
+    // The minimum level zone extends for 40% of the map radius
+    let level;
+    if (distanceRatio < GAME_CONFIG.innerZoneRatio) {
+        level = minAreaLevel; // Minimum level for this area (level 1 for area level 1)
+    } else {
+        // Scale from minAreaLevel to maxAreaLevel for the outer 60% of the map
+        // Normalize the distance ratio to be 0-1 for the remaining 60% of the distance
+        const adjustedRatio = (distanceRatio - GAME_CONFIG.innerZoneRatio) / GAME_CONFIG.outerZoneRatio;
+        level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
+    }
+    
+    // Have a 50% chance to spawn a monster from this area level, 40% chance to spawn one from any level below,
+    // 5% chance to spawn one from the area level above, and 5% chance to spawn any random monster.
+    const spawnRoll = Math.random() * 100;
+    let availableTypes;
+    
+    if (spawnRoll < 50) {
+        // 50% chance - spawn from current area level
+        availableTypes = Object.keys(MONSTER_TYPES)
+            .map(Number)
+            .filter(id => Math.ceil(id / 5) === areaLevel + 1);
+    } else if (spawnRoll < 90) {
+        // 40% chance - spawn from any level below
+        availableTypes = Object.keys(MONSTER_TYPES)
+            .map(Number)
+            .filter(id => Math.ceil(id / 5) < areaLevel);
+    } else if (spawnRoll < 97) {
+        // 7% chance - spawn from area level above with +5 levels
+        availableTypes = Object.keys(MONSTER_TYPES)
+            .map(Number)
+            .filter(id => Math.ceil(id / 5) === areaLevel + 1);
+        level += 5;
+    } else {
+        // 3% chance - spawn any random monster with +10 levels
+        availableTypes = Object.keys(MONSTER_TYPES).map(Number);
+        level += 10;
+    }
+    
+    if (availableTypes.length === 0) {
+        // If initial spawn attempt fails, try spawning from monster types 1-10
+        availableTypes = Object.keys(MONSTER_TYPES)
+            .map(Number)
+            .filter(id => id <= 10);
+            
+        if (availableTypes.length === 0) {
+            console.warn(`No valid monster types for area level ${areaLevel}, skipping spawn`);
+            return null;
+        }
+    }
+    
+    // Randomly choose from available monster types
+    const typeId = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+    
+    // Check for rare modifiers - each has a separate 2% chance
+    let rareModifiers = [];
+    const modifiersList = Object.keys(RARE_MODIFIERS);
+    
+    // Roll for each possible modifier independently
+    for (const modifier of modifiersList) {
+        const modifierChance = Math.random() * 100;
+        if (modifierChance <= GAME_CONFIG.rareModifierRate) {
+            rareModifiers.push(modifier);
+        }
+    }
+    
+    // Create monster
+    const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
+    
+    // Position monster
+    monster.mesh.position.set(x, y, calculateZPosition(y));
+    monster.lastPosition.copy(monster.mesh.position);
+    monster.targetPosition.copy(monster.mesh.position);
+    
+    // Set original position for random movement and returning behavior
+    monster.originalPosition = new THREE.Vector3().copy(monster.mesh.position);
+    
+    return monster;
+}
+
 // Spawn wild monsters
 function spawnWildMonsters(areaLevel, count = null) {
     // Clear any existing wild monsters and remove their data
@@ -1609,96 +1748,39 @@ function spawnWildMonsters(areaLevel, count = null) {
                 .distanceTo(new THREE.Vector2(gameState.player.position.x, gameState.player.position.y));
         } while (distanceFromPlayer < minDistanceFromOrigin);
         
-        // Determine monster level based on area and distance from center
-        const distanceFromCenter = Math.sqrt(x * x + y * y);
-        const maxAreaLevel = areaLevel * 10;
-        const minAreaLevel = (areaLevel - 1) * 10 + 1; // This is 1 for area level 1
-        
-        // Calculate level strictly based on distance from center (origin)
-        // The closer to center, the lower the level (minimum is minAreaLevel)
-        const levelRange = maxAreaLevel - minAreaLevel;
-        
-        // Get ratio between 0 and 1 of how far from center (0 = center, 1 = edge)
-        const distanceRatio = Math.min(1, distanceFromCenter / (spawnArea / 2));
-        
-        // Apply a curve where monsters close to center are always minimum level
-        // The minimum level zone extends for 40% of the map radius
+        // Create monster using unified function
+        const monster = createWildMonster(areaLevel, x, y);
+        if (monster) {
+            // Add to scene
+            gameState.scene.add(monster.mesh);
+            
+            // Add to wild monsters array
+            gameState.wildMonsters.push(monster);
+        }
+    }
+}
 
-        let level;
-        if (distanceRatio < GAME_CONFIG.innerZoneRatio) {
-            level = minAreaLevel; // Minimum level for this area (level 1 for area level 1)
-        } else {
-            // Scale from minAreaLevel to maxAreaLevel for the outer 60% of the map
-            // Normalize the distance ratio to be 0-1 for the remaining 60% of the distance
-            const adjustedRatio = (distanceRatio - GAME_CONFIG.innerZoneRatio) / GAME_CONFIG.outerZoneRatio;
-            level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
-        }
-        
-        // Have a 50% chance to spawn a monster from this area level, 40% chance to spawn one from any level below,
-        // 5% chance to spawn one from the area level above, and 5% chance to spawn any random monster.
-        const spawnRoll = Math.random() * 100;
-        let availableTypes;
-        
-        if (spawnRoll < 50) {
-            // 50% chance - spawn from current area level
-            availableTypes = Object.keys(MONSTER_TYPES)
-                .map(Number)
-                .filter(id => Math.ceil(id / 5) === areaLevel + 1);
-        } else if (spawnRoll < 90) {
-            // 40% chance - spawn from any level below
-            availableTypes = Object.keys(MONSTER_TYPES)
-                .map(Number)
-                .filter(id => Math.ceil(id / 5) < areaLevel);
-        } else if (spawnRoll < 97) {
-            // 7% chance - spawn from area level above with +5 levels
-            availableTypes = Object.keys(MONSTER_TYPES)
-                .map(Number)
-                .filter(id => Math.ceil(id / 5) === areaLevel + 1);
-                level +=5;
-        } else {
-            // 3% chance - spawn any random monster with +10 levels
-            availableTypes = Object.keys(MONSTER_TYPES).map(Number);
-            level +=10;
-        }
-        
-        if (availableTypes.length === 0) {
-            // If initial spawn attempt fails, try spawning from monster types 1-10
-            availableTypes = Object.keys(MONSTER_TYPES)
-                .map(Number)
-                .filter(id => id <= 10);
-                
-            if (availableTypes.length === 0) {
-                console.warn(`No valid monster types for area level ${areaLevel}, skipping spawn`);
-                continue;
-            }
-        }
-        
-        // Randomly choose from available monster types
-        const typeId = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-        
-        // Check for rare modifiers - each has a separate 2% chance
-        let rareModifiers = [];
-        const modifiersList = Object.keys(RARE_MODIFIERS);
-        
-        // Roll for each possible modifier independently
-        for (const modifier of modifiersList) {
-            const modifierChance = Math.random() * 100;
-            if (modifierChance <= GAME_CONFIG.rareModifierRate) {
-                rareModifiers.push(modifier);
-            }
-        }
-        
-        // Create monster
-        const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
-        
-        // Position monster
-        monster.mesh.position.set(x, y, calculateZPosition(y));
-        monster.lastPosition.copy(monster.mesh.position);
-        monster.targetPosition.copy(monster.mesh.position);
-        
-        // Set original position for random movement and returning behavior
-        monster.originalPosition = new THREE.Vector3().copy(monster.mesh.position);
-        
+// Schedule a new monster to spawn
+function scheduleMonsterRespawn() {
+    // Get current area level
+    let areaLevel = gameState.currentArea;
+    
+    // Calculate spawn position away from player
+    const spawnArea = GAME_CONFIG.worldSpawnDiameter;
+    const minDistanceFromOrigin = GAME_CONFIG.minSpawnDistance; // Further away to avoid immediate combat
+    const maxDistanceFromPlayer = 2500; // Not too far
+    
+    let x, y, distanceFromPlayer;
+    do {
+        x = Math.random() * spawnArea - spawnArea / 2;
+        y = Math.random() * spawnArea - spawnArea / 2;
+        distanceFromPlayer = new THREE.Vector2(x, y)
+            .distanceTo(new THREE.Vector2(gameState.player.position.x, gameState.player.position.y));
+    } while (distanceFromPlayer < minDistanceFromOrigin || distanceFromPlayer > maxDistanceFromPlayer);
+    
+    // Create monster using unified function
+    const monster = createWildMonster(areaLevel, x, y);
+    if (monster) {
         // Add to scene
         gameState.scene.add(monster.mesh);
         
@@ -1758,106 +1840,16 @@ function cleanupDefeatedMonsters(deltaTime) {
     }
 }
 
-// Schedule a new monster to spawn
-function scheduleMonsterRespawn() {
-    // Get current area level
-    let areaLevel = gameState.currentArea;
-    
-    // Calculate spawn position away from player
-    const spawnArea = GAME_CONFIG.worldSpawnDiameter;
-    const minDistanceFromOrigin = GAME_CONFIG.minSpawnDistance; // Further away to avoid immediate combat
-    const maxDistanceFromPlayer = 2500; // Not too far
-    
-    let x, y, distanceFromPlayer;
-    do {
-        x = Math.random() * spawnArea - spawnArea / 2;
-        y = Math.random() * spawnArea - spawnArea / 2;
-        distanceFromPlayer = new THREE.Vector2(x, y)
-            .distanceTo(new THREE.Vector2(gameState.player.position.x, gameState.player.position.y));
-    } while (distanceFromPlayer < minDistanceFromOrigin || distanceFromPlayer > maxDistanceFromPlayer);
-    
-    // Determine monster level based on area and distance from center
-    const distanceFromCenter = Math.sqrt(x * x + y * y);
-    const maxAreaLevel = areaLevel * 10;
-    const minAreaLevel = (areaLevel - 1) * 10 + 1;
-    
-    // Calculate level strictly based on distance from center (origin)
-    // The closer to center, the lower the level (minimum is minAreaLevel)
-    const levelRange = maxAreaLevel - minAreaLevel;
-    
-    // Get ratio between 0 and 1 of how far from center (0 = center, 1 = edge)
-    const distanceRatio = Math.min(1, distanceFromCenter / (spawnArea / 2));
-    
-    // Apply a curve where monsters close to center are always minimum level
-    // The minimum level zone extends for 40% of the map radius
-    let level;
-    if (distanceRatio < GAME_CONFIG.innerZoneRatio) {
-        level = minAreaLevel; // Minimum level for this area (level 1 for area level 1)
-    } else {
-        // Scale from minAreaLevel to maxAreaLevel for the outer 60% of the map
-        // Normalize the distance ratio to be 0-1 for the remaining 60% of the distance
-        const adjustedRatio = (distanceRatio - GAME_CONFIG.innerZoneRatio) / GAME_CONFIG.outerZoneRatio;
-        level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
-    }
-    
-    // Get available monster types for this area level
-    const availableTypes = Object.keys(MONSTER_TYPES)
-        .map(Number)
-        .filter(id => Math.ceil(id / 5) <= (areaLevel + 2));
-    
-    if (availableTypes.length === 0) {
-        console.warn(`No valid monster types for area level ${areaLevel}, skipping respawn`);
-        return;
-    }
-    
-    // Randomly choose from available monster types
-    const typeId = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-    
-    // Check for rare modifiers - each has a separate 2% chance
-    let rareModifiers = [];
-    const modifiersList = Object.keys(RARE_MODIFIERS);
-    
-    // Roll for each possible modifier independently
-    for (const modifier of modifiersList) {
-        const modifierChance = Math.random() * 100;
-        if (modifierChance <= GAME_CONFIG.rareModifierRate) {
-            rareModifiers.push(modifier);
-        }
-    }
-    
-    // Create monster
-    const monster = createMonster(typeId, level, rareModifiers, true, level, MONSTER_TYPES[typeId].element);
-    
-    // Position monster
-    monster.mesh.position.set(x, y, calculateZPosition(y));
-    monster.lastPosition.copy(monster.mesh.position);
-    monster.targetPosition.copy(monster.mesh.position);
-    
-    // Set original position for random movement and returning behavior
-    monster.originalPosition = new THREE.Vector3().copy(monster.mesh.position);
-    
-    // Add to scene
-    gameState.scene.add(monster.mesh);
-    
-    // Add to wild monsters array
-    gameState.wildMonsters.push(monster);
-}
-
 // Add exit marker for next area
 function addAreaExit() {
-    // Create arrow shape for next area (pointing up)
-    const nextArrowShape = new THREE.Shape();
-    nextArrowShape.moveTo(0, 24);    // Point of arrow (was 12)
-    nextArrowShape.lineTo(-12, -12); // Left wing (was -6)
-    nextArrowShape.lineTo(0, -6);    // Inner left notch (was -3)
-    nextArrowShape.lineTo(12, -12);  // Right wing (was 6)
-    nextArrowShape.lineTo(0, 24);    // Back to point (was 12)
-    
-    const nextGeometry = new THREE.ShapeGeometry(nextArrowShape);
+    // Create next area marker using texture
+    const textureLoader = new THREE.TextureLoader();
+    const nextTexture = textureLoader.load('assets/stair_up.png');
+    const nextGeometry = new THREE.PlaneGeometry(120, 120);
     const nextMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x00ff00,
+        map: nextTexture,
         transparent: true,
-        opacity: 0.7
+        side: THREE.DoubleSide
     });
     const nextExitMesh = new THREE.Mesh(nextGeometry, nextMaterial);
     nextExitMesh.position.copy(gameState.nextAreaPosition);
@@ -1866,30 +1858,43 @@ function addAreaExit() {
     
     // Store reference to next area mesh in gameState
     gameState.nextAreaMesh = nextExitMesh;
+
+    // Create label for next area
+    const nextAreaName = AREAS[gameState.currentArea + 1]?.name || "Unknown Area";
+    const nextCanvas = document.createElement('canvas');
+    const nextContext = nextCanvas.getContext('2d');
+    nextCanvas.width = 384;
+    nextCanvas.height = 96;
     
-    // Add pulsing animation for next area entrance
-    const pulseTween = () => {
-        nextExitMesh.scale.set(1, 1, 1);
-        setTimeout(() => {
-            nextExitMesh.scale.set(1.2, 1.2, 1);
-            setTimeout(pulseTween, 1000);
-        }, 1000);
-    };
-    pulseTween();
+    // Set up text
+    nextContext.fillStyle = 'white';
+    nextContext.font = 'bold 38px Arial';
+    nextContext.textAlign = 'center';
+    nextContext.textBaseline = 'middle';
+    nextContext.fillText(`${nextAreaName}`, nextCanvas.width/2, nextCanvas.height/2);
     
-    // Create arrow shape for previous area (pointing down)
-    const prevArrowShape = new THREE.Shape();
-    prevArrowShape.moveTo(0, -24);   // Point of arrow (was -12)
-    prevArrowShape.lineTo(-12, 12);  // Left wing (was -6)
-    prevArrowShape.lineTo(0, 6);     // Inner left notch (was 3)
-    prevArrowShape.lineTo(12, 12);   // Right wing (was 6)
-    prevArrowShape.lineTo(0, -24);   // Back to point (was -12)
-    
-    const prevGeometry = new THREE.ShapeGeometry(prevArrowShape);
-    const prevMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xff0000,
+    // Create texture from canvas
+    const nextLabelTexture = new THREE.CanvasTexture(nextCanvas);
+    const nextLabelGeometry = new THREE.PlaneGeometry(192, 48);
+    const nextLabelMaterial = new THREE.MeshBasicMaterial({ 
+        map: nextLabelTexture,
         transparent: true,
-        opacity: 0.7
+        side: THREE.DoubleSide
+    });
+    const nextLabelMesh = new THREE.Mesh(nextLabelGeometry, nextLabelMaterial);
+    nextLabelMesh.position.copy(gameState.nextAreaPosition);
+    nextLabelMesh.position.y += 50; // Reduced from 100 to 50 units
+    nextLabelMesh.position.z = 0.5;
+    gameState.scene.add(nextLabelMesh);
+    gameState.nextAreaLabel = nextLabelMesh;
+    
+    // Create previous area marker using texture
+    const prevTexture = textureLoader.load('assets/stair_down.png');
+    const prevGeometry = new THREE.PlaneGeometry(144, 144); // Doubled size for the stair texture
+    const prevMaterial = new THREE.MeshBasicMaterial({ 
+        map: prevTexture,
+        transparent: true,
+        side: THREE.DoubleSide
     });
     const prevExitMesh = new THREE.Mesh(prevGeometry, prevMaterial);
     prevExitMesh.position.set(0, -250, 0.5);
@@ -1897,19 +1902,37 @@ function addAreaExit() {
     
     // Store reference to previous area mesh in gameState
     gameState.previousAreaMesh = prevExitMesh;
+
+    // Create label for previous area
+    const prevAreaName = AREAS[gameState.currentArea - 1]?.name || "Unknown Area";
+    const prevCanvas = document.createElement('canvas');
+    const prevContext = prevCanvas.getContext('2d');
+    prevCanvas.width = 384;
+    prevCanvas.height = 96;
+    
+    // Set up text
+    prevContext.fillStyle = 'white';
+    prevContext.font = 'bold 38px Arial';
+    prevContext.textAlign = 'center';
+    prevContext.textBaseline = 'middle';
+    prevContext.fillText(`${prevAreaName}`, prevCanvas.width/2, prevCanvas.height/2);
+    
+    // Create texture from canvas
+    const prevLabelTexture = new THREE.CanvasTexture(prevCanvas);
+    const prevLabelGeometry = new THREE.PlaneGeometry(192, 48);
+    const prevLabelMaterial = new THREE.MeshBasicMaterial({ 
+        map: prevLabelTexture,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+    const prevLabelMesh = new THREE.Mesh(prevLabelGeometry, prevLabelMaterial);
+    prevLabelMesh.position.set(0, -200, 0.5); // Adjusted from -150 to -200 (50 units lower)
+    gameState.scene.add(prevLabelMesh);
+    gameState.previousAreaLabel = prevLabelMesh;
     
     // Set initial visibility based on current area
     prevExitMesh.visible = gameState.currentArea > 1;
-    
-    // Add pulsing animation for previous area entrance
-    const prevPulseTween = () => {
-        prevExitMesh.scale.set(1, 1, 1);
-        setTimeout(() => {
-            prevExitMesh.scale.set(1.2, 1.2, 1);
-            setTimeout(prevPulseTween, 1000);
-        }, 1000);
-    };
-    prevPulseTween();
+    prevLabelMesh.visible = gameState.currentArea > 1;
     
     // Create direction arrow (only points to next area)
     addDirectionArrow();
@@ -1919,11 +1942,11 @@ function addAreaExit() {
 function addDirectionArrow() {
     // Create arrow shape
     const arrowShape = new THREE.Shape();
-    arrowShape.moveTo(0, 8);   // Point of arrow
-    arrowShape.lineTo(-4, -4); // Left wing
-    arrowShape.lineTo(0, -2);  // Inner left notch
-    arrowShape.lineTo(4, -4);  // Right wing
-    arrowShape.lineTo(0, 8);   // Back to point
+    arrowShape.moveTo(0, 16);   // Point of arrow (doubled from 8)
+    arrowShape.lineTo(-8, -8);  // Left wing (doubled from -4)
+    arrowShape.lineTo(0, -4);   // Inner left notch (doubled from -2)
+    arrowShape.lineTo(8, -8);   // Right wing (doubled from 4)
+    arrowShape.lineTo(0, 16);   // Back to point (doubled from 8)
     
     const geometry = new THREE.ShapeGeometry(arrowShape);
     const material = new THREE.MeshBasicMaterial({ 
@@ -2081,15 +2104,4 @@ function checkAggroRange() {
             monster.isAggroed = false;
         }
     }
-}
-
-// Function to show welcome popup
-function showWelcomePopup() {
-    const popup = document.getElementById('welcomePopup');
-    popup.style.display = 'flex';
-    
-    // Add click handler for close button
-    document.getElementById('welcomeCloseButton').addEventListener('click', () => {
-        popup.style.display = 'none';
-    });
 }

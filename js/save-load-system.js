@@ -117,4 +117,16 @@ window.loadGame = function() {
         monster.experience = monsterData.experience;
         gameState.player.storedMonsters.push(monster);
     }
+
+    // If player has no active monsters but has stored monsters, activate the first one
+    if (gameState.player.monsters.length === 0 && gameState.player.storedMonsters.length > 0) {
+        const firstStoredMonster = gameState.player.storedMonsters[0];
+        if (!firstStoredMonster.defeated) {
+            // Remove from stored monsters
+            gameState.player.storedMonsters.splice(0, 1);
+            // Add to active monsters
+            addMonsterToPlayer(firstStoredMonster);
+            addChatMessage(`${firstStoredMonster.name} has been automatically activated!`, 5000);
+        }
+    }
 }

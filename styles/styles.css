@@ -62,7 +62,7 @@ canvas {
     background-color: #4CAF50;
     border: none;
     color: white;
-    padding: 30px 40px;
+    padding: 30px 25px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -75,7 +75,20 @@ canvas {
     background-color: #9b59b6;
     border: none;
     color: white;
-    padding: 30px 40px;
+    padding: 30px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+#nextTargetButton {
+    background-color: #3498db;
+    border: none;
+    color: white;
+    padding: 30px 10px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -433,26 +446,55 @@ canvas {
 
 #helpButton {
     position: fixed;
-    top: 10px;
-    right: 10px;
+    bottom: 20px;
+    right: 20px;
     width: 40px;
     height: 40px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: #ffdd57;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     font-size: 24px;
     font-weight: bold;
-    cursor: pointer;
+    color: #000;
     z-index: 1000;
     border: 2px solid #000;
-    transition: all 0.3s ease;
+    text-shadow: none;
 }
 
-#helpButton:hover {
-    background-color: #fff;
-    transform: scale(1.1);
+#helpButton.flash {
+    animation: helpButtonFlash 1.5s infinite;
+}
+
+@keyframes helpButtonFlash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.help-arrow {
+    position: fixed;
+    bottom: 70px;
+    right: 30px;
+    width: 40px;
+    height: 40px;
+    background-color: #ffdd57;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    animation: arrowPulse 1.5s infinite;
+    z-index: 999;
+    display: none;
+}
+
+.help-arrow.visible {
+    display: block;
+}
+
+@keyframes arrowPulse {
+    0% { transform: translateY(0); opacity: 1; }
+    50% { transform: translateY(10px); opacity: 0.5; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 #helpPopup {
@@ -462,19 +504,19 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
     z-index: 1001;
     overflow-y: auto;
 }
 
 .help-content {
     position: relative;
-    background-color: #fff;
+    background-color: rgba(255, 255, 255, 0.5);
     max-width: 800px;
     margin: 40px auto;
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
 }
 
 .help-content h2 {
@@ -490,9 +532,10 @@ canvas {
 }
 
 .help-sections section {
-    background-color: #f5f5f5;
+    background-color: rgba(245, 245, 245, 0.5);
     padding: 20px;
     border-radius: 8px;
+    backdrop-filter: blur(5px);
 }
 
 .help-sections h3 {
@@ -514,5 +557,70 @@ canvas {
     
     .help-sections {
         grid-template-columns: 1fr;
+    }
+}
+
+#helpCloseButton {
+    display: block;
+    margin: 30px auto 0;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#helpCloseButton:hover {
+    background-color: #45a049;
+}
+
+.element-chart-section {
+    grid-column: 1 / -1;
+    text-align: center;
+    background-color: rgba(245, 245, 245, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.element-chart {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .element-chart {
+        max-width: 90%;
+        margin: 10px auto;
+    }
+}
+
+.monster-explained-section {
+    grid-column: 1 / -1;
+    text-align: center;
+    background-color: rgba(245, 245, 245, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.monster-explained-chart {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .monster-explained-chart {
+        max-width: 90%;
+        margin: 10px auto;
     }
 } 

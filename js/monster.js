@@ -457,6 +457,9 @@ function monsterAttack(attacker, defender, deltaTime) {
         return;
     }
     
+    // Reset cooldown at the start
+    attacker.currentCooldown = attacker.attackCooldown;
+    
     // Update attacker direction to face defender
     updateMonsterDirection(attacker, defender.mesh.position.x);
     
@@ -470,6 +473,13 @@ function monsterAttack(attacker, defender, deltaTime) {
     } else {
         // Consume stamina
         attacker.currentStamina -= staminaCost;
+    }
+
+    // Check for Double Team ability (abilId 15)
+    if (defender.abilId === 15 && Math.random() < 0.2) {
+        // Attack missed
+        createFloatingText("Missed!", defender.mesh.position, 0xffffff);
+        return;
     }
     
     // Calculate damage
@@ -542,9 +552,6 @@ function monsterAttack(attacker, defender, deltaTime) {
     // Update health bars
     updateUILabel(defender.uiLabel, defender);
     updateUILabel(attacker.uiLabel, attacker);
-    
-    // Reset cooldown
-    attacker.currentCooldown = attacker.attackCooldown;
     
     // Move attacker in a random direction after attack
     const randomAngle = Math.random() * Math.PI * 2;
@@ -672,22 +679,47 @@ function handleMonsterDefeat(defeated, victor) {
 
 // Add a defeated wild monster to the capture targets
 function addCaptureTarget(monster) {
-    // Create a capture icon
-    const geometry = new THREE.RingGeometry(18, 22.5, 32);
-    const material = new THREE.MeshBasicMaterial({ 
+    // Get the base size from monster type and apply the same scaling as in createMonster
+    const monsterType = MONSTER_TYPES[monster.typeId];
+    const monsterSize = monsterType.size * GAME_CONFIG.monsterBaseSize * 0.8; // Slightly smaller than the actual monster
+    
+    // Create a capture icon with the monster's image
+    // Create the outer ring
+    const ringGeometry = new THREE.RingGeometry(27, 33.75, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({ 
         color: 0xffffff,
         transparent: true,
         opacity: 0.8
     });
-    const captureMesh = new THREE.Mesh(geometry, material);
-    captureMesh.position.copy(monster.mesh.position);
-    captureMesh.position.z = 2;
-    gameState.scene.add(captureMesh);
+    const captureMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+    
+    // Create the monster sprite
+    const monsterSprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+            map: monster.originalTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            rotation: Math.PI // Rotate the texture 180 degrees
+        })
+    );
+    // Set scale
+    monsterSprite.scale.set(monsterSize, monsterSize, 1);
+    
+    // Create a container for both the ring and sprite
+    const container = new THREE.Object3D();
+    container.add(captureMesh);
+    container.add(monsterSprite);
+    
+    // Position the container at the monster's position
+    container.position.copy(monster.mesh.position);
+    container.position.z = 2;
+    
+    gameState.scene.add(container);
     
     // Add to capture targets with timeout
     const captureInfo = {
         monster,
-        mesh: captureMesh,
+        mesh: container,
         timeLeft: GAME_CONFIG.catchTimeout,
         clicked: false
     };
@@ -697,10 +729,10 @@ function addCaptureTarget(monster) {
     // Add a pulsing animation to the capture icon
     const pulseTween = () => {
         if (captureInfo.timeLeft <= 0) return;
-        captureMesh.scale.set(1, 1, 1);
+        container.scale.set(1, 1, 1);
         setTimeout(() => {
             if (captureInfo.timeLeft <= 0) return;
-            captureMesh.scale.set(1.2, 1.2, 1);
+            container.scale.set(1.2, 1.2, 1);
             setTimeout(pulseTween, 500);
         }, 500);
     };

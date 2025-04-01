@@ -21,6 +21,7 @@
         <div class="capture-buttons">
             <button id="captureButton">Capture</button>
             <button id="captureDetailsButton">Details</button>
+            <button id="nextTargetButton">Next Target</button>
         </div>
     </div>
     <div id="storageUI">
@@ -52,9 +53,11 @@
         </div>
     </div>
     
+    <div class="help-arrow"></div>
     <div id="helpButton">?</div>
     <div id="helpPopup">
         <div class="help-content">
+            <span class="close-button">&times;</span>
             <h2>How to Play Monsterbound</h2>
             <div class="help-sections">
                 <section>
@@ -63,6 +66,33 @@
                     <p>• Monsters automatically fight each other</p>
                     <p>• Press ESC to pause and open the menu</p>
                     <p>• Press M to toggle music</p>
+                    <p>• Press F11 to toggle fullscreen</p>
+                </section>
+                <section>
+                    <h3>Basic Tips</h3>
+                    <p>• If your monster faints, it revives automatically</p>
+                    <p>• Avoid Plant (green box) monsters at the start, they counter your Derpfish!</p>
+                    <p>• Don't fight two monsters at once at the start</p>
+                    <p>• Your progress saves automatically</p>
+                </section>
+                <section class="monster-explained-section">
+                    <h3>Your Starting Monster</h3>
+                    <img src="assets/Monsterexplained.png" alt="Monster Explained" class="monster-explained-chart">
+                </section>
+                <section>
+                    <h3>Monster Information</h3>
+                    <p>• A star after the name indicates a monster with a rare modifier. A number means it has that many. Monsters with 3 or more are very rare!</p>
+                    <p>• When a monster runs out of stamina, its attacks do 75% less damage</p>
+                    <p>• The level of a monster is how strong it is, and for wild monsters also how much potential it has! Catch high level monsters and raise them to progress</p>
+                </section>
+                <section>
+                    <h3>Elements</h3>
+                    <p>• Elements each counter one other element and have some stat bonuses. Monsters with two elements get both stat bonuses, but only the top element affects combat</p>
+                    <P>• Elements do 50% more damage to their own element, and take 33% less damage from it</P>
+                    <P>• For more information about elements, click the details button by a monster in the menu</P>
+                </section>
+                <section class="element-chart-section">
+                    <img src="assets/elements.jpg" alt="Element Chart" class="element-chart">
                 </section>
                 <section>
                     <h3>Capturing Monsters</h3>
@@ -70,24 +100,31 @@
                     <p>• A white circle appears when a monster is ready to be captured</p>
                     <p>• Click/tap the circle to see capture options</p>
                     <p>• Each attempt costs gold and has a success chance</p>
+                    <p>• Captured monster go to your storage in the menu if you don't have room in your active team</p>
                 </section>
                 <section>
                     <h3>Managing Your Team</h3>
-                    <p>• Access your monsters through the Menu/Monsters button</p>
+                    <p>• Access your monsters through the Menu/Monsters button (or ESC)</p>
                     <p>• You can have up to 2 active monsters at a time</p>
                     <p>• Store unlimited monsters in your storage</p>
                     <p>• View detailed stats by clicking on any monster's details button</p>
                     <p>• Monsters are "in combat" for 5 seconds after taking or dealing damage</p>
                 </section>
                 <section>
-                    <h3>Tips</h3>
-                    <p>• Avoid Plant (green box) monsters at the start, they counter your Derpfish!</p>
-                    <p>• Don't fight two monsters at once at the start</p>
-                    <p>• Plant (Green) counters Earth (Brown) counters Electric (Yellow)</p>
-                    <p>• counters Water (Blue) counters Fire (Red) counters Plant (Green)</p>
-                    <p>• Your progress saves automatically</p>
+                    <h3>How to Progress</h3>
+                    <p>• The main factor in how strong a monster will be is the level you catch it at, not its rarity! This is called the Spawn Level of the monster, or its Potential. Keep catching higher Potential monsters to progress</p>
+                    <p>• High potential monsters start off weaker at lower levels, so you'll have to help them grow</p>
+                    <p>• To get to the next area with new monsters, follow the arrow that is near you</p>
+                </section>
+                <section>
+                    <h3>THANKS FOR PLAYING!</h3>
+                    <p>• Made in about 9 days for the Vibe Jam 2025</p>
+                    <p>• I got really sick towards the end so I lost a few days and had to cut many features</p>
+                    <p>• Almost everything is made using AI tools</p>
+                    <p>• Full credits on the GitHub</p>
                 </section>
             </div>
+            <button id="helpCloseButton">Got it!</button>
         </div>
     </div>
     
