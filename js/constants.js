@@ -43,7 +43,7 @@ const GAME_CONFIG = {
     maxMonsterWanderDistance: 1000, // Maximum distance a monster can wander from spawn
     playerGracePeriod: 5, // 5 seconds grace period after being sent back to start
     rareModifierRate: 5, // Rate of rare modifiers in percentage, for each monster
-    statGainRatePerLevel: 0.10, // % stat gain per level
+    statGainRatePerLevel: 0.20, // % stat gain per level
     statNames: { 1: "spd", 2: "pDef", 3: "sDef", 4: "pAtk", 5: "sAtk", 6: "endur" },
     statNamesProper: { 1: "Speed", 2: "Physical Defense", 3: "Special Defense", 4: "Physical Attack", 5: "Special Attack", 6: "Endurance" },
     monsterTextures: {}
