@@ -791,9 +791,6 @@ function setupUIEventHandlers() {
             }
         }
     });
-    
-    // Initialize help UI
-    initHelpUI();
 }
 
 // Create floating gold coin that moves towards player
@@ -873,40 +870,37 @@ function createFloatingGoldCoin(position) {
     return sprite;
 }
 
-// Initialize help button and arrow
-function initHelpUI() {
-    const helpButton = document.getElementById('helpButton');
-    const helpArrow = document.querySelector('.help-arrow');
-    const helpPopup = document.getElementById('helpPopup');
-    const helpCloseButton = document.getElementById('helpCloseButton');
-    
-    // Check if help has been viewed before
-    const hasViewedHelp = localStorage.getItem('hasViewedHelp') === 'true';
-    
-    if (!hasViewedHelp) {
-        // Show flashing help button and arrow
-        helpButton.classList.add('flash');
-        helpArrow.classList.add('visible');
-    }
-    
-    // Handle help button click
-    helpButton.addEventListener('click', () => {
-        // Remove flashing and arrow
-        helpButton.classList.remove('flash');
-        helpArrow.classList.remove('visible');
-        
-        // Mark help as viewed
-        localStorage.setItem('hasViewedHelp', 'true');
-        
-        // Show help popup
-        helpPopup.style.display = 'block';
-    });
-    
-    // Handle help popup close
-    helpCloseButton.addEventListener('click', () => {
+// Help Button Functionality
+const helpButton = document.getElementById('helpButton');
+const helpPopup = document.getElementById('helpPopup');
+const helpCloseButton = document.getElementById('helpCloseButton');
+const helpCloseButtonX = helpPopup.querySelector('.close-button');
+
+helpButton.addEventListener('click', () => {
+    helpPopup.style.display = 'block';
+    helpButton.style.display = 'none';
+    gameState.helpUIOpen = true; // Track that help UI is open
+});
+
+helpPopup.addEventListener('click', (e) => {
+    if (e.target === helpPopup) {
         helpPopup.style.display = 'none';
-    });
-}
+        helpButton.style.display = 'flex';
+        gameState.helpUIOpen = false; // Track that help UI is closed
+    }
+});
+
+helpCloseButton.addEventListener('click', () => {
+    helpPopup.style.display = 'none';
+    helpButton.style.display = 'flex';
+    gameState.helpUIOpen = false; // Track that help UI is closed
+});
+
+helpCloseButtonX.addEventListener('click', () => {
+    helpPopup.style.display = 'none';
+    helpButton.style.display = 'flex';
+    gameState.helpUIOpen = false; // Track that help UI is closed
+});
 
 // Create floating capture success orb that moves to menu button
 function createFloatingCaptureOrb(position) {

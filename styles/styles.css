@@ -446,55 +446,26 @@ canvas {
 
 #helpButton {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: 10px;
+    right: 10px;
     width: 40px;
     height: 40px;
-    background-color: #ffdd57;
+    background-color: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     font-size: 24px;
     font-weight: bold;
-    color: #000;
+    cursor: pointer;
     z-index: 1000;
     border: 2px solid #000;
-    text-shadow: none;
+    transition: all 0.3s ease;
 }
 
-#helpButton.flash {
-    animation: helpButtonFlash 1.5s infinite;
-}
-
-@keyframes helpButtonFlash {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-.help-arrow {
-    position: fixed;
-    bottom: 70px;
-    right: 30px;
-    width: 40px;
-    height: 40px;
-    background-color: #ffdd57;
-    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-    animation: arrowPulse 1.5s infinite;
-    z-index: 999;
-    display: none;
-}
-
-.help-arrow.visible {
-    display: block;
-}
-
-@keyframes arrowPulse {
-    0% { transform: translateY(0); opacity: 1; }
-    50% { transform: translateY(10px); opacity: 0.5; }
-    100% { transform: translateY(0); opacity: 1; }
+#helpButton:hover {
+    background-color: #fff;
+    transform: scale(1.1);
 }
 
 #helpPopup {
