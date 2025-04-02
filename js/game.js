@@ -499,12 +499,11 @@ function init() {
         // Spawn wild monsters for the saved area
         spawnWildMonsters(gameState.currentArea);
     } else {
-        // Show help screen for new players
-        const helpPopup = document.getElementById('helpPopup');
+        // Show help button with flashing effect for new players
         const helpButton = document.getElementById('helpButton');
-        helpPopup.style.display = 'block';
-        helpButton.style.display = 'none';
-        gameState.helpUIOpen = true;
+        helpButton.style.display = 'flex';
+        helpButton.classList.add('flash');
+        gameState.helpUIOpen = false;
         
         // Initialize new player with starter monster
         initPlayer(true);

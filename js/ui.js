@@ -879,6 +879,7 @@ const helpCloseButtonX = helpPopup.querySelector('.close-button');
 helpButton.addEventListener('click', () => {
     helpPopup.style.display = 'block';
     helpButton.style.display = 'none';
+    helpButton.classList.remove('flash'); // Remove flashing effect
     gameState.helpUIOpen = true; // Track that help UI is open
 });
 

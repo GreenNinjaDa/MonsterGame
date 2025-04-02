@@ -446,8 +446,8 @@ canvas {
 
 #helpButton {
     position: fixed;
-    top: 10px;
-    right: 10px;
+    top: 20px;
+    right: 20px;
     width: 40px;
     height: 40px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -461,6 +461,28 @@ canvas {
     z-index: 1000;
     border: 2px solid #000;
     transition: all 0.3s ease;
+}
+
+#helpButton.flash {
+    animation: flashRed 1s infinite;
+}
+
+@keyframes flashRed {
+    0% {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #000;
+        transform: scale(1);
+    }
+    50% {
+        background-color: rgba(255, 0, 0, 0.5);
+        border-color: #ff0000;
+        transform: scale(2);
+    }
+    100% {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #000;
+        transform: scale(1);
+    }
 }
 
 #helpButton:hover {

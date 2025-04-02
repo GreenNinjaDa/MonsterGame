@@ -81,7 +81,7 @@ const AREAS = {
         backgroundColor: 0x2F4F4F, // Dark slate gray
         description: "Treacherous mountain peaks crackling with electric energy"
     },
-    7: { //Master's Keep
+    /*7: { //Master's Keep
         name: "Master's Keep",
         backgroundColor: 0x505050, // Dark gray
         description: "A place only the most ambitious of adventurers dare to venture"
@@ -100,7 +100,7 @@ const AREAS = {
         name: "Celestial Summit",
         backgroundColor: 0x191970, // Midnight blue
         description: "The final frontier where cosmic forces shape the strongest beings"
-    }
+    }*/
 };
 
 // Monster Types
@@ -114,15 +114,34 @@ const MONSTER_TYPES = {
     6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, pAtk: 30, sDef: 40, sAtk: 80, endur: 40}, abilId: 0, size: 0.8}, //Total: 300
     7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, pAtk: 100, sDef: 40, sAtk: 70, endur: 30}, abilId: 0, size: 0.8}, //Total: 300
 	8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, pAtk: 45, sDef: 50, sAtk: 35, endur: 70}, abilId: 0, size: 1.2}, //Total: 300
-	9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, pAtk: 40, sDef: 20, sAtk: 10, endur: 80}, abilId: 0, size: 1}, //Total: 300
+	9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, pAtk: 50, sDef: 20, sAtk: 20, endur: 80}, abilId: 0, size: 1}, //Total: 300
 	10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 40, endur: 50}, abilId: 0, size: 1}, //Total: 300
-	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 45, pAtk: 55, sDef: 50, sAtk: 70, endur: 30}, abilId: 11, size: 1}, //Total: 280
-	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 70, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, abilId: 12, size: 0.8}, //Total: 280
+	11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 40, pAtk: 35, sDef: 55, sAtk: 70, endur: 30}, abilId: 11, size: 1}, //Total: 280
+	12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 60, pAtk: 45, sDef: 60, sAtk: 25, endur: 60}, abilId: 12, size: 0.8}, //Total: 280
 	13: { name: "Rumbleweed", element: "Plant", stats: { spd: 70, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, abilId: 13, size: 0.85}, //Total: 320
 	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 260
-	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 30 }, abilId: 15, size: 1}, //Total: 300
-	
-	
+	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 40 }, abilId: 15, size: 1}, //Total: 260
+    16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 30, pAtk: 30, sDef: 40, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
+    17: { name: "Moltenoth", element: "Fire", stats: { spd: 10, pDef: 60, pAtk: 70, sDef: 70, sAtk: 30, endur: 60 }, size: 1}, //Total: 300
+    18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, pAtk: 50, sDef: 60, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
+    19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, pAtk: 20, sDef: 60, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
+    20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, pAtk: 50, sDef: 40, sAtk: 20, endur: 60 }, size: 1}, //Total: 230 //Hydra: Upon 0 hp, spends half its stamina to revive with same % hp if stamina > 10%.
+    21: { name: "Pyrithan", element: "Earth", stats: { spd: 30, pDef: 90, pAtk: 60, sDef: 50, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
+    22: { name: "Tesnail", element: "Electric", stats: { spd: 80, pDef: 50, pAtk: 15, sDef: 30, sAtk: 45, endur: 80 }, size: 1}, //Total: 300
+    23: { name: "Crystacean", element: "Earth", stats: { spd: 30, pDef: 80, pAtk: 10, sDef: 50, sAtk: 90, endur: 40 }, size: 1}, //Total: 300
+    24: { name: "Livermort", element: "Plant", stats: { spd: 30, pDef: 50, pAtk: 20, sDef: 40, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
+    25: { name: "Rockhemut", element: "Earth", stats: { spd: 10, pDef: 80, pAtk: 55, sDef: 60, sAtk: 15, endur: 80 }, size: 1}, //Total: 300
+    26: { name: "Lavavark", element: "Fire", stats: { spd: 40, pDef: 50, pAtk: 70, sDef: 50, sAtk: 40, endur: 50 }, size: 1}, //Total: 300
+    27: { name: "Helapain", element: "Plant", stats: { spd: 30, pDef: 40, pAtk: 30, sDef: 50, sAtk: 110, endur: 40 }, size: 1}, //Total: 300
+    28: { name: "Scorchion", element: "Fire", stats: { spd: 40, pDef: 60, pAtk: 20, sDef: 60, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
+    29: { name: "PLACEHOLD", element: "Water", stats: { spd: 50, pDef: 50, pAtk: 50, sDef: 50, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
+    30: { name: "Igneite", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 30, endur: 70 }, size: 1}, //Total: 310
+    31: { name: "Boltzalea", element: "Electric", stats: { spd: 20, pDef: 40, pAtk: 10, sDef: 70, sAtk: 120, endur: 40 }, size: 1}, //Total: 300
+    32: { name: "PLACEHOLD", element: "Water", stats: { spd: 50, pDef: 50, pAtk: 50, sDef: 50, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
+    33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, pAtk: 70, sDef: 45, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
+    34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, pAtk: 60, sDef: 40, sAtk: 10, endur: 60 }, size: 1}, //Total: 300
+    35: { name: "Scornfront", element: "Electric", stats: { spd: 110, pDef: 45, pAtk: 5, sDef: 40, sAtk: 60, endur: 50 }, size: 1}, //Total: 300
+	36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 40, sAtk: 60, endur: 70 }, size: 1}, //Total: 320
     
     //Dragginball
 	//Corgknight
