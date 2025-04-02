@@ -130,17 +130,17 @@ const MONSTER_TYPES = {
     22: { name: "Tesnail", element: "Electric", stats: { spd: 80, pDef: 50, pAtk: 15, sDef: 30, sAtk: 45, endur: 80 }, size: 1}, //Total: 300
     23: { name: "Crystacean", element: "Earth", stats: { spd: 30, pDef: 80, pAtk: 10, sDef: 50, sAtk: 90, endur: 40 }, size: 1}, //Total: 300
     24: { name: "Livermort", element: "Plant", stats: { spd: 30, pDef: 50, pAtk: 20, sDef: 40, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
-    25: { name: "Rockhemut", element: "Earth", stats: { spd: 10, pDef: 80, pAtk: 55, sDef: 60, sAtk: 15, endur: 80 }, size: 1}, //Total: 300
+    25: { name: "Rockhemut", element: "Earth", stats: { spd: 10, pDef: 80, pAtk: 55, sDef: 60, sAtk: 15, endur: 80 }, size: 1.1}, //Total: 300
     26: { name: "Lavavark", element: "Fire", stats: { spd: 40, pDef: 50, pAtk: 70, sDef: 50, sAtk: 40, endur: 50 }, size: 1}, //Total: 300
     27: { name: "Helapain", element: "Plant", stats: { spd: 30, pDef: 40, pAtk: 30, sDef: 50, sAtk: 110, endur: 40 }, size: 1}, //Total: 300
     28: { name: "Scorchion", element: "Fire", stats: { spd: 40, pDef: 60, pAtk: 20, sDef: 60, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
-    29: { name: "PLACEHOLD", element: "Water", stats: { spd: 50, pDef: 50, pAtk: 50, sDef: 50, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
+    29: { name: "Steanix", element: "Water", stats: { spd: 50, pDef: 30, pAtk: 70, sDef: 40, sAtk: 70, endur: 40 }, size: 1}, //Total: 300
     30: { name: "Igneite", element: "Fire", stats: { spd: 60, pDef: 40, pAtk: 70, sDef: 40, sAtk: 30, endur: 70 }, size: 1}, //Total: 310
     31: { name: "Boltzalea", element: "Electric", stats: { spd: 20, pDef: 40, pAtk: 10, sDef: 70, sAtk: 120, endur: 40 }, size: 1}, //Total: 300
-    32: { name: "PLACEHOLD", element: "Water", stats: { spd: 50, pDef: 50, pAtk: 50, sDef: 50, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
-    33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, pAtk: 70, sDef: 45, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
-    34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, pAtk: 60, sDef: 40, sAtk: 10, endur: 60 }, size: 1}, //Total: 300
-    35: { name: "Scornfront", element: "Electric", stats: { spd: 110, pDef: 45, pAtk: 5, sDef: 40, sAtk: 60, endur: 50 }, size: 1}, //Total: 300
+    32: { name: "Polrus", element: "Water", stats: { spd: 30, pDef: 50, pAtk: 35, sDef: 60, sAtk: 25, endur: 100 }, size: .95}, //Total: 300
+    33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, pAtk: 70, sDef: 45, sAtk: 30, endur: 40 }, size: 1.2}, //Total: 300
+    34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, pAtk: 60, sDef: 40, sAtk: 10, endur: 60 }, size: 0.75}, //Total: 300
+    35: { name: "Scornfront", element: "Electric", stats: { spd: 110, pDef: 45, pAtk: 5, sDef: 40, sAtk: 60, endur: 50 }, size: 1.2}, //Total: 300
 	36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 40, sAtk: 60, endur: 70 }, size: 1}, //Total: 320
     
     //Dragginball
