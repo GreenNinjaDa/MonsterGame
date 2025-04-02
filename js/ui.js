@@ -790,6 +790,21 @@ function setupUIEventHandlers() {
                 addChatMessage("Music paused, press M again to play.", 6000)
             }
         }
+        // 'H' key to toggle help menu
+        if (event.key === 'h' || event.key === 'H') {
+            const helpPopup = document.getElementById('helpPopup');
+            const helpButton = document.getElementById('helpButton');
+            if (helpPopup.style.display === 'block') {
+                helpPopup.style.display = 'none';
+                helpButton.style.display = 'flex';
+                gameState.helpUIOpen = false;
+            } else {
+                helpPopup.style.display = 'block';
+                helpButton.style.display = 'none';
+                helpButton.classList.remove('flash');
+                gameState.helpUIOpen = true;
+            }
+        }
     });
 }
 
