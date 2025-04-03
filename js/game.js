@@ -123,6 +123,7 @@ function initThree() {
     
     // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    gameState.onMobile = isMobile;
     
     // Adjust view size for mobile devices
     const viewSize = isMobile ? GAME_CONFIG.baseViewSize * 1.5 : GAME_CONFIG.baseViewSize;
@@ -1682,6 +1683,9 @@ function createWildMonster(areaLevel, x, y) {
         availableTypes = Object.keys(MONSTER_TYPES).map(Number);
         level += 10;
     }
+    
+    // Cap the level at the maximum level defined in GAME_CONFIG
+    level = Math.min(level, GAME_CONFIG.maxLevel);
     
     if (availableTypes.length === 0) {
         // If initial spawn attempt fails, try spawning from monster types 1-10

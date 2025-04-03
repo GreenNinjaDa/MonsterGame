@@ -15,6 +15,12 @@ function toggleStorageUI() {
     gameState.storageUIOpen = !gameState.storageUIOpen;
     document.getElementById('storageUI').style.display = gameState.storageUIOpen ? 'block' : 'none';
     
+    // Hide/show help button on mobile when storage UI is opened/closed
+    if (gameState.onMobile) {
+        const helpButton = document.getElementById('helpButton');
+        helpButton.style.display = gameState.storageUIOpen ? 'none' : 'flex';
+    }
+    
     // Update storage UI content if opening
     if (gameState.storageUIOpen) {
         saveGame();
@@ -531,6 +537,12 @@ function showMonsterDetails(monsterId) {
         return;
     }
     
+    // Hide help button on mobile when details UI is opened
+    if (gameState.onMobile) {
+        const helpButton = document.getElementById('helpButton');
+        helpButton.style.display = 'none';
+    }
+    
     // Get the monster type data
     const monsterType = MONSTER_TYPES[monster.typeId];
     
@@ -701,6 +713,12 @@ document.addEventListener('DOMContentLoaded', function() {
     closeButton.addEventListener('click', function() {
         detailsModal.style.display = 'none';
         gameState.detailsUIOpen = false;
+        
+        // Show help button on mobile when details UI is closed (if storage UI is not open)
+        if (gameState.onMobile && !gameState.storageUIOpen) {
+            const helpButton = document.getElementById('helpButton');
+            helpButton.style.display = 'flex';
+        }
     });
 
     // Helper function to handle both mouse and touch events
@@ -773,6 +791,71 @@ function addChatMessage(text, duration = 10000) {
     }, duration);
 }
 
+// Sort stored monsters by different criteria
+function sortStoredMonsters(sortBy) {
+    // Sort the stored monsters array based on the specified criteria
+    switch(sortBy) {
+        case 'type':
+            gameState.player.storedMonsters.sort((a, b) => a.typeId - b.typeId);
+            addChatMessage("Monsters sorted by type.", 2000);
+            break;
+            
+        case 'stats':
+            gameState.player.storedMonsters.sort((a, b) => {
+                // Calculate total stats for each monster
+                const aTotalStats = Object.values(a.stats).reduce((sum, stat) => sum + stat, 0);
+                const bTotalStats = Object.values(b.stats).reduce((sum, stat) => sum + stat, 0);
+                return bTotalStats - aTotalStats; // Sort in descending order (highest first)
+            });
+            addChatMessage("Monsters sorted by total stats.", 2000);
+            break;
+            
+        case 'element':
+            gameState.player.storedMonsters.sort((a, b) => {
+                // Sort by element name
+                return a.element.localeCompare(b.element);
+            });
+            addChatMessage("Monsters sorted by element.", 2000);
+            break;
+            
+        case 'potential':
+            gameState.player.storedMonsters.sort((a, b) => b.spawnLevel - a.spawnLevel); // Sort in descending order
+            addChatMessage("Monsters sorted by potential (spawn level).", 2000);
+            break;
+            
+        case 'rarity':
+            gameState.player.storedMonsters.sort((a, b) => {
+                // Count rare modifiers for each monster
+                const aModCount = Array.isArray(a.rareModifiers) ? a.rareModifiers.length : 
+                                (a.rareModifiers ? 1 : 0);
+                const bModCount = Array.isArray(b.rareModifiers) ? b.rareModifiers.length : 
+                                (b.rareModifiers ? 1 : 0);
+                return bModCount - aModCount; // Sort in descending order
+            });
+            addChatMessage("Monsters sorted by rarity (modifier count).", 2000);
+            break;
+            
+        case 'dualElement':
+            gameState.player.storedMonsters.sort((a, b) => {
+                // Check if monster has dual elements (element differs from type's element)
+                const aIsDual = a.element !== MONSTER_TYPES[a.typeId].element;
+                const bIsDual = b.element !== MONSTER_TYPES[b.typeId].element;
+                
+                // Sort dual element monsters first
+                if (aIsDual && !bIsDual) return -1;
+                if (!aIsDual && bIsDual) return 1;
+                
+                // If both are dual or both are not dual, sort by element
+                return a.element.localeCompare(b.element);
+            });
+            addChatMessage("Monsters sorted by dual element status.", 2000);
+            break;
+    }
+    
+    // Update the UI to reflect the sorted order
+    updateStorageUI();
+}
+
 // Set up UI event handlers
 function setupUIEventHandlers() {
     // Storage button
@@ -787,8 +870,13 @@ function setupUIEventHandlers() {
     // Next target button
     document.getElementById('nextTargetButton').addEventListener('click', handleNextTarget);
     
-    // Sort by type button
-    document.getElementById('sortByTypeButton').addEventListener('click', sortStoredMonstersByType);
+    // Sort buttons
+    document.getElementById('sortByTypeButton').addEventListener('click', () => sortStoredMonsters('type'));
+    document.getElementById('sortByStatsButton').addEventListener('click', () => sortStoredMonsters('stats'));
+    document.getElementById('sortByElementButton').addEventListener('click', () => sortStoredMonsters('element'));
+    document.getElementById('sortByPotentialButton').addEventListener('click', () => sortStoredMonsters('potential'));
+    document.getElementById('sortByRarityButton').addEventListener('click', () => sortStoredMonsters('rarity'));
+    document.getElementById('sortByDualElementButton').addEventListener('click', () => sortStoredMonsters('dualElement'));
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(event) {
@@ -1020,16 +1108,4 @@ function createFloatingCaptureOrb(position) {
     animateOrb();
     
     return sprite;
-}
-
-// Sort stored monsters by typeId
-function sortStoredMonstersByType() {
-    // Sort the stored monsters array by typeId
-    gameState.player.storedMonsters.sort((a, b) => a.typeId - b.typeId);
-    
-    // Update the UI to reflect the sorted order
-    updateStorageUI();
-    
-    // Add a chat message to confirm the sort
-    addChatMessage("Monsters sorted by type.", 2000);
 }

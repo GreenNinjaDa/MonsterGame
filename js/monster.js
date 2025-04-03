@@ -645,7 +645,7 @@ function handleMonsterDefeat(defeated, victor) {
         }
 
         // Reduce level to 40% (rounded up) and recalculate stats
-        defeated.level = Math.max(1, Math.ceil(defeated.level * 0.4));
+        defeated.level = Math.max(1, Math.ceil(defeated.level * GAME_CONFIG.catchLevelPenalty));
         
         // Get the base stats from the monster type
         const monsterType = MONSTER_TYPES[defeated.typeId];
@@ -826,6 +826,13 @@ function handleExperienceGain(victor, defeated) {
 // Check for level up and handle it
 function checkLevelUp(monster) {
     while (monster.experience.current >= monster.experience.toNextLevel) {
+        // Check if monster is already at max level
+        if (monster.level >= GAME_CONFIG.maxLevel) {
+            // If at max level, just set experience to 0 and break
+            monster.experience.current = 0;
+            break;
+        }
+        
         // Level up the monster
         monster.level++;
         
@@ -869,7 +876,7 @@ function checkLevelUp(monster) {
         // Update UI
         updateUILabel(monster.uiLabel, monster);
     }
-} 
+}
 
 function inCombat(monster) {
     return monster.timeSinceCombat < GAME_CONFIG.combatStatusTime;

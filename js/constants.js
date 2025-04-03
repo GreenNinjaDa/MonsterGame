@@ -18,6 +18,8 @@ const GAME_CONFIG = {
     physicalBase: 25, // Base physical damage for normal attacks
     specialBase: 25, // Base special damage for normal attacks
     rareModLevelWeight: 3, //How many levels higher a monster is considered for rewards per rare mod
+    maxLevel: 70, //Maximum monster level
+    catchLevelPenalty: 0.5, //Monsters lose half their levels when caught from the wild
     
     // Movement Speeds (units per second)
     playerSpeed: 200,          // Base player movement speed

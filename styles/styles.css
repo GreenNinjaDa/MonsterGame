@@ -168,7 +168,13 @@ canvas {
 .monster-actions button.details-button {
     background-color: #9b59b6;
 }
-#sortByTypeButton {
+.sort-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+.sort-button {
     background-color: #3498db;
     border: none;
     color: white;
@@ -176,7 +182,10 @@ canvas {
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
-    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+.sort-button:hover {
+    background-color: #2980b9;
 }
 .close-button {
     position: absolute;
