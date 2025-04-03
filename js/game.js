@@ -413,6 +413,13 @@ function gameLoop(time) {
         if (gameState.saveCounter === 2) {
             addChatMessage("Game auto-saves every 5 seconds.", 5000);
         }
+
+        // Check if music should be playing but isn't
+        if (!gameState.musicSavedOff && backgroundMusic && backgroundMusic.paused) {
+            backgroundMusic.play().catch(error => {
+                console.log("Failed to play music:", error);
+            });
+        }
     }
     
     // Render the scene
@@ -1117,12 +1124,12 @@ function selectWeightedRandomTarget(monster, potentialTargets) {
     // Calculate distances and weights for each target
     const targetWeights = validTargets.map(target => {
         const distance = monster.mesh.position.distanceTo(target.mesh.position);
-        // Use inverse square of distance for weight calculation
-        // This makes closer targets much more likely to be chosen
+        // Use inverse power of 1.5 of distance for weight calculation
+        // This makes closer targets more likely to be chosen
         return {
             target,
             distance,
-            weight: 1 / (distance * distance)
+            weight: 1 / Math.pow(distance, 1.5)
         };
     });
     
@@ -1651,24 +1658,27 @@ function createWildMonster(areaLevel, x, y) {
     const spawnRoll = Math.random() * 100;
     let availableTypes;
     
-    if (spawnRoll < 50) {
-        // 50% chance - spawn from current area level
-        availableTypes = Object.keys(MONSTER_TYPES)
-            .map(Number)
-            .filter(id => Math.ceil(id / 5) === areaLevel + 1);
-    } else if (spawnRoll < 90) {
-        // 40% chance - spawn from any level below
+    if (spawnRoll < 70) { // 70% chance - spawn from current area level
+        //Special case for area 1
+        if (areaLevel === 1) {
+            availableTypes = Object.keys(MONSTER_TYPES)
+                .map(Number)
+                .filter(id => id <= 10);
+        } else {
+            availableTypes = Object.keys(MONSTER_TYPES)
+                .map(Number)
+                .filter(id => Math.ceil(id / 5) === areaLevel + 1);
+        }
+    } else if (spawnRoll < 90) { // 20% chance - spawn from any level below
         availableTypes = Object.keys(MONSTER_TYPES)
             .map(Number)
             .filter(id => Math.ceil(id / 5) < areaLevel);
-    } else if (spawnRoll < 97) {
-        // 7% chance - spawn from area level above with +5 levels
+    } else if (spawnRoll < 97) { // 7% chance - spawn from area level above with +5 levels
         availableTypes = Object.keys(MONSTER_TYPES)
             .map(Number)
             .filter(id => Math.ceil(id / 5) === areaLevel + 1);
         level += 5;
-    } else {
-        // 3% chance - spawn any random monster with +10 levels
+    } else { // 3% chance - spawn any random monster with +10 levels
         availableTypes = Object.keys(MONSTER_TYPES).map(Number);
         level += 10;
     }
@@ -1688,7 +1698,7 @@ function createWildMonster(areaLevel, x, y) {
     // Randomly choose from available monster types
     const typeId = availableTypes[Math.floor(Math.random() * availableTypes.length)];
     
-    // Check for rare modifiers - each has a separate 2% chance
+    // Check for rare modifiers - each has a separate 5% chance
     let rareModifiers = [];
     const modifiersList = Object.keys(RARE_MODIFIERS);
     

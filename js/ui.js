@@ -91,6 +91,12 @@ function updateStorageUI() {
     const activeList = document.getElementById('activeMonsterList');
     activeList.innerHTML = '';
     
+    // Update stored monsters header with count
+    const storedMonstersHeader = document.querySelector('#storageSlots h3');
+    if (storedMonstersHeader) {
+        storedMonstersHeader.textContent = `Stored Monsters (${gameState.player.storedMonsters.length})`;
+    }
+    
     gameState.player.monsters.forEach((monster, index) => {
         const monsterCard = document.createElement('div');
         monsterCard.className = 'monster-card';
@@ -108,7 +114,7 @@ function updateStorageUI() {
         infoDiv.innerHTML = `
             <h4>${monster.name} ${formatModifiers(monster)}</h4>
             <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
-            <p>HP: ${Math.round(monster.currentHP)}/${monster.maxHP}</p>
+            <p>${monster.defeated ? `<span style="color: red">Respawn: ${Math.ceil(monster.reviveTimer)}/${monster.level * 2}s</span>` : `HP: ${Math.round(monster.currentHP)}/${monster.maxHP}`}</p>
             <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             <div class="monster-actions">
                 <button data-id="${monster.id}" class="store-button">Store (Active ${index + 1})</button>
@@ -142,7 +148,7 @@ function updateStorageUI() {
         infoDiv.innerHTML = `
             <h4>${monster.name} ${formatModifiers(monster)}</h4>
             <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
-            <p>HP: ${Math.round(monster.currentHP)}/${monster.maxHP}</p>
+            <p>${monster.defeated ? `<span style="color: red">Respawn: ${Math.ceil(monster.reviveTimer)}/${monster.level * 2}s</span>` : `HP: ${Math.round(monster.currentHP)}/${monster.maxHP}`}</p>
             <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
             <div class="monster-actions">
                 <button data-id="${monster.id}" class="activate-button">Activate</button>
@@ -253,9 +259,9 @@ function showSellConfirmation(monsterId) {
 
     let effectiveLevel = monster.level;
     if (monster.rareModifiers && Array.isArray(monster.rareModifiers)) {
-        effectiveLevel += monster.rareModifiers.length * 5;
+        effectiveLevel += monster.rareModifiers.length * GAME_CONFIG.rareModLevelWeight;
     }
-    // Calculate sell price (same as capture cost)
+    // Calculate sell price
     let sellPrice = 5 + Math.ceil(Math.pow(effectiveLevel, 1.6));
 
     // Show confirmation dialog
@@ -298,7 +304,7 @@ function showCaptureUI(captureInfo) {
     // Calculate catch chance and cost
     let effectiveLevel = monster.spawnLevel;
     if (monster.rareModifiers && Array.isArray(monster.rareModifiers)) {
-        effectiveLevel += monster.rareModifiers.length * 5;
+        effectiveLevel += monster.rareModifiers.length * GAME_CONFIG.rareModLevelWeight;
     }
     const catchChance = Math.min(100, Math.floor(10000 / (100 + 2 * effectiveLevel)));
     let cost = 10 + Math.ceil(Math.pow(effectiveLevel, 1.5));
@@ -646,6 +652,9 @@ function showMonsterDetails(monsterId) {
         </tr>
     `;
     
+    // Calculate total of all final calculated stats
+    const totalStats = Object.values(statValues).reduce((sum, stat) => sum + stat, 0);
+    
     // Calculate derived stats at different stages
     const maxHPFinal = monster.maxHP;
     
@@ -655,6 +664,10 @@ function showMonsterDetails(monsterId) {
     
     // Show progression of stats
     statsHTML += `
+        <tr class="derived-stat-row">
+            <td>Total Stats</td>
+            <td colspan="3" class="stat-total">${totalStats}</td>
+        </tr>
         <tr class="derived-stat-row">
             <td>Max HP</td>
             <td colspan="3" class="stat-total">${maxHPFinal}</td>
@@ -774,6 +787,9 @@ function setupUIEventHandlers() {
     // Next target button
     document.getElementById('nextTargetButton').addEventListener('click', handleNextTarget);
     
+    // Sort by type button
+    document.getElementById('sortByTypeButton').addEventListener('click', sortStoredMonstersByType);
+    
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(event) {
         // 'ESC' key to toggle storage
@@ -782,13 +798,7 @@ function setupUIEventHandlers() {
         }
         // 'M' key to toggle music
         if (event.key === 'm' || event.key === 'M') {
-            if (backgroundMusic.paused) {
-                backgroundMusic.play();
-                addChatMessage("Music playing, press M again to pause.", 6000)
-            } else {
-                backgroundMusic.pause();
-                addChatMessage("Music paused, press M again to play.", 6000)
-            }
+            toggleMusic();
         }
         // 'H' key to toggle help menu
         if (event.key === 'h' || event.key === 'H') {
@@ -1010,4 +1020,16 @@ function createFloatingCaptureOrb(position) {
     animateOrb();
     
     return sprite;
+}
+
+// Sort stored monsters by typeId
+function sortStoredMonstersByType() {
+    // Sort the stored monsters array by typeId
+    gameState.player.storedMonsters.sort((a, b) => a.typeId - b.typeId);
+    
+    // Update the UI to reflect the sorted order
+    updateStorageUI();
+    
+    // Add a chat message to confirm the sort
+    addChatMessage("Monsters sorted by type.", 2000);
 }

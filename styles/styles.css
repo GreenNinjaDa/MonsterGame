@@ -168,6 +168,16 @@ canvas {
 .monster-actions button.details-button {
     background-color: #9b59b6;
 }
+#sortByTypeButton {
+    background-color: #3498db;
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
 .close-button {
     position: absolute;
     top: 5px;

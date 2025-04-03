@@ -10,7 +10,7 @@
 <body>
     <div id="ui">
         <button id="storageButton">Menu/Monsters</button>
-        <div id="areaDisplay">Area: Starting Plains v0.5.1</div>
+        <div id="areaDisplay">Area: Starting Plains v0.7.0</div>
         <div id="goldCounter">Gold: 100</div>
         <div id="fpsCounter">FPS: 60</div>
     </div>
@@ -34,6 +34,9 @@
         <div id="storageSlots">
             <h3 style="text-align: center;">Stored Monsters</h3>
             <div id="monsterList"></div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button id="sortByTypeButton">Sort by Monster Type</button>
+            </div>
         </div>
     </div>
     
@@ -84,7 +87,7 @@
                 <section>
                     <h3>Monster Information</h3>
                     <p>• A star after the name indicates a monster with a rare modifier. A number means it has that many. Monsters with 3 or more are very rare!</p>
-                    <p>• When a monster runs out of stamina, its attacks do 75% less damage</p>
+                    <p>• When a monster runs out of stamina, its attacks do half damage</p>
                     <p>• The level of a monster is how strong it is, and for wild monsters also how much potential it has! Catch high level monsters and raise them to progress</p>
                 </section>
                 <section>
@@ -141,6 +144,7 @@
     <script src="js/save-load-system.js"></script>
     <script src="js/game.js"></script>
     
+    <a target="_blank" href="https://discord.gg/547meQMzAY" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: 120px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">Discord    !</a>
     <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
 </body>
 </html> 

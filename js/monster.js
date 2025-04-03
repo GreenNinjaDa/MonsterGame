@@ -74,7 +74,28 @@ function updateUILabel(uiLabel, monster) {
     
     context.textAlign = 'center';
     
+    // Calculate color based on number of modifiers
+    let nameColor;
+    if (!modifiers || modifiers.length === 0) {
+        nameColor = 'white';
+    } else {
+        // Gradually transition from white to gold based on number of modifiers
+        // Start at white (255, 255, 255) and end at gold (255, 215, 0)
+        const maxModifiers = 10; // Maximum number of modifiers to consider
+        const modifierCount = Math.min(modifiers.length, maxModifiers);
+        const ratio = modifierCount / maxModifiers;
+        
+        // Interpolate between white and gold
+        const r = Math.round(255 - (255 - 255) * ratio); // Red stays at 255
+        const g = Math.round(255 - (255 - 215) * ratio);
+        const b = Math.round(255 - (255 - 0) * ratio);
+        
+        nameColor = `rgb(${r}, ${g}, ${b})`;
+    }
+    
+    context.strokeStyle = 'black';
     context.strokeText(displayName, canvas.width / 2, 30);
+    context.fillStyle = nameColor;
     context.fillText(displayName, canvas.width / 2, 30);
     
     // HP bar
@@ -609,11 +630,11 @@ function handleMonsterDefeat(defeated, victor) {
             // Calculate effective level for gold reward based on rare modifiers
             let effectiveLevel = defeated.level;
             if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
-                effectiveLevel += defeated.rareModifiers.length * 5;
+                effectiveLevel += defeated.rareModifiers.length * GAME_CONFIG.rareModLevelWeight;
             }
         
             // Add gold based on effective level
-            const goldReward = 2 + Math.ceil((effectiveLevel * (effectiveLevel + 1)) / 10);
+            const goldReward = 2 + Math.ceil(Math.pow(effectiveLevel / 2, 1.7));
             gameState.player.gold += goldReward;
             updateGoldDisplay();
 
@@ -768,7 +789,7 @@ function handleExperienceGain(victor, defeated) {
     // Calculate effective level based on rare modifiers
     let effectiveLevel = defeated.level;
     if (defeated.rareModifiers && Array.isArray(defeated.rareModifiers)) {
-        effectiveLevel += defeated.rareModifiers.length * 5;
+        effectiveLevel += defeated.rareModifiers.length * GAME_CONFIG.rareModLevelWeight;
     }
     
     // Base EXP calculation using effective level
