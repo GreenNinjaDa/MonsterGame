@@ -252,7 +252,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     // Step 6: Calculate derived stats
     const maxHP = Math.round(200 * (1 + 0.4 * stats.endur / 100));
     const maxStamina = Math.round(100 * (1 + 0.4 * stats.endur / 100));
-    const attackCooldown = 5 / (1 + 0.006 * stats.spd); // 5 seconds base, reduced by speed
+    const attackCooldown = GAME_CONFIG.defaultAttackCooldown / (1 + 0.006 * stats.spd); // Base cooldown, reduced by speed stat
     
     return {
         stats,
@@ -342,9 +342,11 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     container.add(uiContainer);
     uiContainer.add(uiLabel.sprite);
     
+    gameState.monsterIdFixer ++;
+
     // Monster object
     const monster = {
-        id: Date.now() + Math.random(),
+        id: Date.now() + Math.random() + gameState.monsterIdFixer,
         typeId,
         abilId: monsterType.abilId,
         name: monsterType.name,
@@ -364,7 +366,6 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         mesh: container, // Use the container as the main mesh
         monsterMesh: mesh, // Store reference to actual monster mesh
         uiLabel,
-        target: null,
         inCombat: false,
         timeSinceCombat: 0,
         experience: {
@@ -485,7 +486,7 @@ function monsterAttack(attacker, defender, deltaTime) {
     updateMonsterDirection(attacker, defender.mesh.position.x);
     
     // Check if attacker has enough stamina
-    const staminaCost = 25;
+    const staminaCost = GAME_CONFIG.defaultStaminaCost;
     let damageMulti = 1;
     
     if (attacker.currentStamina < staminaCost) {
@@ -634,7 +635,7 @@ function handleMonsterDefeat(defeated, victor) {
             }
         
             // Add gold based on effective level
-            const goldReward = 2 + Math.ceil(Math.pow(effectiveLevel / 2, 1.7));
+            const goldReward = 4 + Math.ceil(Math.pow(effectiveLevel / 2, 1.5));
             gameState.player.gold += goldReward;
             updateGoldDisplay();
 

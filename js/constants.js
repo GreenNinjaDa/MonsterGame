@@ -8,37 +8,42 @@ const GAME_CONFIG = {
     minSpawnDistance: 500,     // Minimum spawn distance from origin/player
     
     // Game Balance
-    hpRegenRate: 0.02,         // HP regeneration rate (2% per second)
-    innerZoneRatio: 0.4,       // Ratio of map that maintains minimum level (40%)
-    outerZoneRatio: 0.8,       // Ratio of map for level scaling (80%)
-    combatStatusTime: 5,      // Time in seconds before a monster exits combat status
+    maxLevel: 70, //Maximum monster level
+    innerZoneRatio: 0.4, // Ratio of map that maintains minimum level (40%)
+    outerZoneRatio: 0.6, // Ratio of map for level scaling (80%)
+    combatStatusTime: 5, // Time in seconds before a monster exits combat status
     wildMonsterDamageBonus: 0.03, // 3% damage bonus for wild monsters (for each area level above 1)
     wildMonsterDamageReduction: 0.03, // 3% damage reduction for wild monsters (for each area level above 1)
+    defaultAttackCooldown: 10, // Time in seconds for default attack cooldown
+    defaultStaminaCost: 50, //Default stamina cost per attack
     outOfStaminaDamageMultiplier: 0.5, // 50% less damage for out of stamina monsters
-    physicalBase: 25, // Base physical damage for normal attacks
-    specialBase: 25, // Base special damage for normal attacks
+    physicalBase: 50, // Base physical damage for normal attacks
+    specialBase: 50, // Base special damage for normal attacks
     rareModLevelWeight: 3, //How many levels higher a monster is considered for rewards per rare mod
-    maxLevel: 70, //Maximum monster level
     catchLevelPenalty: 0.5, //Monsters lose half their levels when caught from the wild
+    staminaRegenRate: 0.1, // Out of combat stamina regen rate
+    staminaRegenRateCombat: 0.01, // Combat stamina regen rate
+    hpRegenRate: 0.05, // Out of combat HP regen rate
+    hpRegenRateCombat: 0, // combat HP regen rate
     
     // Movement Speeds (units per second)
-    playerSpeed: 200,          // Base player movement speed
-    playerMonsterSpeed: 210,   // Player monster movement speed (all states)
-    wildMonsterSpeed: 160,     // Wild monster movement speed
+    playerSpeed: 200, // Base player movement speed
+    playerMonsterSpeed: 210, // Player monster movement speed (all states)
+    wildMonsterSpeed: 160, // Wild monster movement speed
     monsterCollisionDistance: 30, // Distance to move monsters apart when they collide
     
     // Monster Properties
-    monsterBaseSize: 80,       // Base size for monster rendering
+    monsterBaseSize: 80, // Base size for monster rendering
     
     // Existing properties...
     monsterFollowDistance: {
         slot1: 25,
         slot2: 50
     },
-    aggroRange: 350,           // Wild monster aggro range
-    playerMonsterAggroRange: 175, // Player monster aggro range
-    attackRange: 100,
-    attackRangeSlot1: 50, // Half the normal attack range for slot 1 monsters
+    aggroRange: 300, // Wild monster aggro range
+    playerMonsterAggroRange: 150, // Player monster aggro range
+    attackRange: 100, //Monster attack range
+    attackRangeSlot1: 50, // Half the normal attack range for slot 1 monsters (so it tanks)
     respawnTime: 50, // Time for player owned monsters to respawn after being defeated
     catchTimeout: 30, // 30 seconds during which the player can capture a monster
     monsterDensity: 1, // Monsters per 500x500 area (reduced from 2)
@@ -124,7 +129,7 @@ const MONSTER_TYPES = {
 	13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, abilId: 13, size: 0.85}, //Total: 300
 	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 260
 	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 40 }, abilId: 15, size: 1}, //Total: 260
-    16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 30, pAtk: 30, sDef: 40, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
+    16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, pAtk: 30, sDef: 30, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 10, pDef: 60, pAtk: 70, sDef: 70, sAtk: 30, endur: 60 }, size: 1}, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, pAtk: 50, sDef: 60, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
     19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, pAtk: 20, sDef: 60, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
@@ -143,20 +148,21 @@ const MONSTER_TYPES = {
     32: { name: "Polrus", element: "Water", stats: { spd: 30, pDef: 50, pAtk: 35, sDef: 60, sAtk: 25, endur: 100 }, size: .95}, //Total: 300
     33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, pAtk: 70, sDef: 45, sAtk: 30, endur: 40 }, size: 1.2}, //Total: 300
     34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, pAtk: 60, sDef: 40, sAtk: 10, endur: 60 }, size: 0.75}, //Total: 300
-    35: { name: "Scornfront", element: "Electric", stats: { spd: 100, pDef: 45, pAtk: 5, sDef: 40, sAtk: 70, endur: 50 }, size: 1.2}, //Total: 310
-	36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 40, sAtk: 60, endur: 70 }, size: 0.8}, //Total: 320
+    35: { name: "Scornfront", element: "Electric", stats: { spd: 90, pDef: 45, pAtk: 5, sDef: 40, sAtk: 70, endur: 50 }, size: 1.2}, //Total: 300
+	36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, pAtk: 60, sDef: 40, sAtk: 60, endur: 70 }, size: 0.9}, //Total: 320
     
     //Dragginball
 	//Corgknight
 	//Unicorg
 };
 
-const MONSTER_ABIL_TEXT = {
-    11: { name: "Berserker", description: "Enrages when hit, dealing 50% increased damage for 2 seconds." },
-    12: { name: "Magic thorns", description: "Reflects 25% of special damage taken before reduction." },
-    13: { name: "Rumbler", description: "Rolls around during combat." },
-    14: { name: "Lazy", description: "Always regenerates HP at half out of combat rates." },
-    15: { name: "Double team", description: "Enemies have a 20% chance to miss." }
+const ABILITY = {
+    11: { name: "Berserker", desc: "Enrages when hit, dealing 50% increased damage for 2 seconds." },
+    12: { name: "Magic thorns", desc: "Reflects 25% of special damage taken before reduction." },
+    13: { name: "Rumbler", desc: "Rolls around during combat." },
+    14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
+    15: { name: "Air support", desc: "Enemies have a 20% chance to miss." },
+	35: { name: "Static Charge", desc: "20% less stamina cost of attacks." },
 }
 
 /*const MONSTER_TYPE_STORIES = {
@@ -252,7 +258,8 @@ function initializeGameState() {
         detailsUIOpen: false,
         directionArrow: null,
         currentArea: savedData?.player?.areaLevel ?? 1, // Use saved area if it exists, otherwise 1
-        musicSavedOff: savedData?.player?.musicState === false // Music is off if saved state is false
+        musicSavedOff: savedData?.player?.musicState === false, // Music is off if saved state is false
+        monsterIdFixer: 0 //Used to prevent two monsters spawning at the same time and randomly getting the exact same ID
     };
     
     return gameState;

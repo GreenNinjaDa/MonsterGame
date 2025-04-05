@@ -121,7 +121,7 @@ function updateStorageUI() {
             <h4>${monster.name} ${formatModifiers(monster)}</h4>
             <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
             <p>${monster.defeated ? `<span style="color: red">Respawn: ${Math.ceil(monster.reviveTimer)}/${monster.level * 2}s</span>` : `HP: ${Math.round(monster.currentHP)}/${monster.maxHP}`}</p>
-            <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
+            <p>EXP: ${monster.level >= GAME_CONFIG.maxLevel ? 'Max Level' : `${monster.experience.current}/${monster.experience.toNextLevel}`}</p>
             <div class="monster-actions">
                 <button data-id="${monster.id}" class="store-button">Store (Active ${index + 1})</button>
                 <button data-id="${monster.id}" class="details-button">Details</button>
@@ -155,7 +155,7 @@ function updateStorageUI() {
             <h4>${monster.name} ${formatModifiers(monster)}</h4>
             <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
             <p>${monster.defeated ? `<span style="color: red">Respawn: ${Math.ceil(monster.reviveTimer)}/${monster.level * 2}s</span>` : `HP: ${Math.round(monster.currentHP)}/${monster.maxHP}`}</p>
-            <p>EXP: ${monster.experience.current}/${monster.experience.toNextLevel}</p>
+            <p>EXP: ${monster.level >= GAME_CONFIG.maxLevel ? 'Max Level' : `${monster.experience.current}/${monster.experience.toNextLevel}`}</p>
             <div class="monster-actions">
                 <button data-id="${monster.id}" class="activate-button">Activate</button>
                 <button data-id="${monster.id}" class="sell-button">Sell</button>
@@ -313,7 +313,7 @@ function showCaptureUI(captureInfo) {
         effectiveLevel += monster.rareModifiers.length * GAME_CONFIG.rareModLevelWeight;
     }
     const catchChance = Math.min(100, Math.floor(10000 / (100 + 2 * effectiveLevel)));
-    let cost = 10 + Math.ceil(Math.pow(effectiveLevel, 1.5));
+    let cost = 10 + Math.ceil(Math.pow(effectiveLevel, 1.6));
     
     // Update UI
     document.getElementById('captureText').textContent = 
@@ -797,7 +797,7 @@ function sortStoredMonsters(sortBy) {
     switch(sortBy) {
         case 'type':
             gameState.player.storedMonsters.sort((a, b) => a.typeId - b.typeId);
-            addChatMessage("Monsters sorted by type.", 2000);
+            addChatMessage("Monsters sorted by monster type ID.", 2000);
             break;
             
         case 'stats':
@@ -834,21 +834,37 @@ function sortStoredMonsters(sortBy) {
             });
             addChatMessage("Monsters sorted by rarity (modifier count).", 2000);
             break;
-            
-        case 'dualElement':
+
+        case 'maxLvlStats':
             gameState.player.storedMonsters.sort((a, b) => {
-                // Check if monster has dual elements (element differs from type's element)
-                const aIsDual = a.element !== MONSTER_TYPES[a.typeId].element;
-                const bIsDual = b.element !== MONSTER_TYPES[b.typeId].element;
+                // Calculate what each monster's stats would be at max level
+                const aMaxLvlStats = calculateMonsterStats(
+                    MONSTER_TYPES[a.typeId].stats,
+                    GAME_CONFIG.maxLevel,
+                    a.element,
+                    a.rareModifiers,
+                    a.spawnLevel,
+                    a.typeId,
+                    a.favoredStat
+                );
                 
-                // Sort dual element monsters first
-                if (aIsDual && !bIsDual) return -1;
-                if (!aIsDual && bIsDual) return 1;
+                const bMaxLvlStats = calculateMonsterStats(
+                    MONSTER_TYPES[b.typeId].stats,
+                    GAME_CONFIG.maxLevel,
+                    b.element,
+                    b.rareModifiers,
+                    b.spawnLevel,
+                    b.typeId,
+                    b.favoredStat
+                );
                 
-                // If both are dual or both are not dual, sort by element
-                return a.element.localeCompare(b.element);
+                // Calculate total stats for each monster at max level
+                const aTotalMaxLvlStats = Object.values(aMaxLvlStats.stats).reduce((sum, stat) => sum + stat, 0);
+                const bTotalMaxLvlStats = Object.values(bMaxLvlStats.stats).reduce((sum, stat) => sum + stat, 0);
+                
+                return bTotalMaxLvlStats - aTotalMaxLvlStats; // Sort in descending order (highest first)
             });
-            addChatMessage("Monsters sorted by dual element status.", 2000);
+            addChatMessage("Monsters sorted by their total stats they would have at the maximum level.", 3000);
             break;
     }
     
@@ -876,7 +892,7 @@ function setupUIEventHandlers() {
     document.getElementById('sortByElementButton').addEventListener('click', () => sortStoredMonsters('element'));
     document.getElementById('sortByPotentialButton').addEventListener('click', () => sortStoredMonsters('potential'));
     document.getElementById('sortByRarityButton').addEventListener('click', () => sortStoredMonsters('rarity'));
-    document.getElementById('sortByDualElementButton').addEventListener('click', () => sortStoredMonsters('dualElement'));
+    document.getElementById('sortByMaxLvlStatsButton').addEventListener('click', () => sortStoredMonsters('maxLvlStats'));
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(event) {

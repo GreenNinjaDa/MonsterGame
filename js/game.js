@@ -477,6 +477,12 @@ function handleMonsterCollisions() {
 
 // Initialize the game
 function init() {
+    
+    // Enable navigation prompt if they try to leave page
+    window.onbeforeunload = function() {
+        return true;
+    };
+
     // Initialize gameState first
     initializeGameState();
     
@@ -1112,8 +1118,9 @@ function areaTransition(newArea) {
 }
 
 // Helper function to select a random enemy with distance-based weighting
-function selectWeightedRandomTarget(monster, potentialTargets) {
+function selectWeightedRandomTarget(monster) {
     // Filter out invalid targets
+    const potentialTargets = gameState.wildMonsters + gameState.player.monsters
     const validTargets = potentialTargets.filter(target => 
         target !== monster && 
         !target.defeated && 
@@ -1125,12 +1132,11 @@ function selectWeightedRandomTarget(monster, potentialTargets) {
     // Calculate distances and weights for each target
     const targetWeights = validTargets.map(target => {
         const distance = monster.mesh.position.distanceTo(target.mesh.position);
-        // Use inverse power of 1.5 of distance for weight calculation
         // This makes closer targets more likely to be chosen
         return {
             target,
             distance,
-            weight: 1 / Math.pow(distance, 1.5)
+            weight: 1 / (distance ** 1.5)
         };
     });
     
@@ -1305,7 +1311,7 @@ function updateStaminaRegen(deltaTime) {
         
         // Calculate regen rate (1% in combat, 10% out of combat or always 10% for stored monsters)
         const isStored = gameState.player.storedMonsters.includes(monster);
-        let regenRate = (inCombat(monster) && !isStored) ? 0.01 : 0.1;
+        let regenRate = (inCombat(monster) && !isStored) ? GAME_CONFIG.staminaRegenRateCombat : GAME_CONFIG.staminaRegenRate;
         const regenAmount = monster.maxStamina * regenRate * deltaTime;
         
         // Apply stamina regeneration
@@ -1326,7 +1332,7 @@ function updateHPRegen(deltaTime) {
         
         // Calculate regen rate (0.5% in combat, 5% out of combat or always 5% for stored monsters)
         const isStored = gameState.player.storedMonsters.includes(monster);
-        let regenRate = (inCombat(monster) && !isStored) ? 0.005 : 0.05;
+        let regenRate = (inCombat(monster) && !isStored) ? GAME_CONFIG.hpRegenRateCombat : GAME_CONFIG.hpRegenRate;
         if (monster.abilId == 14) {regenRate = 0.025} //Blazey always regens HP at half out of combat rates
         const regenAmount = monster.maxHP * regenRate * deltaTime;
         
