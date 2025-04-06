@@ -383,6 +383,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         originalTexture,
         originalMaterial,
         facingLeft: false, // Track which direction monster is facing
+        glowSprite: null, // Initialize glow sprite
     };
 
     //Make sure it's not considered in combat
@@ -390,6 +391,33 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
 
     // Update the UI label
     updateUILabel(uiLabel, monster);
+    
+    // Check if the monster's element is different from its type's default element
+    const defaultElement = MONSTER_TYPES[typeId].element;
+    if (monster.element !== defaultElement) {
+        // Create glow effect
+        const glowColor = new THREE.Color(ELEMENT_COLORS[monster.element]);
+        const glowMaterial = new THREE.SpriteMaterial({
+            map: new THREE.TextureLoader().load('assets/glow.png'), // Simple white glow texture
+            color: glowColor,
+            blending: THREE.NormalBlending,
+            transparent: true,
+            opacity: 0.4
+        });
+        
+        const glowSprite = new THREE.Sprite(glowMaterial);
+        // Scale the glow slightly larger than the monster
+        const glowScale = size * 1.5; 
+        glowSprite.scale.set(glowScale, glowScale, 1);
+        glowSprite.position.z = 0.9; // Place it behind the monster mesh (at z=1) but in front of background (z=0 within container)
+        
+        // Add glow sprite as a child of the main container mesh
+        container.add(glowSprite); // Add to container, not the flipped mesh
+        monster.glowSprite = glowSprite; // Store reference if needed later
+    }
+
+    // Set initial HP/Stamina
+    monster.currentHP = monster.maxHP;
     
     return monster;
 }
@@ -635,7 +663,7 @@ function handleMonsterDefeat(defeated, victor) {
             }
         
             // Add gold based on effective level
-            const goldReward = 4 + Math.ceil(Math.pow(effectiveLevel / 2, 1.5));
+            const goldReward = 4 + Math.ceil(Math.pow(effectiveLevel / 2, 1.6));
             gameState.player.gold += goldReward;
             updateGoldDisplay();
 

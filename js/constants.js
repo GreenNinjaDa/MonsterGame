@@ -19,7 +19,7 @@ const GAME_CONFIG = {
     outOfStaminaDamageMultiplier: 0.5, // 50% less damage for out of stamina monsters
     physicalBase: 50, // Base physical damage for normal attacks
     specialBase: 50, // Base special damage for normal attacks
-    rareModLevelWeight: 3, //How many levels higher a monster is considered for rewards per rare mod
+    rareModLevelWeight: 5, //How many levels higher a monster is considered for rewards per rare mod
     catchLevelPenalty: 0.5, //Monsters lose half their levels when caught from the wild
     staminaRegenRate: 0.1, // Out of combat stamina regen rate
     staminaRegenRateCombat: 0.01, // Combat stamina regen rate
@@ -131,7 +131,7 @@ const MONSTER_TYPES = {
 	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 40 }, abilId: 15, size: 1}, //Total: 260
     16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, pAtk: 30, sDef: 30, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 10, pDef: 60, pAtk: 70, sDef: 70, sAtk: 30, endur: 60 }, size: 1}, //Total: 300
-    18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, pAtk: 50, sDef: 60, sAtk: 50, endur: 50 }, size: 1}, //Total: 300
+    18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, pAtk: 50, sDef: 60, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
     19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, pAtk: 20, sDef: 60, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
     20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, pAtk: 50, sDef: 40, sAtk: 20, endur: 60 }, size: 1}, //Total: 230 //Hydra: Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
     21: { name: "Pyrithan", element: "Earth", stats: { spd: 30, pDef: 90, pAtk: 60, sDef: 50, sAtk: 30, endur: 40 }, size: 1}, //Total: 300

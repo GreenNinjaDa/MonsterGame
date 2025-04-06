@@ -268,7 +268,7 @@ function showSellConfirmation(monsterId) {
         effectiveLevel += monster.rareModifiers.length * GAME_CONFIG.rareModLevelWeight;
     }
     // Calculate sell price
-    let sellPrice = 5 + Math.ceil(Math.pow(effectiveLevel, 1.6));
+    let sellPrice = 5 + Math.ceil(Math.pow(effectiveLevel, 1.7));
 
     // Show confirmation dialog
     if (confirm(`Are you sure you want to sell ${monster.name} (Level ${monster.level})${formatModifiers(monster)} for ${sellPrice} gold?`)) {
@@ -793,10 +793,24 @@ function addChatMessage(text, duration = 10000) {
 
 // Sort stored monsters by different criteria
 function sortStoredMonsters(sortBy) {
+    // Store the current order before sorting
+    const previousOrder = [...gameState.player.storedMonsters];
+    
+    // Create a map of monster IDs to their previous positions
+    const previousPositions = {};
+    previousOrder.forEach((monster, index) => {
+        previousPositions[monster.id] = index;
+    });
+    
     // Sort the stored monsters array based on the specified criteria
     switch(sortBy) {
         case 'type':
-            gameState.player.storedMonsters.sort((a, b) => a.typeId - b.typeId);
+            gameState.player.storedMonsters.sort((a, b) => {
+                // First compare by typeId
+                const typeComparison = a.typeId - b.typeId;
+                // If types are equal, use previous order as tiebreaker
+                return typeComparison !== 0 ? typeComparison : previousPositions[a.id] - previousPositions[b.id];
+            });
             addChatMessage("Monsters sorted by monster type ID.", 2000);
             break;
             
@@ -805,21 +819,31 @@ function sortStoredMonsters(sortBy) {
                 // Calculate total stats for each monster
                 const aTotalStats = Object.values(a.stats).reduce((sum, stat) => sum + stat, 0);
                 const bTotalStats = Object.values(b.stats).reduce((sum, stat) => sum + stat, 0);
-                return bTotalStats - aTotalStats; // Sort in descending order (highest first)
+                // First compare by total stats
+                const statsComparison = bTotalStats - aTotalStats; // Sort in descending order (highest first)
+                // If stats are equal, use previous order as tiebreaker
+                return statsComparison !== 0 ? statsComparison : previousPositions[a.id] - previousPositions[b.id];
             });
             addChatMessage("Monsters sorted by total stats.", 2000);
             break;
             
         case 'element':
             gameState.player.storedMonsters.sort((a, b) => {
-                // Sort by element name
-                return a.element.localeCompare(b.element);
+                // First compare by element name
+                const elementComparison = a.element.localeCompare(b.element);
+                // If elements are equal, use previous order as tiebreaker
+                return elementComparison !== 0 ? elementComparison : previousPositions[a.id] - previousPositions[b.id];
             });
             addChatMessage("Monsters sorted by element.", 2000);
             break;
             
         case 'potential':
-            gameState.player.storedMonsters.sort((a, b) => b.spawnLevel - a.spawnLevel); // Sort in descending order
+            gameState.player.storedMonsters.sort((a, b) => {
+                // First compare by spawn level
+                const potentialComparison = b.spawnLevel - a.spawnLevel; // Sort in descending order
+                // If spawn levels are equal, use previous order as tiebreaker
+                return potentialComparison !== 0 ? potentialComparison : previousPositions[a.id] - previousPositions[b.id];
+            });
             addChatMessage("Monsters sorted by potential (spawn level).", 2000);
             break;
             
@@ -830,11 +854,32 @@ function sortStoredMonsters(sortBy) {
                                 (a.rareModifiers ? 1 : 0);
                 const bModCount = Array.isArray(b.rareModifiers) ? b.rareModifiers.length : 
                                 (b.rareModifiers ? 1 : 0);
-                return bModCount - aModCount; // Sort in descending order
+                // First compare by modifier count
+                const rarityComparison = bModCount - aModCount; // Sort in descending order
+                // If modifier counts are equal, use previous order as tiebreaker
+                return rarityComparison !== 0 ? rarityComparison : previousPositions[a.id] - previousPositions[b.id];
             });
             addChatMessage("Monsters sorted by rarity (modifier count).", 2000);
             break;
-
+            
+        case 'dualElement':
+            gameState.player.storedMonsters.sort((a, b) => {
+                // Check if monster has dual elements (element differs from type's element)
+                const aIsDual = a.element !== MONSTER_TYPES[a.typeId].element;
+                const bIsDual = b.element !== MONSTER_TYPES[b.typeId].element;
+                
+                // First compare by dual element status
+                if (aIsDual && !bIsDual) return -1;
+                if (!aIsDual && bIsDual) return 1;
+                
+                // If both are dual or both are not dual, sort by element
+                const elementComparison = a.element.localeCompare(b.element);
+                // If elements are equal, use previous order as tiebreaker
+                return elementComparison !== 0 ? elementComparison : previousPositions[a.id] - previousPositions[b.id];
+            });
+            addChatMessage("Monsters sorted by dual element status.", 2000);
+            break;
+            
         case 'maxLvlStats':
             gameState.player.storedMonsters.sort((a, b) => {
                 // Calculate what each monster's stats would be at max level
@@ -862,9 +907,12 @@ function sortStoredMonsters(sortBy) {
                 const aTotalMaxLvlStats = Object.values(aMaxLvlStats.stats).reduce((sum, stat) => sum + stat, 0);
                 const bTotalMaxLvlStats = Object.values(bMaxLvlStats.stats).reduce((sum, stat) => sum + stat, 0);
                 
-                return bTotalMaxLvlStats - aTotalMaxLvlStats; // Sort in descending order (highest first)
+                // First compare by total max level stats
+                const maxLvlStatsComparison = bTotalMaxLvlStats - aTotalMaxLvlStats; // Sort in descending order (highest first)
+                // If max level stats are equal, use previous order as tiebreaker
+                return maxLvlStatsComparison !== 0 ? maxLvlStatsComparison : previousPositions[a.id] - previousPositions[b.id];
             });
-            addChatMessage("Monsters sorted by their total stats they would have at the maximum level.", 3000);
+            addChatMessage("Monsters sorted by max level stats.", 2000);
             break;
     }
     
