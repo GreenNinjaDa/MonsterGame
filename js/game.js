@@ -403,6 +403,9 @@ function gameLoop(time) {
     // Cleanup defeated monsters and handle respawns
     cleanupDefeatedMonsters(cappedDeltaTime);
     
+    // Update floating element spheres
+    updateElementSpheres(cappedDeltaTime);
+    
     // Auto-save every 5 seconds
     if (!gameState.lastSaveTime) {
         gameState.lastSaveTime = time;
@@ -428,6 +431,33 @@ function gameLoop(time) {
     
     // Continue the game loop
     requestAnimationFrame(gameLoop);
+}
+
+// Update floating element spheres
+function updateElementSpheres(deltaTime) {
+    const allMonsters = [...gameState.player.monsters, ...gameState.wildMonsters, ...gameState.player.storedMonsters];
+    
+    for (const monster of allMonsters) {
+        // Check if the monster has an element sphere
+        if (monster.elementSphere) {
+            // Update the movement timer
+            monster.elementSphereMoveTimer -= deltaTime;
+
+            // If timer is up, set a new random target position
+            if (monster.elementSphereMoveTimer <= 0) {
+                monster.elementSphereTarget.x = (Math.random() - 0.5) * 100; // -50 to +50
+                monster.elementSphereTarget.y = (Math.random() - 0.5) * 100; // -50 to +50
+                monster.elementSphereTarget.z = (Math.random() - 0.5) * 1;   // -0.5 to +0.5
+
+                // Reset the timer (e.g., 1 to 3 seconds)
+                monster.elementSphereMoveTimer = Math.random() * 2 + 1; 
+            }
+
+            // Smoothly move the sphere towards the target position using lerp
+            const lerpFactor = 1.0 * deltaTime; // Adjust speed here (higher means faster movement)
+            monster.elementSphere.position.lerp(monster.elementSphereTarget, lerpFactor);
+        }
+    }
 }
 
 // Handle monster collisions

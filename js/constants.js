@@ -25,6 +25,7 @@ const GAME_CONFIG = {
     staminaRegenRateCombat: 0.01, // Combat stamina regen rate
     hpRegenRate: 0.05, // Out of combat HP regen rate
     hpRegenRateCombat: 0, // combat HP regen rate
+    speedAttackScaling: 0.006, //0.6% attack speed scaling per speed stat
     
     // Movement Speeds (units per second)
     playerSpeed: 200, // Base player movement speed
@@ -129,14 +130,14 @@ const MONSTER_TYPES = {
 	13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, pAtk: 70, sDef: 45, sAtk: 10, endur: 60}, abilId: 13, size: 0.85}, //Total: 300
 	14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, pAtk: 25, sDef: 60, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 260
 	15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, pAtk: 20, sDef: 30, sAtk: 60, endur: 40 }, abilId: 15, size: 1}, //Total: 260
-    16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, pAtk: 30, sDef: 30, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
+    16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, pAtk: 80, sDef: 30, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 10, pDef: 60, pAtk: 70, sDef: 70, sAtk: 30, endur: 60 }, size: 1}, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, pAtk: 50, sDef: 60, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
     19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, pAtk: 20, sDef: 60, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
     20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, pAtk: 50, sDef: 40, sAtk: 20, endur: 60 }, size: 1}, //Total: 230 //Hydra: Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
     21: { name: "Pyrithan", element: "Earth", stats: { spd: 30, pDef: 90, pAtk: 60, sDef: 50, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
     22: { name: "Tesnail", element: "Electric", stats: { spd: 80, pDef: 50, pAtk: 15, sDef: 30, sAtk: 45, endur: 80 }, size: 1}, //Total: 300
-    23: { name: "Crystacean", element: "Earth", stats: { spd: 30, pDef: 80, pAtk: 10, sDef: 50, sAtk: 90, endur: 40 }, size: 1}, //Total: 300
+    23: { name: "Crystacean", element: "Earth", stats: { spd: 30, pDef: 40, pAtk: 80, sDef: 90, sAtk: 20, endur: 40 }, size: 1}, //Total: 300
     24: { name: "Livermort", element: "Plant", stats: { spd: 30, pDef: 50, pAtk: 30, sDef: 40, sAtk: 100, endur: 50 }, size: 1}, //Total: 300
     25: { name: "Rockhemut", element: "Earth", stats: { spd: 10, pDef: 80, pAtk: 55, sDef: 60, sAtk: 15, endur: 80 }, size: 1.2}, //Total: 300
     26: { name: "Lavavark", element: "Fire", stats: { spd: 40, pDef: 50, pAtk: 70, sDef: 50, sAtk: 40, endur: 50 }, size: 1}, //Total: 300

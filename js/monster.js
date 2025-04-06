@@ -252,7 +252,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     // Step 6: Calculate derived stats
     const maxHP = Math.round(200 * (1 + 0.4 * stats.endur / 100));
     const maxStamina = Math.round(100 * (1 + 0.4 * stats.endur / 100));
-    const attackCooldown = GAME_CONFIG.defaultAttackCooldown / (1 + 0.006 * stats.spd); // Base cooldown, reduced by speed stat
+    const attackCooldown = GAME_CONFIG.defaultAttackCooldown / (1 + GAME_CONFIG.speedAttackScaling * stats.spd); // Base cooldown, reduced by speed stat
     
     return {
         stats,
@@ -392,28 +392,31 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
     // Update the UI label
     updateUILabel(uiLabel, monster);
     
-    // Check if the monster's element is different from its type's default element
+    // Add floating element sphere if element is different from default
     const defaultElement = MONSTER_TYPES[typeId].element;
     if (monster.element !== defaultElement) {
-        // Create glow effect
-        const glowColor = new THREE.Color(ELEMENT_COLORS[monster.element]);
-        const glowMaterial = new THREE.SpriteMaterial({
-            map: new THREE.TextureLoader().load('assets/glow.png'), // Simple white glow texture
-            color: glowColor,
-            blending: THREE.NormalBlending,
-            transparent: true,
-            opacity: 0.4
+        const sphereRadius = 8; // Size of the sphere
+        const elementColor = ELEMENT_COLORS[monster.element];
+        const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 16, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ 
+            color: elementColor, 
+            transparent: true, 
+            opacity: 0.8 
         });
+        const elementSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         
-        const glowSprite = new THREE.Sprite(glowMaterial);
-        // Scale the glow slightly larger than the monster
-        const glowScale = size * 1.5; 
-        glowSprite.scale.set(glowScale, glowScale, 1);
-        glowSprite.position.z = 0.9; // Place it behind the monster mesh (at z=1) but in front of background (z=0 within container)
+        // Initialize random position within bounds relative to container
+        elementSphere.position.x = (Math.random() - 0.5) * 100; // -50 to +50
+        elementSphere.position.y = (Math.random() - 0.5) * 100; // -50 to +50
+        elementSphere.position.z = (Math.random() - 0.5) * 1;   // -0.5 to +0.5 (relative to monster sprite at z=1)
+
+        // Add sphere to the container (which is monster.mesh)
+        container.add(elementSphere);
         
-        // Add glow sprite as a child of the main container mesh
-        container.add(glowSprite); // Add to container, not the flipped mesh
-        monster.glowSprite = glowSprite; // Store reference if needed later
+        // Store reference and movement data on the main monster object
+        monster.elementSphere = elementSphere;
+        monster.elementSphereTarget = new THREE.Vector3().copy(elementSphere.position); // Initial target is current position
+        monster.elementSphereMoveTimer = Math.random() * 2 + 1; // Initial timer (1-3 seconds)
     }
 
     // Set initial HP/Stamina

@@ -660,37 +660,64 @@ function showMonsterDetails(monsterId) {
     // Add derived stats
     statsHTML += `
         <tr>
-            <th colspan="7" style="padding-top: 15px;">Derived Stats</th>
+            <th colspan="4" style="padding-top: 15px;">Derived Stats</th> 
+        </tr>
+        <tr>
+            <th>Stat</th>
+            <th class="stat-total">Current</th>
+            <th></th>
+            <th class="stat-total">Max Level</th>
         </tr>
     `;
     
     // Calculate total of all final calculated stats
     const totalStats = Object.values(statValues).reduce((sum, stat) => sum + stat, 0);
     
-    // Calculate derived stats at different stages
+    // Calculate derived stats at current level
     const maxHPFinal = monster.maxHP;
-    
     const maxStaminaFinal = monster.maxStamina;
-    
     const attackCooldownFinal = monster.attackCooldown;
+
+    // Calculate derived stats at max level
+    const maxLevelStatsData = calculateMonsterStats(
+        monsterType.stats, 
+        GAME_CONFIG.maxLevel, 
+        monster.element, 
+        monster.rareModifiers, 
+        monster.spawnLevel,
+        monster.typeId,
+        monster.favoredStat
+    );
+    const maxLevelTotalStats = Object.values(maxLevelStatsData.stats).reduce((sum, stat) => sum + stat, 0);
+    const maxLevelMaxHP = maxLevelStatsData.maxHP;
+    const maxLevelMaxStamina = maxLevelStatsData.maxStamina;
+    const maxLevelAttackCooldown = maxLevelStatsData.attackCooldown;
     
     // Show progression of stats
     statsHTML += `
         <tr class="derived-stat-row">
             <td>Total Stats</td>
-            <td colspan="3" class="stat-total">${totalStats}</td>
+            <td class="stat-total">${totalStats}</td>
+            <td></td>
+            <td class="stat-total">${maxLevelTotalStats}</td>
         </tr>
         <tr class="derived-stat-row">
             <td>Max HP</td>
-            <td colspan="3" class="stat-total">${maxHPFinal}</td>
+            <td class="stat-total">${maxHPFinal}</td>
+            <td></td>
+            <td class="stat-total">${maxLevelMaxHP}</td>
         </tr>
         <tr class="derived-stat-row">
             <td>Max Stamina</td>
-            <td colspan="3" class="stat-total">${maxStaminaFinal}</td>
+            <td class="stat-total">${maxStaminaFinal}</td>
+            <td></td>
+            <td class="stat-total">${maxLevelMaxStamina}</td>
         </tr>
         <tr class="derived-stat-row">
             <td>Attack Cooldown</td>
-            <td colspan="3" class="stat-total">${attackCooldownFinal.toFixed(1)}s</td>
+            <td class="stat-total">${attackCooldownFinal.toFixed(1)}s</td>
+            <td></td>
+            <td class="stat-total">${maxLevelAttackCooldown.toFixed(1)}s</td>
         </tr>
     `;
     
