@@ -1,6 +1,10 @@
 A simple monster training game.
 
-Open index.html in a browser.
+Open index.html in a browser, or preferably host it using this command in a terminal:
+
+npx http-server -p 8000 -o
+
+Then connect to localhost:8000
 
 Credits:
 Game creator - Nathan Lewis

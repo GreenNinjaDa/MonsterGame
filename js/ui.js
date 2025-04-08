@@ -124,6 +124,7 @@ function updateStorageUI() {
             <p>EXP: ${monster.level >= GAME_CONFIG.maxLevel ? 'Max Level' : `${monster.experience.current}/${monster.experience.toNextLevel}`}</p>
             <div class="monster-actions">
                 <button data-id="${monster.id}" class="store-button">Store (Active ${index + 1})</button>
+                ${gameState.player.monsters.length === 2 ? `<button data-id="${monster.id}" class="swap-button" style="background-color: orange;">Swap</button>` : ''}
                 <button data-id="${monster.id}" class="details-button">Details</button>
             </div>
         `;
@@ -185,6 +186,11 @@ function updateStorageUI() {
     // Add event listeners for details buttons
     document.querySelectorAll('.details-button').forEach(button => {
         button.addEventListener('click', (e) => showMonsterDetails(e.target.dataset.id));
+    });
+
+    // Add event listener for swap buttons
+    document.querySelectorAll('.swap-button').forEach(button => {
+        button.addEventListener('click', (e) => swapActiveMonsters(e.target.dataset.id));
     });
 }
 
@@ -392,7 +398,7 @@ function handleCapture() {
                 monster.typeId,
                 monster.level,
                 monster.rareModifiers,
-                false,
+                0,
                 monster.spawnLevel,
                 monster.element,
                 monster.favoredStat
@@ -410,10 +416,10 @@ function handleCapture() {
                 gameState.player.storedMonsters.push(capturedMonster);
                 updateStorageUI();
                 addChatMessage(`Successfully captured ${monster.name} and added to storage!`);
-            }
 
-            // Create capture success animation
-            createFloatingCaptureOrb(target.mesh.position);
+                // Create capture success animation
+                createFloatingCaptureOrb(target.mesh.position);
+            }
         }
     } else {
         addChatMessage("Failed to capture the monster! Try again!");
@@ -1199,4 +1205,20 @@ function createFloatingCaptureOrb(position) {
     animateOrb();
     
     return sprite;
+}
+
+// Swap the two active monsters
+function swapActiveMonsters(monsterId) {
+    // Check if there are exactly two active monsters
+    if (gameState.player.monsters.length !== 2) {
+        addChatMessage("You need exactly two active monsters to swap.");
+        return;
+    }
+    
+    // Swap the monsters in the array
+    [gameState.player.monsters[0], gameState.player.monsters[1]] = [gameState.player.monsters[1], gameState.player.monsters[0]];
+    
+    // Update the storage UI to reflect the change
+    updateStorageUI();
+    addChatMessage("Active monsters swapped.");
 }

@@ -93,7 +93,7 @@ window.loadGame = function() {
             monsterData.typeId, 
             monsterData.level, 
             monsterData.rareModifiers,
-            false, // not wild
+            0, // not wild
             monsterData.spawnLevel,
             monsterData.element,
             monsterData.favoredStat
@@ -109,7 +109,7 @@ window.loadGame = function() {
             monsterData.typeId, 
             monsterData.level, 
             monsterData.rareModifiers,
-            false, // not wild
+            0, // not wild
             monsterData.spawnLevel,
             monsterData.element,
             monsterData.favoredStat

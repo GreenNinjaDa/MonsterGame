@@ -79,18 +79,31 @@ function updateUILabel(uiLabel, monster) {
     if (!modifiers || modifiers.length === 0) {
         nameColor = 'white';
     } else {
-        // Gradually transition from white to gold based on number of modifiers
-        // Start at white (255, 255, 255) and end at gold (255, 215, 0)
-        const maxModifiers = 10; // Maximum number of modifiers to consider
-        const modifierCount = Math.min(modifiers.length, maxModifiers);
-        const ratio = modifierCount / maxModifiers;
+        // Three-stage color transition based on number of modifiers
+        const modifierCount = modifiers.length;
         
-        // Interpolate between white and gold
-        const r = Math.round(255 - (255 - 255) * ratio); // Red stays at 255
-        const g = Math.round(255 - (255 - 215) * ratio);
-        const b = Math.round(255 - (255 - 0) * ratio);
-        
-        nameColor = `rgb(${r}, ${g}, ${b})`;
+        if (modifierCount <= 5) {
+            // Stage 1: White to Gold (1-5 mods)
+            const ratio = modifierCount / 5;
+            const r = 255; // Red stays at 255
+            const g = Math.round(255 - (255 - 215) * ratio);
+            const b = Math.round(255 - (255 - 0) * ratio);
+            nameColor = `rgb(${r}, ${g}, ${b})`;
+        } else if (modifierCount <= 10) {
+            // Stage 2: Gold to Red (6-10 mods)
+            const ratio = (modifierCount - 5) / 5;
+            const r = 255; // Red stays at 255
+            const g = Math.round(215 - (215 - 0) * ratio);
+            const b = Math.round(0 - (0 - 0) * ratio);
+            nameColor = `rgb(${r}, ${g}, ${b})`;
+        } else {
+            // Stage 3: Red to Purple (11-15 mods)
+            const ratio = Math.min((modifierCount - 10) / 5, 1);
+            const r = Math.round(255 - (255 - 128) * ratio);
+            const g = 0; // Green stays at 0
+            const b = Math.round(0 - (0 - 128) * ratio);
+            nameColor = `rgb(${r}, ${g}, ${b})`;
+        }
     }
     
     context.strokeStyle = 'black';
@@ -280,11 +293,15 @@ function updateMonsterDirection(monster, targetX) {
 }
 
 // Create monster object
-function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, spawnLevel = 0, tempElement = MONSTER_TYPES[typeId].element, favoredStat = null) {
+function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnLevel = 0, tempElement, favoredStat = null, masterId = null) {
     const monsterType = MONSTER_TYPES[typeId];
 
-    //Wild monsters have a 20% chance to spawn as a random element this is called typeshifting
-    if (isWild && Math.random() < 0.2) {
+    if (!tempElement || tempElement == "") {
+        tempElement = MONSTER_TYPES[typeId].element
+    }
+
+    // Wild monsters (team 1) have a 20% chance to spawn as a random element (typeshifting)
+    if (team === 1 && Math.random() < 0.2) {
         tempElement = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
     }
     
@@ -353,7 +370,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, isWild = true, s
         element: tempElement,
         level,
         rareModifiers,
-        isWild,
+        team,
+        masterId: team === 2 ? masterId : null,
         spawnLevel,
         favoredStat,
         stats: calculatedStats.stats,
@@ -450,13 +468,13 @@ function dealDamage(attacker, defender, physicalBase = GAME_CONFIG.physicalBase,
         elementMultiplier = 0.67; // 33% less damage
     }
 
-    // Add damage bonus/reduction for wild monsters based on area level
+    // Add damage bonus/reduction for wild monsters (team 1) based on area level
     let tempMultiplier = 1
 
-    if (attacker.isWild) {
+    if (attacker.team === 1) {
         tempMultiplier = tempMultiplier * (2 - (1 / (1 + (gameState.currentArea - 1) * GAME_CONFIG.wildMonsterDamageBonus)));
     }
-    if (defender.isWild) {
+    if (defender.team === 1) {
         tempMultiplier = tempMultiplier * (1 / (1 + (gameState.currentArea - 1) * GAME_CONFIG.wildMonsterDamageReduction));
     }
 
@@ -513,6 +531,16 @@ function monsterAttack(attacker, defender, deltaTime) {
     // Reset cooldown at the start
     attacker.currentCooldown = attacker.attackCooldown;
     
+    // Use weighted random target selection to potentially choose a different target
+    const targetResult = selectWeightedRandomTarget(attacker);
+    if (!targetResult) {
+        // No valid targets found, return early
+        return;
+    }
+    
+    // Use the selected target instead of the provided defender
+    defender = targetResult.target;
+    
     // Update attacker direction to face defender
     updateMonsterDirection(attacker, defender.mesh.position.x);
     
@@ -524,26 +552,17 @@ function monsterAttack(attacker, defender, deltaTime) {
         // Not enough stamina, double cooldown and don't consume stamina
         damageMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
     } else {
-        // Consume stamina
         attacker.currentStamina -= staminaCost;
     }
-
-    // Check for Double Team ability (abilId 15)
-    if (defender.abilId === 15 && Math.random() < 0.2) {
-        // Attack missed
-        createFloatingText("Missed!", defender.mesh.position, 0xffffff);
-        return;
-    }
+    
+    attacker.timeSinceCombat = 0; 
+    defender.timeSinceCombat = 0;
     
     // Calculate damage
     const damageResult = dealDamage(attacker, defender, GAME_CONFIG.physicalBase * damageMulti, GAME_CONFIG.specialBase * damageMulti);
     
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
-    
-    // Reset time since last damage for both monsters
-    attacker.timeSinceCombat = 0;
-    defender.timeSinceCombat = 0;
     
     // Visual feedback for elemental interactions
     if (damageResult.elementMultiplier < 1.1 && damageResult.elementMultiplier > 0.9) {
@@ -636,8 +655,8 @@ function handleMonsterDefeat(defeated, victor) {
     
     defeated.defeated = true;
     
-    // Handle EXP gain if a wild monster was defeated by a player monster
-    if (defeated.isWild && !victor.isWild) {
+    // Handle EXP gain if a wild monster (team 1) was defeated by a player monster (team 0)
+    if (defeated.team === 1 && victor.team === 0) {
         let avgLevel= 0;
         let monstersGainedExp = 0;
         // Distribute EXP to all active player monsters
@@ -705,8 +724,8 @@ function handleMonsterDefeat(defeated, victor) {
         addCaptureTarget(defeated);
     }
     
-    // Handle player monster defeat - set revival timer and move to storage
-    if (!defeated.isWild) {
+    // Handle player monster defeat (team 0) - set revival timer and move to storage
+    if (defeated.team === 0) {
         defeated.reviveTimer = defeated.level * 2; // 2x monster level seconds to revive
 
         //Notify the player that their monster was defeated and will respawn in 2x level seconds.
@@ -903,7 +922,7 @@ function checkLevelUp(monster) {
         monster.currentStamina = Math.round(monster.maxStamina * staminaPercent);
         
         // Show visual feedback
-        createFloatingText(`LEVEL UP! ${monster.level}`, monster.mesh.position, 0xffff00);
+        createFloatingText(`LEVEL UP! ${monster.level}`, monster.mesh.position, 0xffff00, -0.5);
         
         // Update UI
         updateUILabel(monster.uiLabel, monster);
@@ -912,4 +931,75 @@ function checkLevelUp(monster) {
 
 function inCombat(monster) {
     return monster.timeSinceCombat < GAME_CONFIG.combatStatusTime;
+}
+
+// Helper function to select a random enemy with distance-based weighting
+function selectWeightedRandomTarget(attacker) {
+    // Filter out invalid targets
+    const potentialTargets = [...gameState.wildMonsters, ...gameState.player.monsters, ...gameState.bossMonsters];
+    let attackMissed = false;
+
+    const validTargets = potentialTargets.filter(target => {
+        let filterReason = "";
+        // Basic validity checks
+        if (target.defeated) { filterReason = "Defeated"; }
+        else if (target.team === attacker.team) { filterReason = `Same Team (${target.team})`; }
+
+        // Check if target is within attack range
+        const distance = attacker.mesh.position.distanceTo(target.mesh.position);
+        const inRange = distance <= GAME_CONFIG.attackRange;
+        if (!inRange && !filterReason) { filterReason = `Out of Range (Dist: ${distance.toFixed(1)}, Range: ${GAME_CONFIG.attackRange})`; } // Added distance info
+
+        // Check for Double Team ability (abilId 15)
+        if (inRange && target.abilId === 15 && Math.random() < 0.2) {
+            attackMissed = true; // Mark that the attack will miss
+        }
+
+        return !filterReason; // Return true if no filterReason was set
+    });
+
+    // If attack missed due to Double Team
+    if (attackMissed) {
+        createFloatingText("Missed!", attacker.mesh.position, 0xffffff, -0.5);
+        return null; // Return null to signify a missed attack
+    }
+
+    if (validTargets.length === 0) {
+        return null;
+    }
+
+    // Calculate distances and weights for each target
+    const targetWeights = validTargets.map(target => {
+        const distance = attacker.mesh.position.distanceTo(target.mesh.position);
+        // This makes closer targets more likely to be chosen
+        return {
+            target,
+            distance,
+            weight: 1 / (distance ** 1.5)
+        };
+    });
+
+    // Calculate total weight
+    const totalWeight = targetWeights.reduce((sum, tw) => sum + tw.weight, 0);
+
+    // Generate random value between 0 and total weight
+    let random = Math.random() * totalWeight;
+
+    // Select target based on weights
+    for (const tw of targetWeights) {
+        random -= tw.weight;
+        if (random <= 0) {
+            return {
+                target: tw.target,
+                distance: tw.distance
+            };
+        }
+    }
+
+    // Fallback to last target if we somehow didn't select one
+    const fallbackTarget = targetWeights[targetWeights.length - 1];
+    return {
+        target: fallbackTarget.target,
+        distance: fallbackTarget.distance
+    };
 }
