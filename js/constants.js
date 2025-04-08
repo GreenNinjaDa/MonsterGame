@@ -167,7 +167,7 @@ const ABILITY = {
     12: { name: "Magic thorns", desc: "Reflects 25% of special damage taken before reduction." },
     13: { name: "Rumbler", desc: "Rolls around during combat." },
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
-    15: { name: "Air support", desc: "Enemies have a 20% chance to miss." },
+    15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss." },
 	35: { name: "Static Charge", desc: "20% less stamina cost of attacks." },
 }
 
@@ -182,7 +182,7 @@ const ABILITY = {
 	7:
 	8: 
 	9:
-    10: { story: "Despite being fire type, Embergi is known to extinguish the fires that Emberlings start. But they do sometimes ignite fires on accident when they sploot for a nap."},
+    10: { story: "Despite being fire element, Emborgi is known to extinguish the fires that Emberlings start. But Emborgis do sometimes ignite fires on accident when they sploot for a nap."},
 
 };*/
 
@@ -312,6 +312,7 @@ function initializeGameState() {
         bossMonsters: [], // Array to hold boss monsters (team 2)
         bossMasterIdCounter: 0, // Counter for unique boss master IDs
         townNPC: null, // Add property for the town NPC {mesh, labelMesh}
+        discordUrl: "https://discord.gg/547meQMzAY", // Discord server invite URL
         captureTargets: [],
         scene: null,
         camera: null,

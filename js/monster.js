@@ -930,6 +930,7 @@ function checkLevelUp(monster) {
 }
 
 function inCombat(monster) {
+    if (monster.aggroTarget) return true;
     return monster.timeSinceCombat < GAME_CONFIG.combatStatusTime;
 }
 
@@ -950,15 +951,17 @@ function selectWeightedRandomTarget(attacker) {
         const inRange = distance <= GAME_CONFIG.attackRange;
         if (!inRange && !filterReason) { filterReason = `Out of Range (Dist: ${distance.toFixed(1)}, Range: ${GAME_CONFIG.attackRange})`; } // Added distance info
 
-        // Check for Double Team ability (abilId 15)
-        if (inRange && target.abilId === 15 && Math.random() < 0.2) {
-            attackMissed = true; // Mark that the attack will miss
+        if (!filterReason) {
+            // Check for Distracting Presence ability (abilId 15)
+            if (inRange && target.abilId === 15 && Math.random() < 0.2) {
+                attackMissed = true; // Mark that the attack will miss
+            }
         }
 
         return !filterReason; // Return true if no filterReason was set
     });
 
-    // If attack missed due to Double Team
+    // If attack missed due to Distracting Presence
     if (attackMissed) {
         createFloatingText("Missed!", attacker.mesh.position, 0xffffff, -0.5);
         return null; // Return null to signify a missed attack

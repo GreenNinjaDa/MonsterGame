@@ -15,7 +15,7 @@ function initMusic() {
         // Move to next track
         currentMusicIndex = (currentMusicIndex % totalMusicTracks) + 1;
         // Load and play next track
-        backgroundMusic.src = `assets/sound/Music${currentMusicIndex}.mp3`;
+        backgroundMusic.src = `sound/Music${currentMusicIndex}.mp3`;
         if (!gameState.musicSavedOff) {
             backgroundMusic.play();
         }
@@ -23,7 +23,7 @@ function initMusic() {
     
     // Randomly select initial track (1 to totalMusicTracks)
     currentMusicIndex = Math.floor(Math.random() * totalMusicTracks) + 1;
-    backgroundMusic.src = `assets/sound/Music${currentMusicIndex}.mp3`;
+    backgroundMusic.src = `sound/Music${currentMusicIndex}.mp3`;
 }
 
 function startMusicOnFirstInput() {
@@ -412,7 +412,7 @@ function spawnBossMasters(areaLevel) {
     cleanupBossMasters();
 
     const numBosses = BOSS_DATA.length;
-    const radius = 1000; // Spawn radius
+    const radius = 1200; // Spawn radius
     const angleIncrement = (2 * Math.PI) / numBosses;
 
     for (let i = 0; i < numBosses; i++) {
@@ -597,7 +597,7 @@ function gameLoop(time) {
         gameState.lastSaveTime = time;
         gameState.saveCounter = (gameState.saveCounter + 1) % 24;
         if (gameState.saveCounter === 2) {
-            addChatMessage("Game auto-saves every 5 seconds.", 5000);
+            addChatMessage("Game auto-saves every 5 seconds.", 3000);
         }
 
         // Check if music should be playing but isn't
@@ -860,6 +860,18 @@ function handleClick(event) {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, gameState.camera);
     
+    // Check if clicked on Town NPC text bubble
+    if (gameState.townNPC && gameState.townNPC.labelMesh && gameState.townNPC.labelMesh.visible) {
+        const intersects = raycaster.intersectObject(gameState.townNPC.labelMesh);
+        if (intersects.length > 0) {
+            // Open Discord URL in a new tab
+            window.open(gameState.discordUrl, '_blank');
+            // Reset mouse down flag to prevent movement
+            gameState.isMouseDown = false;
+            return; // Stop processing after opening link
+        }
+    }
+    
     // Calculate intersection with z=0 plane
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
     const targetPoint = new THREE.Vector3();
@@ -994,6 +1006,18 @@ function handleTouch(event) {
         // Raycasting to get touched position
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, gameState.camera);
+        
+        // Check if touched on Town NPC text bubble
+        if (gameState.townNPC && gameState.townNPC.labelMesh && gameState.townNPC.labelMesh.visible) {
+            const intersects = raycaster.intersectObject(gameState.townNPC.labelMesh);
+            if (intersects.length > 0) {
+                // Open Discord URL in a new tab
+                window.open(gameState.discordUrl, '_blank');
+                // Reset mouse down flag to prevent movement
+                gameState.isMouseDown = false;
+                return; // Stop processing after opening link
+            }
+        }
         
         // Calculate intersection with z=0 plane
         const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -1135,6 +1159,11 @@ function updatePlayerMovement(deltaTime) {
 
 // Add the new function for updating the boss master's movement
 function updateMasterMovement(deltaTime) {
+    // Check if player has any active monsters - if not, bosses shouldn't follow
+    if (gameState.player.monsters.length === 0) {
+        return; // Exit the function entirely if player has no active monsters
+    }
+    
     // Iterate through all boss masters
     for (const master of gameState.bossMasters) {
         // Check if bossMaster exists and has a mesh
@@ -2433,8 +2462,6 @@ function checkAggroRange() {
     }
 }
 
-// ... (After spawnBossMasters function)
-
 // Create or update Town NPC
 function createTownNPC() {
     // Only proceed if in Area 1
@@ -2462,7 +2489,7 @@ function createTownNPC() {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         const canvasWidth = 600;
-        const canvasHeight = 250; // Increased height for larger text
+        const canvasHeight = 280; // Increased height for larger text
         const padding = 10;
         const lineHeight = 37.5; // Increased line height for 30px font
 
@@ -2472,11 +2499,12 @@ function createTownNPC() {
         // Text content
         const textLines = [
             "Welcome to Monsterbound! First you",
-            "must go forth into the Docile Plains",
-            "and capture stronger monsters.",
+            "must venture forth into the Docile Plains",
+            "and beyond to bind stronger monsters.",
             "Once you are strong enough,",
             "defeat the 6 Binder Masters",
-            "in this area to beat the game!"
+            "in this area to beat the game!",
+            "Click here to join the Discord server!",
         ];
 
         // Style the bubble
@@ -2503,9 +2531,15 @@ function createTownNPC() {
         context.textAlign = 'center';
         context.textBaseline = 'top';
 
-        textLines.forEach((line, index) => {
-            context.fillText(line, canvasWidth / 2, padding + index * lineHeight);
-        });
+        // Draw most text normally
+        for (let i = 0; i < textLines.length - 1; i++) {
+            context.fillText(textLines[i], canvasWidth / 2, padding + i * lineHeight);
+        }
+        
+        // Make the Discord link line stand out
+        context.fillStyle = '#1E40AF'; // Deeper blue color
+        context.font = 'bold 30px Arial';
+        context.fillText(textLines[textLines.length - 1], canvasWidth / 2, padding + (textLines.length - 1) * lineHeight);
 
         // Create texture and mesh
         const texture = new THREE.CanvasTexture(canvas);
