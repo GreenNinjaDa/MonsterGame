@@ -666,10 +666,7 @@ function showMonsterDetails(monsterId) {
     // Add derived stats
     statsHTML += `
         <tr>
-            <th colspan="4" style="padding-top: 15px;">Derived Stats</th> 
-        </tr>
-        <tr>
-            <th>Stat</th>
+            <th colspan="1" style="padding-top: 15px;">Derived Stats</th>
             <th class="stat-total">Current</th>
             <th></th>
             <th class="stat-total">Max Level</th>

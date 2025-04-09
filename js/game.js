@@ -237,6 +237,20 @@ function initThree() {
     gameState.renderer.domElement.addEventListener('touchmove', handleTouchMove);
     gameState.renderer.domElement.addEventListener('touchend', handleTouchEnd);
     
+    // Add focus/blur event listeners to manage frame rate
+    window.addEventListener('blur', () => {
+        gameState.windowFocused = false;
+        console.log('Window lost focus - reducing frame rate to 10 FPS');
+    });
+    
+    window.addEventListener('focus', () => {
+        gameState.windowFocused = true;
+        console.log('Window gained focus - restoring normal frame rate');
+    });
+    
+    // Set initial focus state
+    gameState.windowFocused = document.hasFocus();
+    
     // Add capture button event listener
     document.getElementById('captureButton').addEventListener('click', handleCapture);
     
@@ -408,8 +422,11 @@ function spawnBossMasters(areaLevel) {
     // Only spawn in Area 1
     if (areaLevel !== 1) return;
 
-    // Clean up any existing bosses first
+    // Clean up any existing bosses first (this should also handle bubbles)
     cleanupBossMasters();
+    
+    // Initialize boss chat bubble storage if it doesn't exist
+    if (!gameState.bossChatBubbles) gameState.bossChatBubbles = [];
 
     const numBosses = BOSS_DATA.length;
     const radius = 1200; // Spawn radius
@@ -433,19 +450,39 @@ function spawnBossMasters(areaLevel) {
             id: masterId,
             mesh: masterMesh,
             position: masterPosition,
-            element: bossInfo.masterElement
+            element: bossInfo.masterElement,
+            team: 0, // Start on team 0
+            chatBubble: null // Placeholder for the chat bubble
         };
+        
+        // Create the chat bubble for this boss
+        const chatText = ["Greetings, binder.",
+            "I am ready for your challenge!",
+            "Click this chat box to fight me."
+        ];
+        const chatBubbleMesh = createChatBubble(
+            chatText,
+            masterPosition,
+            new THREE.Vector3(0, 75, 5), // Offset above the master (Z set to 5)
+            500, // Width
+            140,  // Height
+            () => startBossFight(masterId), // Click handler
+            'rgba(175, 30, 37, 1)' // Red to indicate aggression
+        );
+        gameState.scene.add(chatBubbleMesh);
+        bossMaster.chatBubble = chatBubbleMesh; // Store reference
+        gameState.bossChatBubbles.push(chatBubbleMesh); // Add to global boss bubble list
 
         gameState.bossMasters.push(bossMaster);
         gameState.scene.add(masterMesh);
 
-        // Create Boss Monsters (Team 2)
+        // Create Boss Monsters (Team 0 initially)
         bossInfo.monsters.forEach((monsterData, monsterIndex) => {
             const monster = createMonster(
                 monsterData.typeId,
                 monsterData.level,
                 monsterData.mods,
-                2, // Team 2 for Boss Monsters
+                0, // Start on Team 0
                 monsterData.spawnLvl,
                 monsterData.element || null, // Use specific element or null
                 monsterData.favoredStat,
@@ -466,11 +503,160 @@ function spawnBossMasters(areaLevel) {
             gameState.scene.add(monster.mesh);
         });
     }
-    console.log(`Spawned ${numBosses} boss masters and their monsters in Area 1.`);
+    console.log(`Spawned ${numBosses} boss masters (Team 0) and their monsters in Area 1.`);
+}
+
+/**
+ * Initiates the boss fight by changing teams and removing chat bubbles.
+ * @param {number} clickedMasterId - The ID of the master whose bubble was clicked.
+ */
+function startBossFight(clickedMasterId) {
+    // Find the specific boss master and their monsters first
+    const targetMaster = gameState.bossMasters.find(m => m.id === clickedMasterId);
+    if (!targetMaster) {
+        console.error(`Could not find boss master with ID ${clickedMasterId} to start fight.`);
+        return;
+    }
+    const targetMonsters = gameState.bossMonsters.filter(m => m.masterId === clickedMasterId);
+    if (targetMonsters.length === 0) {
+        console.error(`Could not find monsters for boss master ID ${clickedMasterId}.`);
+        // Optionally add a chat message here too
+        return;
+    }
+
+    // Calculate total levels
+    const playerTotalLevel = gameState.player.monsters.reduce((sum, monster) => sum + monster.level, 0);
+    const bossTotalLevel = targetMonsters.reduce((sum, monster) => sum + monster.level, 0);
+    const requiredPlayerLevel = bossTotalLevel - 10;
+
+    // Level Check
+    if (playerTotalLevel < requiredPlayerLevel) {
+        addChatMessage(`Your active monsters aren't strong enough! Their total level must be at least ${requiredPlayerLevel}.`, 5000);
+        return; // Stop if player level is too low
+    }
+
+    // --- Proceed with fight initiation --- 
+    console.log(`Boss fight initiated against master ${clickedMasterId}!`);
+    addChatMessage(`Binder Master ${clickedMasterId} turns hostile!`, 5000);
+
+    // Change team for the specific boss master
+    targetMaster.team = 2;
+
+    // Change team for the specific boss monsters associated with this master
+    for (const monster of targetMonsters) {
+        monster.team = 2;
+    }
+
+    // Remove and dispose of the specific boss chat bubble
+    if (targetMaster.chatBubble) {
+        const bubbleMesh = targetMaster.chatBubble;
+        console.log(`Removing chat bubble for master ${clickedMasterId}.`);
+        
+        // Remove from scene
+        gameState.scene.remove(bubbleMesh);
+        
+        // Dispose geometry and material
+        if (bubbleMesh.geometry) bubbleMesh.geometry.dispose();
+        if (bubbleMesh.material) {
+            if (bubbleMesh.material.map) bubbleMesh.material.map.dispose();
+            bubbleMesh.material.dispose();
+        }
+        
+        // Remove from the global chat bubble registry
+        const registryIndex = gameState.chatBubbles.findIndex(b => b.mesh === bubbleMesh);
+        if (registryIndex !== -1) {
+            gameState.chatBubbles.splice(registryIndex, 1);
+        }
+        
+        // Remove from the boss-specific bubble list
+        const bossBubbleIndex = gameState.bossChatBubbles.indexOf(bubbleMesh);
+        if (bossBubbleIndex !== -1) {
+            gameState.bossChatBubbles.splice(bossBubbleIndex, 1);
+        }
+        
+        // Clear the reference on the master object
+        targetMaster.chatBubble = null;
+    }
+}
+
+// Update cleanup function to handle chat bubbles
+function cleanupBossMasters() {
+    // Remove boss monsters (existing code)
+    for (let i = gameState.bossMonsters.length - 1; i >= 0; i--) {
+        const monster = gameState.bossMonsters[i];
+        // ... (rest of monster cleanup) ...
+        if (monster.mesh) {
+            // Dispose geometry and material
+            if (monster.mesh.geometry) {
+                monster.mesh.geometry.dispose();
+            }
+            if (monster.monsterMesh && monster.monsterMesh.material) { // Original monster material
+                if (monster.monsterMesh.material.map) monster.monsterMesh.material.map.dispose();
+                monster.monsterMesh.material.dispose();
+            }
+             if (monster.uiLabel && monster.uiLabel.sprite && monster.uiLabel.sprite.material) { // UI Label material
+                if (monster.uiLabel.sprite.material.map) monster.uiLabel.sprite.material.map.dispose();
+                 monster.uiLabel.sprite.material.dispose();
+             }
+            if (monster.elementSphere && monster.elementSphere.geometry) { // Element sphere geometry/material
+                monster.elementSphere.geometry.dispose();
+                if (monster.elementSphere.material) monster.elementSphere.material.dispose();
+            }
+            // Remove the container mesh from the scene
+            gameState.scene.remove(monster.mesh);
+        }
+    }
+    gameState.bossMonsters = [];
+
+    // Remove boss masters and their chat bubbles
+    for (let i = gameState.bossMasters.length - 1; i >= 0; i--) {
+        const master = gameState.bossMasters[i];
+        
+        // Remove and dispose chat bubble
+        if (master.chatBubble) {
+            gameState.scene.remove(master.chatBubble);
+            if (master.chatBubble.geometry) master.chatBubble.geometry.dispose();
+            if (master.chatBubble.material) {
+                if (master.chatBubble.material.map) master.chatBubble.material.map.dispose();
+                master.chatBubble.material.dispose();
+            }
+            // Remove from the global chat bubble registry
+            const registryIndex = gameState.chatBubbles.findIndex(b => b.mesh === master.chatBubble);
+            if (registryIndex !== -1) {
+                gameState.chatBubbles.splice(registryIndex, 1);
+            }
+            master.chatBubble = null; // Clear reference
+        }
+        
+        // Remove master mesh (existing code)
+        if (master.mesh) {
+            if (master.mesh.geometry) {
+                master.mesh.geometry.dispose();
+            }
+            if (master.mesh.material) {
+                master.mesh.material.dispose();
+            }
+            gameState.scene.remove(master.mesh);
+        }
+    }
+    gameState.bossMasters = [];
+    gameState.bossChatBubbles = []; // Ensure boss bubble list is clear
 }
 
 // Main game loop
 function gameLoop(time) {
+    // If window is not focused, throttle to approximately 10 FPS
+    const isBackgroundCapped = !gameState.windowFocused;
+    if (isBackgroundCapped) {
+        // Calculate time since last frame
+        const timeSinceLastFrame = time - gameState.lastTime;
+        // If less than 100ms (10 FPS) has passed, skip this frame
+        if (timeSinceLastFrame < 100) {
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+    }
+
     // Calculate delta time
     const deltaTime = (time - gameState.lastTime) / 1000; // Convert to seconds
     gameState.lastTime = time;
@@ -488,7 +674,10 @@ function gameLoop(time) {
         gameState.fpsHistory.shift();
     }
     const avgFps = Math.round(gameState.fpsHistory.reduce((a, b) => a + b, 0) / gameState.fpsHistory.length);
-    document.getElementById('fpsCounter').textContent = `FPS: ${avgFps}`;
+    
+    // Display FPS with background capped indicator if needed
+    const fpsText = isBackgroundCapped ? `FPS: ${avgFps} (Background capped)` : `FPS: ${avgFps}`;
+    document.getElementById('fpsCounter').textContent = fpsText;
     
     // Check if any UI is open
     if (gameState.storageUIOpen || gameState.captureUIOpen || gameState.detailsUIOpen || gameState.helpUIOpen) {
@@ -860,18 +1049,6 @@ function handleClick(event) {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, gameState.camera);
     
-    // Check if clicked on Town NPC text bubble
-    if (gameState.townNPC && gameState.townNPC.labelMesh && gameState.townNPC.labelMesh.visible) {
-        const intersects = raycaster.intersectObject(gameState.townNPC.labelMesh);
-        if (intersects.length > 0) {
-            // Open Discord URL in a new tab
-            window.open(gameState.discordUrl, '_blank');
-            // Reset mouse down flag to prevent movement
-            gameState.isMouseDown = false;
-            return; // Stop processing after opening link
-        }
-    }
-    
     // Calculate intersection with z=0 plane
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
     const targetPoint = new THREE.Vector3();
@@ -916,6 +1093,40 @@ function handleMouseDown(event) {
     // Don't process if storage UI is open
     if (gameState.storageUIOpen) {
         return;
+    }
+    
+    // Convert mouse position to world coordinates for chat bubble interaction
+    const mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    
+    // Raycasting to get clicked position
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, gameState.camera);
+    
+    // Check if clicked on any chat bubble
+    if (gameState.chatBubbles && gameState.chatBubbles.length > 0) {
+        for (const bubble of gameState.chatBubbles) {
+            if (bubble.mesh && bubble.mesh.visible) {
+                const intersects = raycaster.intersectObject(bubble.mesh);
+                if (intersects.length > 0 && bubble.clickHandler) {
+                    // Call the handler function
+                    bubble.clickHandler();
+                    return; // Stop processing after handling click
+                }
+            }
+        }
+    }
+    
+    // Fall back to old town NPC check for backwards compatibility
+    if (gameState.townNPC && gameState.townNPC.labelMesh && gameState.townNPC.labelMesh.visible) {
+        const intersects = raycaster.intersectObject(gameState.townNPC.labelMesh);
+        if (intersects.length > 0) {
+            // Open Discord URL in a new tab
+            window.open(gameState.discordUrl, '_blank');
+            // Don't set mouse down flag to prevent movement
+            return; // Stop processing after opening link
+        }
     }
     
     // Set mouse down flag
@@ -984,12 +1195,46 @@ function handleTouch(event) {
         return;
     }
     
-    // Set mouse down flag
-    gameState.isMouseDown = true;
-    
     // Use first touch point
     if (event.touches.length > 0) {
         const touch = event.touches[0];
+        
+        // Convert touch position to world coordinates for chat bubble interaction
+        const mouse = new THREE.Vector2();
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        // Raycasting to get touched position for chat bubble interaction
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, gameState.camera);
+        
+        // Check if touched on any chat bubble
+        if (gameState.chatBubbles && gameState.chatBubbles.length > 0) {
+            for (const bubble of gameState.chatBubbles) {
+                if (bubble.mesh && bubble.mesh.visible) {
+                    const intersects = raycaster.intersectObject(bubble.mesh);
+                    if (intersects.length > 0 && bubble.clickHandler) {
+                        // Call the handler function
+                        bubble.clickHandler();
+                        return; // Stop processing after handling click
+                    }
+                }
+            }
+        }
+        
+        // Fall back to old town NPC check for backwards compatibility
+        if (gameState.townNPC && gameState.townNPC.labelMesh && gameState.townNPC.labelMesh.visible) {
+            const intersects = raycaster.intersectObject(gameState.townNPC.labelMesh);
+            if (intersects.length > 0) {
+                // Open Discord URL in a new tab
+                window.open(gameState.discordUrl, '_blank');
+                // Don't set touch flag to prevent movement
+                return; // Stop processing after opening link
+            }
+        }
+        
+        // Set mouse down flag
+        gameState.isMouseDown = true;
         
         // Store touch position
         gameState.lastMousePosition.x = touch.clientX;
@@ -998,28 +1243,7 @@ function handleTouch(event) {
         // Check if capture UI is open
         const captureUIOpen = document.getElementById('captureUI').style.display === 'block';
         
-        // Convert touch position to world coordinates
-        const mouse = new THREE.Vector2();
-        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        
-        // Raycasting to get touched position
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, gameState.camera);
-        
-        // Check if touched on Town NPC text bubble
-        if (gameState.townNPC && gameState.townNPC.labelMesh && gameState.townNPC.labelMesh.visible) {
-            const intersects = raycaster.intersectObject(gameState.townNPC.labelMesh);
-            if (intersects.length > 0) {
-                // Open Discord URL in a new tab
-                window.open(gameState.discordUrl, '_blank');
-                // Reset mouse down flag to prevent movement
-                gameState.isMouseDown = false;
-                return; // Stop processing after opening link
-            }
-        }
-        
-        // Calculate intersection with z=0 plane
+        // Calculate intersection with z=0 plane for movement/capture targets
         const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         const targetPoint = new THREE.Vector3();
         raycaster.ray.intersectPlane(plane, targetPoint);
@@ -1170,15 +1394,10 @@ function updateMasterMovement(deltaTime) {
         if (!master || !master.mesh || !master.position) {
             continue;
         }
-
-        // Check if all monsters for this master are defeated
-        const associatedMonsters = gameState.bossMonsters.filter(m => m.masterId === master.id);
-        const allMonstersDefeated = associatedMonsters.length > 0 && associatedMonsters.every(m => m.defeated);
-
-        if (allMonstersDefeated) {
-            // Optional: Log why master stopped
-            // console.log(`Master ${master.id} stopping: All monsters defeated.`); 
-            continue; // Stop following if all monsters are down
+        
+        // *** ADDED CHECK: Only move masters whose fight has started (team === 2) ***
+        if (master.team !== 2) {
+            continue; // Skip movement logic if the master is not hostile
         }
 
         const playerPos = gameState.player.position;
@@ -1670,51 +1889,71 @@ function updateMonsterFollowing(deltaTime) {
         let monsterIndex = -1; // Index relative to the follow target
 
         if (monster.team === 0) {
-            // --- Player Monster Specific Logic ---
-            targetEntity = gameState.player;
-            speed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
+            // --- Player Monster OR Boss Monster (Team 0) Specific Logic ---
+            
+            // Check if this Team 0 monster belongs to a boss
+            if (monster.masterId) {
+                // --- Boss Monster (Team 0) Following Master ---
+                const master = gameState.bossMasters.find(m => m.id === monster.masterId);
+                if (!master || !master.position) continue; // Skip if master not found
+                
+                targetEntity = master;
+                speed = GAME_CONFIG.playerSpeed * 1.1 * deltaTime; // Use boss follow speed
+                
+                const siblings = gameState.bossMonsters.filter(m => m.masterId === monster.masterId);
+                monsterIndex = siblings.findIndex(m => m.id === monster.id);
+                if (monsterIndex === -1) continue; // Should not happen
+                
+                distanceFromTarget = monsterIndex === 0 ?
+                    GAME_CONFIG.monsterFollowDistance.slot1 :
+                    GAME_CONFIG.monsterFollowDistance.slot2;
+            } else {
+                // --- Player Monster Following Player ---
+                targetEntity = gameState.player;
+                speed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
 
-            // Player monster retreat check & direct chase logic
-            const distanceToPlayer = monster.mesh.position.distanceTo(targetEntity.position);
-            if (monster.chasingPlayer || distanceToPlayer > GAME_CONFIG.retreatCheckRange) {
-                if (!monster.chasingPlayer) {
-                    monster.chasingPlayer = true; // Start chasing player
-                    monster.aggroTarget = null;   // Lose current target
-                    monster.isAggroed = false;
-                    monster.timeSinceCombat = 9999; // Reset combat timer
+                // Player monster retreat check & direct chase logic
+                const distanceToPlayer = monster.mesh.position.distanceTo(targetEntity.position);
+                if (monster.chasingPlayer || distanceToPlayer > GAME_CONFIG.retreatCheckRange) {
+                    if (!monster.chasingPlayer) {
+                        monster.chasingPlayer = true; // Start chasing player
+                        monster.aggroTarget = null;   // Lose current target
+                        monster.isAggroed = false;
+                        monster.timeSinceCombat = 9999; // Reset combat timer
+                    }
+                    // If close enough to player, stop chasing
+                    if (distanceToPlayer < 150) { 
+                        monster.chasingPlayer = false;
+                        // Don't continue here, allow normal follow logic to take over this frame
+                    } else {
+                        // Move towards player directly if chasing
+                        const direction = new THREE.Vector3()
+                            .subVectors(targetEntity.position, monster.mesh.position)
+                            .normalize();
+                        updateMonsterDirection(monster, targetEntity.position.x);
+                        const chaseSpeed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
+                        monster.mesh.position.x += direction.x * chaseSpeed;
+                        monster.mesh.position.y += direction.y * chaseSpeed;
+                        monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+                        monster.lastPosition.copy(monster.mesh.position);
+                        continue; // Skip standard following logic for this frame while actively chasing
+                    }
                 }
-                // If close enough to player, stop chasing
-                if (distanceToPlayer < 150) { 
-                    monster.chasingPlayer = false;
-                    // Don't continue here, allow normal follow logic to take over this frame
-                } else {
-                    // Move towards player directly if chasing
-                    const direction = new THREE.Vector3()
-                        .subVectors(targetEntity.position, monster.mesh.position)
-                        .normalize();
-                    updateMonsterDirection(monster, targetEntity.position.x);
-                    const chaseSpeed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
-                    monster.mesh.position.x += direction.x * chaseSpeed;
-                    monster.mesh.position.y += direction.y * chaseSpeed;
-                    monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
-                    monster.lastPosition.copy(monster.mesh.position);
-                    continue; // Skip standard following logic for this frame while actively chasing
+                // Ensure chasing is off if back in range and not actively chasing this frame
+                if (!monster.chasingPlayer && distanceToPlayer <= GAME_CONFIG.retreatCheckRange) {
+                     monster.chasingPlayer = false; 
                 }
-            }
-            // Ensure chasing is off if back in range and not actively chasing this frame
-            if (!monster.chasingPlayer && distanceToPlayer <= GAME_CONFIG.retreatCheckRange) {
-                 monster.chasingPlayer = false; 
-            }
 
-            monsterIndex = gameState.player.monsters.indexOf(monster);
-            if (monsterIndex === -1) continue; // Should not happen, but safe check
+                monsterIndex = gameState.player.monsters.indexOf(monster);
+                if (monsterIndex === -1) continue; // Should not happen, but safe check
 
-            distanceFromTarget = monsterIndex === 0 ?
-                GAME_CONFIG.monsterFollowDistance.slot1 :
-                GAME_CONFIG.monsterFollowDistance.slot2;
+                distanceFromTarget = monsterIndex === 0 ?
+                    GAME_CONFIG.monsterFollowDistance.slot1 :
+                    GAME_CONFIG.monsterFollowDistance.slot2;
+            }
 
         } else if (monster.team === 2) {
-            // --- Boss Monster Specific Logic ---
+            // --- Boss Monster (Team 2) Specific Logic ---
             const master = gameState.bossMasters.find(m => m.id === monster.masterId);
             if (!master || !master.position) continue; // Skip if master not found
 
@@ -2486,17 +2725,8 @@ function createTownNPC() {
     // Create NPC label (text bubble) if it doesn't exist
     if (!gameState.townNPC.labelMesh) {
         console.log("Creating Town NPC label..."); // Debug log
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        const canvasWidth = 600;
-        const canvasHeight = 280; // Increased height for larger text
-        const padding = 10;
-        const lineHeight = 37.5; // Increased line height for 30px font
-
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-
-        // Text content
+        
+        // Text content for the town NPC
         const textLines = [
             "Welcome to Monsterbound! First you",
             "must venture forth into the Docile Plains",
@@ -2506,62 +2736,126 @@ function createTownNPC() {
             "in this area to beat the game!",
             "Click here to join the Discord server!",
         ];
-
-        // Style the bubble
-        context.fillStyle = 'rgba(255, 255, 255, 0.9)'; // Semi-transparent white
-        context.strokeStyle = 'black';
-        context.lineWidth = 2;
-        context.beginPath();
-        context.roundRect(0, 0, canvasWidth, canvasHeight - 15, 10); // Bubble shape, leave space for pointer
-        context.fill();
-        context.stroke();
-
-        // Add pointer
-        context.beginPath();
-        context.moveTo(canvasWidth / 2 - 15, canvasHeight - 15);
-        context.lineTo(canvasWidth / 2, canvasHeight);
-        context.lineTo(canvasWidth / 2 + 15, canvasHeight - 15);
-        context.closePath();
-        context.fill();
-        context.stroke();
-
-        // Style and add text
-        context.fillStyle = 'black';
-        context.font = 'bold 30px Arial'; // Increased font size
-        context.textAlign = 'center';
-        context.textBaseline = 'top';
-
-        // Draw most text normally
-        for (let i = 0; i < textLines.length - 1; i++) {
-            context.fillText(textLines[i], canvasWidth / 2, padding + i * lineHeight);
-        }
         
-        // Make the Discord link line stand out
-        context.fillStyle = '#1E40AF'; // Deeper blue color
-        context.font = 'bold 30px Arial';
-        context.fillText(textLines[textLines.length - 1], canvasWidth / 2, padding + (textLines.length - 1) * lineHeight);
-
-        // Create texture and mesh
-        const texture = new THREE.CanvasTexture(canvas);
-        const labelGeometry = new THREE.PlaneGeometry(canvasWidth * 0.5, canvasHeight * 0.5); // Adjusted geometry size
-        const labelMaterial = new THREE.MeshBasicMaterial({ 
-            map: texture,
-            transparent: true,
-            side: THREE.DoubleSide
-        });
-        const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-        labelMesh.position.copy(npcPosition);
-        labelMesh.position.y += 100; // Increased Y offset for larger label
-        labelMesh.position.z = 1.5; // Ensure above NPC mesh
-        gameState.scene.add(labelMesh);
-
-        gameState.townNPC.labelMesh = labelMesh;
+        // Create the chat bubble with a click action to open Discord
+        gameState.townNPC.labelMesh = createChatBubble(
+            textLines,
+            npcPosition,
+            new THREE.Vector3(0, 100, 5), // Offset from NPC position
+            600, // Width
+            280, // Height
+            () => window.open(gameState.discordUrl, '_blank'), // Click handler
+            'rgba(30, 64, 175, 1)' // Deep blue for Discord link
+        );
+        
+        gameState.scene.add(gameState.townNPC.labelMesh);
     }
 
     // Ensure meshes are visible (in case they were hidden)
     if (gameState.townNPC.mesh) gameState.townNPC.mesh.visible = true;
     if (gameState.townNPC.labelMesh) gameState.townNPC.labelMesh.visible = true;
     console.log("Town NPC created/shown."); // Debug log
+}
+
+/**
+ * Creates a chat bubble with text and optional click functionality
+ * @param {string[]} textLines - Array of text lines to display
+ * @param {THREE.Vector3} basePosition - The base position to place the bubble (usually NPC position)
+ * @param {THREE.Vector3} offset - Offset from the base position
+ * @param {number} width - Canvas width for the bubble
+ * @param {number} height - Canvas height for the bubble
+ * @param {Function} clickHandler - Optional function to call when bubble is clicked
+ * @param {boolean} specialLastLineColor - Color to style the last line differently (for links, etc.)
+ * @returns {THREE.Mesh} The chat bubble mesh
+ */
+function createChatBubble(textLines, basePosition, offset, width, height, clickHandler = null, specialLastLineColor = true) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const canvasWidth = width || 600;
+    const canvasHeight = height || 280;
+    const padding = 10;
+    const lineHeight = 37.5; // For 30px font
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Style the bubble
+    context.fillStyle = 'rgba(255, 255, 255, 0.4)'; // 40% opacity white
+    context.strokeStyle = 'black';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.roundRect(0, 0, canvasWidth, canvasHeight - 15, 10); // Bubble shape, leave space for pointer
+    context.fill();
+    context.stroke();
+
+    // Add pointer
+    context.beginPath();
+    context.moveTo(canvasWidth / 2 - 15, canvasHeight - 15);
+    context.lineTo(canvasWidth / 2, canvasHeight);
+    context.lineTo(canvasWidth / 2 + 15, canvasHeight - 15);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    // Style and add text
+    context.textAlign = 'center';
+    context.textBaseline = 'top';
+
+    // Function to draw text with outline for better readability
+    const drawTextWithOutline = (text, x, y, fillStyle) => {
+        // Draw outline first
+        context.lineWidth = 1; // Use line width 1 like default strokeText
+        context.strokeStyle = 'rgba(0, 0, 0, 1)'; // Black outline, 100% opacity
+        context.strokeText(text, x, y);
+        
+        // Draw text fill on top
+        context.fillStyle = fillStyle;
+        context.fillText(text, x, y);
+    };
+
+    // Draw normal text lines
+    context.font = 'bold 30px Arial';
+    const linesToProcess = specialLastLineColor ? textLines.length - 1 : textLines.length;
+    
+    for (let i = 0; i < linesToProcess; i++) {
+        drawTextWithOutline(textLines[i], canvasWidth / 2, padding + i * lineHeight, 'rgba(0, 0, 0, 1)'); // Black text
+    }
+    
+    // Draw special last line if needed (like a Discord link)
+    if (specialLastLineColor && textLines.length > 0) {
+        context.font = 'bold 30px Arial';
+        drawTextWithOutline(
+            textLines[textLines.length - 1], 
+            canvasWidth / 2, 
+            padding + (textLines.length - 1) * lineHeight, 
+            specialLastLineColor // Apply specified color for last line
+        );
+    }
+
+    // Create texture and mesh
+    const texture = new THREE.CanvasTexture(canvas);
+    const labelGeometry = new THREE.PlaneGeometry(canvasWidth * 0.5, canvasHeight * 0.5);
+    const labelMaterial = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+    const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+    
+    // Position the bubble
+    labelMesh.position.copy(basePosition);
+    labelMesh.position.add(offset);
+    
+    // Store click handler if provided
+    if (clickHandler) {
+        if (!gameState.chatBubbles) gameState.chatBubbles = [];
+        gameState.chatBubbles.push({
+            mesh: labelMesh,
+            clickHandler: clickHandler
+        });
+    }
+    
+    return labelMesh;
 }
 
 // Function to hide Town NPC

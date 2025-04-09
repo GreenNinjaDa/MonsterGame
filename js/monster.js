@@ -371,7 +371,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
         level,
         rareModifiers,
         team,
-        masterId: team === 2 ? masterId : null,
+        masterId: masterId,
         spawnLevel,
         favoredStat,
         stats: calculatedStats.stats,

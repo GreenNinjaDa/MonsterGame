@@ -326,7 +326,8 @@ function initializeGameState() {
         directionArrow: null,
         currentArea: savedData?.player?.areaLevel ?? 1, // Use saved area if it exists, otherwise 1
         musicSavedOff: savedData?.player?.musicState === false, // Music is off if saved state is false
-        monsterIdFixer: 0 //Used to prevent two monsters spawning at the same time and randomly getting the exact same ID
+        monsterIdFixer: 0, //Used to prevent two monsters spawning at the same time and randomly getting the exact same ID
+        windowFocused: document.hasFocus() // Track if window is focused or not
     };
     
     return gameState;
