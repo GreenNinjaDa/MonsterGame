@@ -467,7 +467,7 @@ function spawnBossMasters(areaLevel) {
             500, // Width
             140,  // Height
             () => startBossFight(masterId), // Click handler
-            'rgba(175, 30, 37, 1)' // Red to indicate aggression
+            'rgba(220, 0, 0, 1)' // Red to show aggression
         );
         gameState.scene.add(chatBubbleMesh);
         bossMaster.chatBubble = chatBubbleMesh; // Store reference
@@ -534,6 +534,9 @@ function startBossFight(clickedMasterId) {
         addChatMessage(`Your active monsters aren't strong enough! Their total level must be at least ${requiredPlayerLevel}.`, 5000);
         return; // Stop if player level is too low
     }
+
+    // Fight is going to start, set flag
+    gameState.inBossFight ++;
 
     // --- Proceed with fight initiation --- 
     console.log(`Boss fight initiated against master ${clickedMasterId}!`);
@@ -729,8 +732,8 @@ function gameLoop(time) {
         monster.timeSinceCombat += cappedDeltaTime;
     }
     
-    // Handle monster collisions first, before any other movement
-    handleMonsterCollisions();
+    // Handle monster collisions and aggro in a single optimized pass
+    handleMonsterCollisionsAndAggro();
     
     // Update player movement
     updatePlayerMovement(cappedDeltaTime);
@@ -742,10 +745,7 @@ function gameLoop(time) {
     updateMonsterFollowing(cappedDeltaTime);
     
     // Update wild monster aggro behaviors
-    updateWildMonsterAggro(cappedDeltaTime);
-    
-    // Check for potential combat between monsters
-    checkAggroRange();
+    updateWildMonsterBehaviors(cappedDeltaTime);
     
     // Update combat logic
     updateCombat(cappedDeltaTime);
@@ -831,29 +831,45 @@ function updateElementSpheres(deltaTime) {
     }
 }
 
-// Handle monster collisions
-function handleMonsterCollisions() {
+// Handle monster collisions and aggro range in a single pass to optimize performance
+function handleMonsterCollisionsAndAggro() {
     // Combine all monsters into a single array
     const allMonsters = [...gameState.player.monsters, ...gameState.wildMonsters, ...gameState.bossMonsters];
-    
-    // Check each monster against every other monster
-    for (let i = 0; i < allMonsters.length; i++) {
+    const numMonsters = allMonsters.length;
+
+    // Temporary storage for potential aggro targets found during the pair checks
+    // Format: { monsterId: { target: potentialTarget, distance: closestDistance } }
+    const potentialTargets = new Map();
+
+    // Check each monster against every other monster (unique pairs)
+    for (let i = 0; i < numMonsters; i++) {
         const monster = allMonsters[i];
         
         // Skip if monster is defeated
         if (monster.defeated) continue;
         
-        // Check against all other monsters
-        for (let j = i + 1; j < allMonsters.length; j++) {
+        // Ensure entry exists in potentialTargets map for this monster
+        if (!potentialTargets.has(monster.id)) {
+            potentialTargets.set(monster.id, { target: null, distance: Infinity });
+        }
+        
+        // Check against subsequent monsters to avoid redundant pairs
+        for (let j = i + 1; j < numMonsters; j++) {
             const target = allMonsters[j];
             
             // Skip if target is defeated
             if (target.defeated) continue;
             
-            // Calculate distance between monsters
+            // Ensure entry exists for the target monster as well
+            if (!potentialTargets.has(target.id)) {
+                potentialTargets.set(target.id, { target: null, distance: Infinity });
+            }
+
+            // Calculate distance between monsters only once
             const distance = monster.mesh.position.distanceTo(target.mesh.position);
             
-            // Handle collision avoidance
+            // ---- COLLISION HANDLING ----
+            // Handle collision avoidance (symmetrical)
             if (distance < GAME_CONFIG.monsterCollisionDistance) {
                 // Calculate direction vector between monsters
                 const direction = new THREE.Vector3()
@@ -872,7 +888,99 @@ function handleMonsterCollisions() {
                 target.mesh.position.y -= direction.y * moveDistance;
                 target.mesh.position.z = calculateZPosition(target.mesh.position.y);
             }
+            
+            // ---- AGGRO POTENTIAL CHECK (BOTH DIRECTIONS) ----
+
+            // --- Check if monster (i) can target target (j) ---
+            checkAggroPotential(monster, target, distance, potentialTargets);
+
+            // --- Check if target (j) can target monster (i) ---
+            checkAggroPotential(target, monster, distance, potentialTargets);
+
         }
+    }
+
+    // ---- FINAL AGGRO TARGET ASSIGNMENT ----
+    // Iterate through all monsters again to assign the best target found
+    for (const monster of allMonsters) {
+         // Skip defeated monsters
+        if (monster.defeated) continue;
+
+        // Skip setting aggro if player monster (team 0) is chasing player
+        if (monster.team === 0 && monster.chasingPlayer) continue;
+        
+        const potential = potentialTargets.get(monster.id);
+
+        // If a valid potential target was found
+        if (potential && potential.target) {
+            // If monster already has a target, only switch if new potential target is closer
+            // OR if the current target is defeated
+            if (monster.aggroTarget && !monster.aggroTarget.defeated) {
+                const currentDistance = monster.mesh.position.distanceTo(monster.aggroTarget.mesh.position);
+                if (potential.distance < currentDistance) {
+                    // Switch to closer target
+                    monster.aggroTarget = potential.target;
+                    monster.isAggroed = true;
+                    monster.returningToOrigin = false;
+                    monster.aggroPlayer = false; // Ensure aggroPlayer is off
+                }
+                 // If potential target is the same as current, ensure isAggroed is true
+                else if (potential.target.id === monster.aggroTarget.id) {
+                     monster.isAggroed = true;
+                     monster.returningToOrigin = false;
+                     monster.aggroPlayer = false;
+                }
+            } else {
+                // No current target, or current target is defeated, set the potential one
+                monster.aggroTarget = potential.target;
+                monster.isAggroed = true;
+                monster.returningToOrigin = false;
+                monster.aggroPlayer = false; // Ensure aggroPlayer is off
+            }
+        } else {
+            // No valid potential target found, clear aggro state if not already returning/aggroPlayer
+            if (!monster.returningToOrigin && !monster.aggroPlayer) {
+                monster.aggroTarget = null;
+                monster.isAggroed = false;
+            }
+        }
+    }
+}
+
+// Helper function to check aggro potential between two monsters
+function checkAggroPotential(attacker, defender, distance, potentialTargets) {
+    // Basic checks
+    if (attacker.defeated || defender.defeated) return;
+    if (attacker.team === 0 && attacker.chasingPlayer) return; // Skip if attacker is player monster chasing player
+
+    // Team targeting rules
+    if (defender.team === attacker.team ||
+        (attacker.team === 1 && defender.team === 2) ||
+        (attacker.team === 2 && defender.team === 1)) {
+        return; // Invalid team matchup
+    }
+
+    // Determine appropriate aggro range
+    const attackerAggroRange = attacker.team === 0 ? GAME_CONFIG.playerMonsterAggroRange : GAME_CONFIG.aggroRange;
+
+    // Check range
+    if (distance > attackerAggroRange) {
+        return; // Out of range
+    }
+
+    // For WILD monsters (team 1), check if defender is within their wander distance
+    if (attacker.team === 1 && attacker.originalPosition) {
+        const targetDistanceFromOrigin = defender.mesh.position.distanceTo(attacker.originalPosition);
+        if (targetDistanceFromOrigin > GAME_CONFIG.maxMonsterWanderDistance) {
+            return; // Target too far from WILD monster's origin
+        }
+    }
+
+    // Check if this defender is closer than the attacker's current best potential target
+    const currentPotential = potentialTargets.get(attacker.id);
+    if (distance < currentPotential.distance) {
+        // Update the potential target for the attacker
+        potentialTargets.set(attacker.id, { target: defender, distance: distance });
     }
 }
 
@@ -1089,7 +1197,10 @@ function handleClick(event) {
 // Handle mouse down event to start tracking
 function handleMouseDown(event) {
     event.preventDefault();
-    
+
+    // If a click happens, assume the window should be focused
+    gameState.windowFocused = true;
+
     // Don't process if storage UI is open
     if (gameState.storageUIOpen) {
         return;
@@ -1183,7 +1294,10 @@ function handleMouseUp(event) {
 // Handle touch events (mobile)
 function handleTouch(event) {
     event.preventDefault();
-    
+
+    // If a touch happens, assume the window should be focused
+    gameState.windowFocused = true;
+
     // Don't process if storage UI is open
     if (gameState.storageUIOpen) {
         return;
@@ -1395,8 +1509,15 @@ function updateMasterMovement(deltaTime) {
             continue;
         }
         
-        // *** ADDED CHECK: Only move masters whose fight has started (team === 2) ***
-        if (master.team !== 2) {
+        // Check if all monsters for this master are defeated
+        const associatedMonsters = gameState.bossMonsters.filter(m => m.masterId === master.id);
+        const allMonstersDefeated = associatedMonsters.length > 0 && associatedMonsters.every(m => m.defeated);
+
+        if (allMonstersDefeated) {
+            continue; // Stop following if all monsters are down
+        }
+
+        if (master.team === 0) {
             continue; // Skip movement logic if the master is not hostile
         }
 
@@ -1466,7 +1587,9 @@ function updateMonsterRevival(deltaTime) {
 
                 // Check if monster is in stored monsters and player has less than 2 active monsters
                 const isStored = gameState.player.storedMonsters.includes(monster);
-                if (isStored && gameState.player.monsters.length < 2) {
+                
+                // *** ADDED CHECK: Only auto-activate if NOT in a boss fight ***
+                if (isStored && gameState.player.monsters.length < 2 && gameState.inBossFight === 0) {
                     // Remove from stored monsters
                     const storedIndex = gameState.player.storedMonsters.indexOf(monster);
                     if (storedIndex !== -1) {
@@ -1602,6 +1725,23 @@ function areaTransition(newArea) {
     });
     gameState.wildMonsters = [];
 
+    // Clear existing capture targets
+    gameState.captureTargets.forEach(target => {
+        if (target.mesh && target.mesh.parent) {
+            target.mesh.parent.remove(target.mesh);
+            // Optional: Dispose geometry/material if needed
+            // if (target.mesh.geometry) target.mesh.geometry.dispose();
+            // if (target.mesh.material) target.mesh.material.dispose();
+        }
+    });
+    gameState.captureTargets = [];
+
+    // Hide capture UI if it was open
+    if (gameState.captureUIOpen) {
+        document.getElementById('captureUI').style.display = 'none';
+        gameState.captureUIOpen = false;
+    }
+
     // Clean up boss masters / Hide NPC if leaving Area 1
     if (previousArea === 1 && newArea !== 1) {
         console.log(`[Area Transition] Leaving Area 1. Cleaning up bosses and hiding NPC.`); // Debug log
@@ -1651,10 +1791,7 @@ function areaTransition(newArea) {
         createTownNPC(); // Create/Show NPC when entering Area 1
     } else {
          // Ensure NPC is hidden if entering non-Area 1
-         if (previousArea !== 1) { // Only hide if not just leaving Area 1
-             console.log(`[Area Transition] Entering non-Area 1. Hiding NPC.`); // Debug log
-             hideTownNPC();
-         }
+        hideTownNPC();
     }
     
     // Create portal if in level 1 and it doesn't exist yet
@@ -1667,6 +1804,10 @@ function areaTransition(newArea) {
         gameState.portalMesh.visible = newArea === 1;
         gameState.portalLabel.visible = newArea === 1;
     }
+
+    // Reset boss fight flag
+    gameState.inBossFight = 0;
+
 }
 
 
@@ -1714,9 +1855,9 @@ function updateCombat(deltaTime) {
             attackRange = GAME_CONFIG.attackRangeSlot1;
         }
         
-        // Rolling behavior for Rumbleweed (abilId 13)
-        if (monster.abilId === 13) {
-            handleRumbleweedCombat(monster, target, distance, deltaTime);
+        // Rolling behavior for Rumble (abilId 13)
+        if (hasAbility(monster, 13)) {
+            handleRumbleCombat(monster, target, distance, deltaTime);
             continue; // Skip default combat movement/attack
         }
 
@@ -1753,8 +1894,8 @@ function updateCombat(deltaTime) {
     }
 }
 
-// Helper function specifically for Rumbleweed's (abilId 13) combat logic
-function handleRumbleweedCombat(monster, target, distance, deltaTime) {
+// Helper function specifically for Rumble's (abilId 13) combat logic
+function handleRumbleCombat(monster, target, distance, deltaTime) {
     // Initialize rolling state if not exists
     if (monster.rollingState === undefined) {
         monster.rollingState = 'approaching'; // Start by approaching
@@ -1909,47 +2050,47 @@ function updateMonsterFollowing(deltaTime) {
                     GAME_CONFIG.monsterFollowDistance.slot2;
             } else {
                 // --- Player Monster Following Player ---
-                targetEntity = gameState.player;
-                speed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
+            targetEntity = gameState.player;
+            speed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
 
-                // Player monster retreat check & direct chase logic
-                const distanceToPlayer = monster.mesh.position.distanceTo(targetEntity.position);
-                if (monster.chasingPlayer || distanceToPlayer > GAME_CONFIG.retreatCheckRange) {
-                    if (!monster.chasingPlayer) {
-                        monster.chasingPlayer = true; // Start chasing player
-                        monster.aggroTarget = null;   // Lose current target
-                        monster.isAggroed = false;
-                        monster.timeSinceCombat = 9999; // Reset combat timer
-                    }
-                    // If close enough to player, stop chasing
-                    if (distanceToPlayer < 150) { 
-                        monster.chasingPlayer = false;
-                        // Don't continue here, allow normal follow logic to take over this frame
-                    } else {
-                        // Move towards player directly if chasing
-                        const direction = new THREE.Vector3()
-                            .subVectors(targetEntity.position, monster.mesh.position)
-                            .normalize();
-                        updateMonsterDirection(monster, targetEntity.position.x);
-                        const chaseSpeed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
-                        monster.mesh.position.x += direction.x * chaseSpeed;
-                        monster.mesh.position.y += direction.y * chaseSpeed;
-                        monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
-                        monster.lastPosition.copy(monster.mesh.position);
-                        continue; // Skip standard following logic for this frame while actively chasing
-                    }
+            // Player monster retreat check & direct chase logic
+            const distanceToPlayer = monster.mesh.position.distanceTo(targetEntity.position);
+            if (monster.chasingPlayer || distanceToPlayer > GAME_CONFIG.retreatCheckRange) {
+                if (!monster.chasingPlayer) {
+                    monster.chasingPlayer = true; // Start chasing player
+                    monster.aggroTarget = null;   // Lose current target
+                    monster.isAggroed = false;
+                    monster.timeSinceCombat = 9999; // Reset combat timer
                 }
-                // Ensure chasing is off if back in range and not actively chasing this frame
-                if (!monster.chasingPlayer && distanceToPlayer <= GAME_CONFIG.retreatCheckRange) {
-                     monster.chasingPlayer = false; 
+                // If close enough to player, stop chasing
+                if (distanceToPlayer < 150) { 
+                    monster.chasingPlayer = false;
+                    // Don't continue here, allow normal follow logic to take over this frame
+                } else {
+                    // Move towards player directly if chasing
+                    const direction = new THREE.Vector3()
+                        .subVectors(targetEntity.position, monster.mesh.position)
+                        .normalize();
+                    updateMonsterDirection(monster, targetEntity.position.x);
+                    const chaseSpeed = GAME_CONFIG.playerMonsterSpeed * deltaTime;
+                    monster.mesh.position.x += direction.x * chaseSpeed;
+                    monster.mesh.position.y += direction.y * chaseSpeed;
+                    monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
+                    monster.lastPosition.copy(monster.mesh.position);
+                    continue; // Skip standard following logic for this frame while actively chasing
                 }
+            }
+            // Ensure chasing is off if back in range and not actively chasing this frame
+            if (!monster.chasingPlayer && distanceToPlayer <= GAME_CONFIG.retreatCheckRange) {
+                 monster.chasingPlayer = false; 
+            }
 
-                monsterIndex = gameState.player.monsters.indexOf(monster);
-                if (monsterIndex === -1) continue; // Should not happen, but safe check
+            monsterIndex = gameState.player.monsters.indexOf(monster);
+            if (monsterIndex === -1) continue; // Should not happen, but safe check
 
-                distanceFromTarget = monsterIndex === 0 ?
-                    GAME_CONFIG.monsterFollowDistance.slot1 :
-                    GAME_CONFIG.monsterFollowDistance.slot2;
+            distanceFromTarget = monsterIndex === 0 ?
+                GAME_CONFIG.monsterFollowDistance.slot1 :
+                GAME_CONFIG.monsterFollowDistance.slot2;
             }
 
         } else if (monster.team === 2) {
@@ -2021,7 +2162,7 @@ function updateMonsterFollowing(deltaTime) {
 }
 
 // Update wild monster aggro behaviors (chasing without combat)
-function updateWildMonsterAggro(deltaTime) {
+function updateWildMonsterBehaviors(deltaTime) {
     for (const monster of gameState.wildMonsters) {
         // Skip if defeated or already aggroed
         if (monster.defeated || monster.isAggroed) continue;
@@ -2215,7 +2356,7 @@ function createWildMonster(areaLevel, x, y) {
     const spawnRoll = Math.random() * 100;
     let availableTypes;
     
-    if (spawnRoll < 70) { // 70% chance - spawn from current area level
+    if (spawnRoll < 75) { // 75% chance - spawn from current area level
         //Special case for area 1
         if (areaLevel === 2) {
             availableTypes = Object.keys(MONSTER_TYPES)
@@ -2226,16 +2367,16 @@ function createWildMonster(areaLevel, x, y) {
                 .map(Number)
                 .filter(id => Math.ceil(id / 5) === areaLevel);
         }
-    } else if (spawnRoll < 90) { // 20% chance - spawn from any level below
+    } else if (spawnRoll < 95) { // 20% chance - spawn from any level below
         availableTypes = Object.keys(MONSTER_TYPES)
             .map(Number)
-            .filter(id => Math.ceil(id / 5) < areaLevel - 1);
-    } else if (spawnRoll < 97) { // 7% chance - spawn from area level above with +5 levels
+            .filter(id => Math.ceil(id / 5) < areaLevel);
+    } else if (spawnRoll < 98) { // 3% chance - spawn from area level above with +5 levels
         availableTypes = Object.keys(MONSTER_TYPES)
             .map(Number)
-            .filter(id => Math.ceil(id / 5) === areaLevel);
+            .filter(id => Math.ceil(id / 5) === areaLevel + 1);
         level += 5;
-    } else { // 3% chance - spawn any random monster with +10 levels
+    } else { // 2% chance - spawn any random monster with +10 levels
         availableTypes = Object.keys(MONSTER_TYPES).map(Number);
         level += 10;
     }
@@ -2622,85 +2763,6 @@ function calculateZPosition(y, isPlayer = false) {
     return isPlayer ? 2 - (y / 10000) : 1 - (y / 10000);
 }
 
-// Check for potential combat between monsters
-function checkAggroRange() {
-    // Combine all monsters into a single array
-    const allMonsters = [...gameState.player.monsters, ...gameState.wildMonsters, ...gameState.bossMonsters];
-
-    // Check each monster against every other monster
-    for (const monster of allMonsters) {
-        // ... (existing aggro logic)
-        // The team checks should already handle team 1 vs team 2 interactions correctly
-
-        let closestTarget = null;
-        let closestDistance = Infinity; // Start with infinity
-        const monsterAggroRange = monster.team === 0 ? GAME_CONFIG.playerMonsterAggroRange : GAME_CONFIG.aggroRange;
-
-        for (const target of allMonsters) {
-            // Skip invalid targets
-            if (target === monster || target.defeated) continue;
-
-            // Team targeting rules:
-            // - Same team cannot target each other
-            // - Team 1 (Wild) and Team 2 (Boss) cannot target each other
-            if (target.team === monster.team ||
-                (monster.team === 1 && target.team === 2) ||
-                (monster.team === 2 && target.team === 1)) {
-                continue;
-            }
-
-            const distance = monster.mesh.position.distanceTo(target.mesh.position);
-
-            // Skip aggro logic if player monster (team 0) is chasing player
-            if (monster.team === 0 && monster.chasingPlayer) continue;
-
-            // For WILD monsters (team 1), check if target is within their wander distance
-            if (monster.team === 1 && monster.originalPosition) { // Only apply to Team 1
-                const targetDistanceFromOrigin = target.mesh.position.distanceTo(monster.originalPosition);
-                if (targetDistanceFromOrigin > GAME_CONFIG.maxMonsterWanderDistance) {
-                    continue; // Skip target if too far from WILD monster's origin
-                }
-            }
-
-            // Check if within aggro range and closer than current closest target
-            if (distance <= monsterAggroRange && distance < closestDistance) {
-                closestTarget = target;
-                closestDistance = distance;
-            }
-        }
-
-        // Skip setting aggro if player monster (team 0) is chasing player
-        if (monster.team === 0 && monster.chasingPlayer) continue;
-
-        // If we found a valid target
-        if (closestTarget) {
-            // If monster already has a target, only switch if new target is closer
-            if (monster.aggroTarget) {
-                const currentDistance = monster.mesh.position.distanceTo(monster.aggroTarget.mesh.position);
-                if (closestDistance < currentDistance) {
-                    // Switch to closer target
-                    monster.aggroTarget = closestTarget;
-                    monster.isAggroed = true;
-                    monster.returningToOrigin = false;
-                    monster.aggroPlayer = false; // Ensure aggroPlayer is off
-                }
-            } else {
-                // No current target, set the closest one
-                monster.aggroTarget = closestTarget;
-                monster.isAggroed = true;
-                monster.returningToOrigin = false;
-                monster.aggroPlayer = false; // Ensure aggroPlayer is off
-            }
-        } else {
-            // No valid targets found, clear aggro state if not already returning/aggroPlayer
-             if (!monster.returningToOrigin && !monster.aggroPlayer) {
-                 monster.aggroTarget = null;
-                 monster.isAggroed = false;
-             }
-        }
-    }
-}
-
 // Create or update Town NPC
 function createTownNPC() {
     // Only proceed if in Area 1
@@ -2765,10 +2827,10 @@ function createTownNPC() {
  * @param {number} width - Canvas width for the bubble
  * @param {number} height - Canvas height for the bubble
  * @param {Function} clickHandler - Optional function to call when bubble is clicked
- * @param {boolean} specialLastLineColor - Color to style the last line differently (for links, etc.)
+ * @param {string | null} specialLastLineColor - Color string (e.g., 'rgba(R,G,B,A)') for the last line, or null/false for no special styling.
  * @returns {THREE.Mesh} The chat bubble mesh
  */
-function createChatBubble(textLines, basePosition, offset, width, height, clickHandler = null, specialLastLineColor = true) {
+function createChatBubble(textLines, basePosition, offset, width, height, clickHandler = null, specialLastLineColor = null) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     const canvasWidth = width || 600;
@@ -2779,49 +2841,50 @@ function createChatBubble(textLines, basePosition, offset, width, height, clickH
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    // Style the bubble
+        // Style the bubble
     context.fillStyle = 'rgba(255, 255, 255, 0.4)'; // 40% opacity white
-    context.strokeStyle = 'black';
-    context.lineWidth = 2;
-    context.beginPath();
-    context.roundRect(0, 0, canvasWidth, canvasHeight - 15, 10); // Bubble shape, leave space for pointer
-    context.fill();
-    context.stroke();
+        context.strokeStyle = 'black';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.roundRect(0, 0, canvasWidth, canvasHeight - 15, 10); // Bubble shape, leave space for pointer
+        context.fill();
+        context.stroke();
 
-    // Add pointer
-    context.beginPath();
-    context.moveTo(canvasWidth / 2 - 15, canvasHeight - 15);
-    context.lineTo(canvasWidth / 2, canvasHeight);
-    context.lineTo(canvasWidth / 2 + 15, canvasHeight - 15);
-    context.closePath();
-    context.fill();
-    context.stroke();
+        // Add pointer
+        context.beginPath();
+        context.moveTo(canvasWidth / 2 - 15, canvasHeight - 15);
+        context.lineTo(canvasWidth / 2, canvasHeight);
+        context.lineTo(canvasWidth / 2 + 15, canvasHeight - 15);
+        context.closePath();
+        context.fill();
+        context.stroke();
 
-    // Style and add text
-    context.textAlign = 'center';
-    context.textBaseline = 'top';
+        // Style and add text
+        context.textAlign = 'center';
+        context.textBaseline = 'top';
 
     // Function to draw text with outline for better readability
     const drawTextWithOutline = (text, x, y, fillStyle) => {
-        // Draw outline first
+        // Draw text fill first
+        context.fillStyle = fillStyle;
+        context.fillText(text, x, y);
+
+        // Draw outline on top
         context.lineWidth = 1; // Use line width 1 like default strokeText
         context.strokeStyle = 'rgba(0, 0, 0, 1)'; // Black outline, 100% opacity
         context.strokeText(text, x, y);
-        
-        // Draw text fill on top
-        context.fillStyle = fillStyle;
-        context.fillText(text, x, y);
     };
 
     // Draw normal text lines
     context.font = 'bold 30px Arial';
+    // Determine lines to process based on whether a special color is provided
     const linesToProcess = specialLastLineColor ? textLines.length - 1 : textLines.length;
     
     for (let i = 0; i < linesToProcess; i++) {
         drawTextWithOutline(textLines[i], canvasWidth / 2, padding + i * lineHeight, 'rgba(0, 0, 0, 1)'); // Black text
     }
     
-    // Draw special last line if needed (like a Discord link)
+    // Draw special last line if a color is provided
     if (specialLastLineColor && textLines.length > 0) {
         context.font = 'bold 30px Arial';
         drawTextWithOutline(
@@ -2832,15 +2895,15 @@ function createChatBubble(textLines, basePosition, offset, width, height, clickH
         );
     }
 
-    // Create texture and mesh
-    const texture = new THREE.CanvasTexture(canvas);
+        // Create texture and mesh
+        const texture = new THREE.CanvasTexture(canvas);
     const labelGeometry = new THREE.PlaneGeometry(canvasWidth * 0.5, canvasHeight * 0.5);
-    const labelMaterial = new THREE.MeshBasicMaterial({ 
-        map: texture,
-        transparent: true,
-        side: THREE.DoubleSide
-    });
-    const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+        const labelMaterial = new THREE.MeshBasicMaterial({ 
+            map: texture,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
     
     // Position the bubble
     labelMesh.position.copy(basePosition);

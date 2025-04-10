@@ -1,5 +1,8 @@
 // Camera/View Constants
 const GAME_CONFIG = {
+    //Version number
+    version: "0.7.2",
+
     // View and Camera
     baseViewSize: 500,  // Base size for camera view and calculations
     
@@ -7,7 +10,7 @@ const GAME_CONFIG = {
     worldSpawnDiameter: 4000,  // Total diameter of monster spawn area
     minSpawnDistance: 500,     // Minimum spawn distance from origin/player
     
-    // Game Balance
+    // Game Neutral
     maxLevel: 70, //Maximum monster level
     innerZoneRatio: 0.4, // Ratio of map that maintains minimum level (40%)
     outerZoneRatio: 0.6, // Ratio of map for level scaling (80%)
@@ -120,21 +123,21 @@ const AREAS = {
 // Monster Types
 const MONSTER_TYPES = {
     // # - Name - Element - Speed, Phyical Defense, Special Defense, Phyical Attack, Special Attack, Endurance, SizeAdjust
-    1: { name: "Derpfish", element: "Water", stats: { spd: 40, pDef: 60, sDef: 70, pAtk: 70, sAtk: 20, endur: 40}, abilId: 0, size: 1}, //Total: 300
-    2: { name: "Emberling", element: "Fire", stats: { spd: 70, pDef: 40, sDef: 60, pAtk: 50, sAtk: 60, endur: 20}, abilId: 0, size: 1}, //Total: 300
-    3: { name: "DownTwo", element: "Earth", stats: { spd: 30, pDef: 65, sDef: 65, pAtk: 55, sAtk: 55, endur: 30}, abilId: 0, size: 1}, //Total: 300
-    4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 60, sAtk: 60, endur: 30}, abilId: 0, size: 1}, //Total: 300
-    5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, sDef: 40, pAtk: 50, sAtk: 60, endur: 60}, abilId: 0, size: 0.9}, //Total: 300 //Pushes enemy away on attack???
-    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, sDef: 40, pAtk: 30, sAtk: 80, endur: 40}, abilId: 0, size: 0.8}, //Total: 300
-    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 100, sAtk: 70, endur: 30}, abilId: 0, size: 0.8}, //Total: 300
-    8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, sDef: 50, pAtk: 45, sAtk: 35, endur: 70}, abilId: 0, size: 1.2}, //Total: 300
-    9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, sDef: 20, pAtk: 50, sAtk: 20, endur: 80}, abilId: 0, size: 1}, //Total: 300
-    10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 30, sDef: 50, pAtk: 40, sAtk: 70, endur: 50}, abilId: 0, size: 1}, //Total: 300
-    11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 40, sDef: 55, pAtk: 35, sAtk: 70, endur: 30}, abilId: 11, size: 1}, //Total: 280
-    12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 45, sAtk: 25, endur: 60}, abilId: 12, size: 0.8}, //Total: 280
-    13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, sDef: 45, pAtk: 70, sAtk: 10, endur: 60}, abilId: 13, size: 0.85}, //Total: 300
-    14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, sDef: 60, pAtk: 25, sAtk: 80, endur: 40 }, abilId: 14, size: 1}, //Total: 260
-    15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, sDef: 30, pAtk: 20, sAtk: 60, endur: 40 }, abilId: 15, size: 1}, //Total: 260
+    1: { name: "Derpfish", element: "Water", stats: { spd: 40, pDef: 60, sDef: 70, pAtk: 70, sAtk: 20, endur: 40}, size: 1}, //Total: 300
+    2: { name: "Emberling", element: "Fire", stats: { spd: 70, pDef: 40, sDef: 60, pAtk: 50, sAtk: 60, endur: 20}, size: 1}, //Total: 300
+    3: { name: "DownTwo", element: "Earth", stats: { spd: 30, pDef: 65, sDef: 65, pAtk: 55, sAtk: 55, endur: 30}, size: 1}, //Total: 300
+    4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 60, sAtk: 60, endur: 30}, size: 1}, //Total: 300
+    5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, sDef: 40, pAtk: 50, sAtk: 60, endur: 60}, size: 0.9}, //Total: 300 //Pushes enemy away on attack???
+    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, sDef: 40, pAtk: 30, sAtk: 80, endur: 40}, size: 0.8}, //Total: 300
+    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 100, sAtk: 70, endur: 30}, size: 0.8}, //Total: 300
+    8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, sDef: 50, pAtk: 45, sAtk: 35, endur: 70}, size: 1.2}, //Total: 300
+    9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, sDef: 20, pAtk: 50, sAtk: 20, endur: 80}, size: 1}, //Total: 300
+    10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 30, sDef: 50, pAtk: 40, sAtk: 70, endur: 50}, size: 1}, //Total: 300
+    11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 40, sDef: 55, pAtk: 35, sAtk: 70, endur: 30}, size: 1}, //Total: 280
+    12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 45, sAtk: 25, endur: 60}, size: 0.8}, //Total: 280
+    13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, sDef: 45, pAtk: 70, sAtk: 10, endur: 60}, size: 0.85}, //Total: 300
+    14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, sDef: 60, pAtk: 25, sAtk: 80, endur: 40 }, size: 1}, //Total: 260
+    15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, sDef: 30, pAtk: 20, sAtk: 60, endur: 40 }, size: 1}, //Total: 260
     16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, sDef: 30, pAtk: 80, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 10, pDef: 60, sDef: 70, pAtk: 70, sAtk: 30, endur: 60 }, size: 1}, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 50, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
@@ -153,22 +156,30 @@ const MONSTER_TYPES = {
     31: { name: "Boltzalea", element: "Electric", stats: { spd: 20, pDef: 40, sDef: 70, pAtk: 10, sAtk: 120, endur: 40 }, size: 1}, //Total: 300
     32: { name: "Polrus", element: "Water", stats: { spd: 30, pDef: 50, sDef: 60, pAtk: 35, sAtk: 25, endur: 100 }, size: .95}, //Total: 300
     33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, sDef: 45, pAtk: 70, sAtk: 30, endur: 40 }, size: 1.2}, //Total: 300
-    34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, sDef: 40, pAtk: 60, sAtk: 10, endur: 60 }, size: 0.75}, //Total: 300
+    34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, sDef: 40, pAtk: 60, sAtk: 10, endur: 60 }, abilId: 13, size: 0.75}, //Total: 300
     35: { name: "Scornfront", element: "Electric", stats: { spd: 90, pDef: 45, sDef: 40, pAtk: 5, sAtk: 70, endur: 50 }, size: 1.2}, //Total: 300
     36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, sDef: 40, pAtk: 60, sAtk: 60, endur: 70 }, size: 0.9}, //Total: 320
-    
+    /*37: { name: "Souldier", element: "Neutral", stats: { spd: 50, pDef: 70, sDef: 70, pAtk: 30, sAtk: 30, endur: 60 }, size: 1}, //Total: 310
+    38: { name: "Arch", element: "Neutral", stats: { spd: 60, pDef: 30, sDef: 30, pAtk: 120, sAtk: 10, endur: 60 }, size: 1}, //Total: 310
+    39: { name: "Balencia", element: "Neutral", stats: { spd: 55, pDef: 55, sDef: 55, pAtk: 55, sAtk: 55, endur: 55 }, size: 1}, //Total: 330
+    40: { name: "Source", element: "Neutral", stats: { spd: 60, pDef: 30, sDef: 30, pAtk: 10, sAtk: 120, endur: 60 }, size: 1}, //Total: 310
+    */
     //Dragginball
-    //Corgknight
     //Unicorg
 };
 
-const ABILITY = {
-    11: { name: "Berserker", desc: "Enrages when hit, dealing 50% increased damage for 2 seconds." },
-    12: { name: "Magic thorns", desc: "Reflects 25% of special damage taken before reduction." },
+const MONSTER_ABILITIES = {
+    /*
+    00: { name: "Adaptive Strikes", desc: "Attack damage type becomes the lower of the defender's defenses." },
+    */
+    9: { name: "Unyielding", desc: "When stamina is depleted, spends HP instead to attack."}, //TODO
+    11: { name: "Berserker", desc: "Enrages when hit, dealing 50% increased damage for 2 seconds." }, //TODO
+    12: { name: "Magic Thorns", desc: "Reflects 25% of special damage taken before reduction." }, //TODO
     13: { name: "Rumbler", desc: "Rolls around during combat." },
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
     15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss." },
-	35: { name: "Static Charge", desc: "20% less stamina cost of attacks." },
+	35: { name: "Static Charge", desc: "5% of damage taken gained as stamina." }, //TODO
+    16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt." }, //TODO
 }
 
 /*const MONSTER_TYPE_STORIES = {
@@ -186,17 +197,18 @@ const ABILITY = {
 
 };*/
 
+// List of all available elements
+const ELEMENTS = ["Plant", "Earth", "Electric", "Water", "Fire", "Neutral"];
+
 // Element Relationships (bonus/penalty)
 const ELEMENT_RELATIONS = {
     "Plant": { strong: "Earth", weak: "Fire" },
     "Earth": { strong: "Electric", weak: "Plant" },
     "Electric": { strong: "Water", weak: "Earth" },
     "Water": { strong: "Fire", weak: "Electric" },
-    "Fire": { strong: "Plant", weak: "Water" }
+    "Fire": { strong: "Plant", weak: "Water" },
+    "Neutral": { strong: "", weak: "" },
 };
-
-// List of all available elements
-const ELEMENTS = ["Plant", "Earth", "Electric", "Water", "Fire"];
 
 // Visual colors for elements (for effects)
 const ELEMENT_COLORS = {
@@ -204,10 +216,31 @@ const ELEMENT_COLORS = {
     "Earth": 0x964b00, // Brown
     "Electric": 0xf1c40f, // Yellow
     "Water": 0x3498db, // Blue
-    "Fire": 0xe74c3c // Red
+    "Fire": 0xe74c3c, // Red
+    "Neutral": 0x808080 // Gray
 };
 
-// Rare Modifiers and their bonuses in per
+// Element percentage stat modifiers
+const ELEMENT_MODIFIERS = {
+    "Plant": { sAtk: 10, endur: 10, spd: -15 },
+    "Earth": { pAtk: 10, pDef: 10, sAtk: -15 },
+    "Electric": { sAtk: 10, spd: 10, endur: -15 },
+    "Water": { endur: 10, spd: 10, pDef: -15 },
+    "Fire": { pAtk: 10, sAtk: 10, sDef: -15 },
+    "Neutral": { },
+};
+
+// Element flat stat modifiers
+const ELEMENT_TYPESHIFT_STATS = {
+    "Plant": { sAtk: 5, endur: 5, spd: -5 },
+    "Earth": { pAtk: 5, pDef: 5, sAtk: -5 },
+    "Electric": { sAtk: 5, spd: 5, endur: -5 },
+    "Water": { endur: 5, spd: 5, pDef: -5 },
+    "Fire": { pAtk: 5, sAtk: 5, sDef: -5 },
+    "Neutral": { },
+};
+
+// Rare Modifiers and their bonuses in percentages
 const RARE_MODIFIERS = {
     "Smooth": { spd: 10, pDef: 10 },
     "Sharp": { spd: 10, pAtk: 10 },
@@ -224,15 +257,6 @@ const RARE_MODIFIERS = {
     "Smart": { sDef: 10, sAtk: 10 },
     "Stoic": { sDef: 10, endur: 10 },
     "Thoughtful": { sAtk: 10, endur: 10 }
-};
-
-// Element Stat Modifiers in percentages
-const ELEMENT_MODIFIERS = {
-    "Plant": { sAtk: 10, endur: 10, spd: -15 },
-    "Earth": { pAtk: 10, pDef: 10, sAtk: -15 },
-    "Electric": { sAtk: 10, spd: 10, endur: -15 },
-    "Water": { endur: 10, spd: 10, pDef: -15 },
-    "Fire": { pAtk: 10, sAtk: 10, sDef: -15 }
 };
 
 // Define Boss Data Structure
@@ -272,8 +296,8 @@ const BOSS_DATA = [
             { typeId: 6, level: 70, mods: ["Witty", "Tough"], spawnLvl: 60, favoredStat: 6 }
         ]
     },
-    { // Final Boss (Placeholder Element)
-        masterElement: "Fire", // Example element, adjust as needed
+    { // Final Boss
+        masterElement: "Neutral",
         monsters: [
             { typeId: 14, level: 70, mods: ["Slick", "Smart"], spawnLvl: 60, element: "Plant", favoredStat: 1 },
             { typeId: 13, level: 65, mods: ["Tough", "Stoic", "Sturdy"], spawnLvl: 55, element: "Water", favoredStat: 3 }
@@ -327,7 +351,8 @@ function initializeGameState() {
         currentArea: savedData?.player?.areaLevel ?? 1, // Use saved area if it exists, otherwise 1
         musicSavedOff: savedData?.player?.musicState === false, // Music is off if saved state is false
         monsterIdFixer: 0, //Used to prevent two monsters spawning at the same time and randomly getting the exact same ID
-        windowFocused: document.hasFocus() // Track if window is focused or not
+        windowFocused: document.hasFocus(), // Track if window is focused or not
+        inBossFight: 0,
     };
     
     return gameState;

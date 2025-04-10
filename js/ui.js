@@ -7,7 +7,7 @@ function updateGoldDisplay() {
 // Update area display
 function updateAreaDisplay() {
     const areaInfo = AREAS[gameState.currentArea];
-    document.getElementById('areaDisplay').textContent = `Area: ${areaInfo.name}`;
+    document.getElementById('areaDisplay').textContent = `Area: ${areaInfo.name} v${GAME_CONFIG.version}`;
 }
 
 // Toggle storage UI visibility
@@ -196,6 +196,10 @@ function updateStorageUI() {
 
 // Store an active monster
 function storeMonster(monsterId) {
+    if (gameState.inBossFight > 0) {
+        addChatMessage("Cannot store or activate monsters during a boss fight!", 3000);
+        return;
+    }
     const index = gameState.player.monsters.findIndex(m => m.id.toString() === monsterId);
     
     if (index !== -1) {
@@ -223,6 +227,10 @@ function storeMonster(monsterId) {
 
 // Activate a stored monster
 function activateMonster(monsterId) {
+    if (gameState.inBossFight > 0) {
+        addChatMessage("Cannot activate or store monsters during a boss fight!", 3000);
+        return;
+    }
     // Check if there's room in active slots
     if (gameState.player.monsters.length >= 2) {
         addChatMessage("You already have 2 active monsters. Store one first.");
@@ -554,6 +562,18 @@ function showMonsterDetails(monsterId) {
     
     // Create details content
     const detailsContent = document.getElementById('detailsContent');
+
+    let ability = MONSTER_ABILITIES[monster.abilId];
+    let abilityText = "Inherited Ability: None";
+    if (ability) {
+        abilityText = "Inherited Ability: " + ability.name + " - " + ability.desc;
+    }
+
+    let ability2 = MONSTER_ABILITIES[monster.typeId];
+    let ability2Text = "Natural Ability: None";
+    if (ability2) {
+        ability2Text = "Natural Ability: " + ability2.name + " - " + ability2.desc;
+    }
     
     // Sprite and basic info
     let headerHTML = `
@@ -562,10 +582,11 @@ function showMonsterDetails(monsterId) {
                 <img src="assets/monsterimg/${monster.typeId}.png" alt="${monster.name}">
             </div>
             <div>
-                <h3>${monster.name} ${formatModifiers(monster, false)}</h3>
-                <p><span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''} Level ${monster.level}</p>
-                <p>Spawn Level (Potential): ${monster.spawnLevel}</p>
+                <h3>#${monster.typeId} ${monster.name} ${formatModifiers(monster, false)}</h3>
+                <p><span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''} Level ${monster.level}, Spawn Level (Potential): ${monster.spawnLevel}</p>
                 <p>Favors ${GAME_CONFIG.statNamesProper[monster.favoredStat]}</p>
+                <p>${abilityText}</p>
+                <p>${ability2Text}</p>
             </div>
         </div>
     `;
@@ -595,6 +616,15 @@ function showMonsterDetails(monsterId) {
     
     // Calculate modifiers for each stat
     const baseStats = { ...monsterType.stats };
+    
+    // Apply typeshifted modifiers first
+    if (monster.element !== MONSTER_TYPES[monster.typeId].element) {
+        Object.keys(ELEMENT_TYPESHIFT_STATS[monster.element]).forEach(stat => {
+            baseStats[stat] += ELEMENT_TYPESHIFT_STATS[monster.element][stat];
+        });
+    }
+    
+    // Apply spawn level modifiers
     Object.keys(baseStats).forEach(stat => {
         baseStats[stat] = Math.round(baseStats[stat] * (1 / (1 + monster.spawnLevel / 100)));
     });
@@ -834,6 +864,16 @@ function sortStoredMonsters(sortBy) {
     
     // Sort the stored monsters array based on the specified criteria
     switch(sortBy) {
+        case 'name':
+            gameState.player.storedMonsters.sort((a, b) => {
+                // First compare by name
+                const nameComparison = a.name.localeCompare(b.name);
+                // If names are equal, use previous order as tiebreaker
+                return nameComparison !== 0 ? nameComparison : previousPositions[a.id] - previousPositions[b.id];
+            });
+            addChatMessage("Monsters sorted by name.", 2000);
+            break;
+            
         case 'type':
             gameState.player.storedMonsters.sort((a, b) => {
                 // First compare by typeId
@@ -865,16 +905,6 @@ function sortStoredMonsters(sortBy) {
                 return elementComparison !== 0 ? elementComparison : previousPositions[a.id] - previousPositions[b.id];
             });
             addChatMessage("Monsters sorted by element.", 2000);
-            break;
-            
-        case 'potential':
-            gameState.player.storedMonsters.sort((a, b) => {
-                // First compare by spawn level
-                const potentialComparison = b.spawnLevel - a.spawnLevel; // Sort in descending order
-                // If spawn levels are equal, use previous order as tiebreaker
-                return potentialComparison !== 0 ? potentialComparison : previousPositions[a.id] - previousPositions[b.id];
-            });
-            addChatMessage("Monsters sorted by potential (spawn level).", 2000);
             break;
             
         case 'rarity':
@@ -965,10 +995,10 @@ function setupUIEventHandlers() {
     document.getElementById('nextTargetButton').addEventListener('click', handleNextTarget);
     
     // Sort buttons
+    document.getElementById('sortByNameButton').addEventListener('click', () => sortStoredMonsters('name'));
     document.getElementById('sortByTypeButton').addEventListener('click', () => sortStoredMonsters('type'));
     document.getElementById('sortByStatsButton').addEventListener('click', () => sortStoredMonsters('stats'));
     document.getElementById('sortByElementButton').addEventListener('click', () => sortStoredMonsters('element'));
-    document.getElementById('sortByPotentialButton').addEventListener('click', () => sortStoredMonsters('potential'));
     document.getElementById('sortByRarityButton').addEventListener('click', () => sortStoredMonsters('rarity'));
     document.getElementById('sortByMaxLvlStatsButton').addEventListener('click', () => sortStoredMonsters('maxLvlStats'));
     

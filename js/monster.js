@@ -65,11 +65,7 @@ function updateUILabel(uiLabel, monster) {
     
     if (modifiers && Array.isArray(modifiers) && modifiers.length > 0) {
         // Add the number of modifiers to the name
-        if (modifiers.length == 1) {
-            displayName += "*";
-        } else {
-            displayName += modifiers.length;
-        }
+        displayName += modifiers.length;
     }
     
     context.textAlign = 'center';
@@ -171,20 +167,38 @@ function updateUILabel(uiLabel, monster) {
 // Calculate monster stats from base values, level, element, and rare modifiers
 function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0, typeId = null, favoredStat = null) {
     // Create copies to avoid modifying original objects
-    const stats = {};
+    let stats = {};
+    const originalElement = MONSTER_TYPES[typeId].element;
+
+    if (!element || element == "") {
+        element = originalElement;
+    }
+
+    const typeShifted = element !== originalElement;
     
     // Apply spawn level adjustment to base stats
     const baseStatAdjustment = 1 / (1 + spawnLevel / 100);
     const statGainMultiplier = 1 + (level+spawnLevel-Math.abs(level-spawnLevel)) / 130;
     
-    // Step 1: Start with adjusted base stats
-    Object.keys(baseStats).forEach(stat => {
-        stats[stat] = Math.round(baseStats[stat] * baseStatAdjustment);
-    });
-    
-    if (favoredStat === null) {
-        favoredStat = Math.floor(Math.random() * 6) + 1; // 1-6
+    // Create a mutable copy of base stats to apply flat bonuses first
+    let modifiedBaseStats = { ...baseStats };
+
+    // Apply flat typeshift bonus before other multipliers
+    if (typeShifted) {
+        const typeShiftBonuses = ELEMENT_TYPESHIFT_STATS[element];
+        if (typeShiftBonuses) { // Check if bonuses exist for the element
+            Object.keys(typeShiftBonuses).forEach(stat => {
+                if (modifiedBaseStats[stat] !== undefined) { // Check if the stat exists on the monster
+                    modifiedBaseStats[stat] += typeShiftBonuses[stat];
+                }
+            });
+        }
     }
+
+    // Step 1: Start with adjusted base stats
+    Object.keys(modifiedBaseStats).forEach(stat => {
+        stats[stat] = Math.round(modifiedBaseStats[stat] * baseStatAdjustment);
+    });
 
     // Step 2: Apply stat boost if present
     if (favoredStat !== null) {
@@ -201,7 +215,6 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     
     // Step 4: Apply element modifiers AFTER level-up stats
     // First, get the original element modifiers from the monster's type
-    const originalElement = typeId ? MONSTER_TYPES[typeId].element : element;
     const originalElementMods = ELEMENT_MODIFIERS[originalElement];
     const currentElementMods = ELEMENT_MODIFIERS[element];
     
@@ -214,7 +227,7 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
     });
     
     // If element is different from original, add original element modifiers
-    if (element !== originalElement) {
+    if (typeShifted) {
         Object.keys(originalElementMods).forEach(stat => {
             if (!totalElementModifiers[stat]) {
                 totalElementModifiers[stat] = 0;
@@ -302,7 +315,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
 
     // Wild monsters (team 1) have a 20% chance to spawn as a random element (typeshifting)
     if (team === 1 && Math.random() < 0.2) {
-        tempElement = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+        tempElement = ELEMENTS[Math.floor(Math.random() * (ELEMENTS.length - 1))]; // -1 because of Neutral type "Balance"
     }
     
     // Convert string modifier to array for backward compatibility
@@ -361,11 +374,21 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
     
     gameState.monsterIdFixer ++;
 
+    // THIS SECTION TO BE USED LATER FOR FUSION
+
+    // Determine if the monster has an inherited ability
+    let inheritedAbilId = null;
+
+    // Do not allow two of the same ability
+    if (inheritedAbilId === monsterType.abilId) {
+        inheritedAbilId = null;
+    }
+
     // Monster object
     const monster = {
         id: Date.now() + Math.random() + gameState.monsterIdFixer,
         typeId,
-        abilId: monsterType.abilId,
+        abilId: inheritedAbilId || monsterType.abilId, // Use monsterType.abilId if it exists, otherwise use typeId
         name: monsterType.name,
         element: tempElement,
         level,
@@ -655,6 +678,23 @@ function handleMonsterDefeat(defeated, victor) {
     
     defeated.defeated = true;
     
+    // --- Check if this was the last monster for a boss --- 
+    if (defeated.team === 2 && defeated.masterId) {
+        // Get all monsters associated with this master
+        const associatedMonsters = gameState.bossMonsters.filter(m => m.masterId === defeated.masterId);
+        // Check if ALL associated monsters are now defeated
+        const allDefeated = associatedMonsters.every(m => m.defeated);
+        
+        if (allDefeated) {
+            console.log(`All monsters for Boss Master ${defeated.masterId} defeated.`);
+            gameState.inBossFight = Math.max(0, gameState.inBossFight - 1); // Decrement boss fight counter
+            addChatMessage(`Binder Master ${defeated.masterId} defeated!`, 5000);
+            
+            // Optional: Add reward logic here for defeating a boss master?
+        }
+    }
+    // --- End Boss Monster Check --- 
+    
     // Handle EXP gain if a wild monster (team 1) was defeated by a player monster (team 0)
     if (defeated.team === 1 && victor.team === 0) {
         let avgLevel= 0;
@@ -930,6 +970,7 @@ function checkLevelUp(monster) {
 }
 
 function inCombat(monster) {
+    if (gameState.inBossFight > 0) return true;
     if (monster.aggroTarget) return true;
     return monster.timeSinceCombat < GAME_CONFIG.combatStatusTime;
 }
@@ -1005,4 +1046,10 @@ function selectWeightedRandomTarget(attacker) {
         target: fallbackTarget.target,
         distance: fallbackTarget.distance
     };
+}
+
+// Function to check if a monster has an ability naturally or has gained it
+function hasAbility(monster, abilityId) {
+    if (monster.abilId === abilityId) return true;
+    else return abilityId === monster.typeId;
 }
