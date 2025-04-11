@@ -1,7 +1,7 @@
 // Camera/View Constants
 const GAME_CONFIG = {
     //Version number
-    version: "0.7.2",
+    version: "0.7.3",
 
     // View and Camera
     baseViewSize: 500,  // Base size for camera view and calculations
@@ -13,7 +13,7 @@ const GAME_CONFIG = {
     // Game Neutral
     maxLevel: 70, //Maximum monster level
     innerZoneRatio: 0.4, // Ratio of map that maintains minimum level (40%)
-    outerZoneRatio: 0.6, // Ratio of map for level scaling (80%)
+    outerZoneRatio: 0.6, // Ratio of map for level scaling (%)
     combatStatusTime: 5, // Time in seconds before a monster exits combat status
     wildMonsterDamageBonus: 0.03, // 3% damage bonus for wild monsters (for each area level above 1)
     wildMonsterDamageReduction: 0.03, // 3% damage reduction for wild monsters (for each area level above 1)
@@ -172,14 +172,14 @@ const MONSTER_ABILITIES = {
     /*
     00: { name: "Adaptive Strikes", desc: "Attack damage type becomes the lower of the defender's defenses." },
     */
-    9: { name: "Unyielding", desc: "When stamina is depleted, spends HP instead to attack."}, //TODO
+    9: { name: "Unrelenting", desc: "When stamina is depleted, spends HP instead to attack."},
     11: { name: "Berserker", desc: "Enrages when hit, dealing 50% increased damage for 2 seconds." }, //TODO
     12: { name: "Magic Thorns", desc: "Reflects 25% of special damage taken before reduction." }, //TODO
     13: { name: "Rumbler", desc: "Rolls around during combat." },
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
     15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss." },
-	35: { name: "Static Charge", desc: "5% of damage taken gained as stamina." }, //TODO
-    16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt." }, //TODO
+    16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt." },
+	35: { name: "Static Charge", desc: "5% of damage taken gained as stamina." },
 }
 
 /*const MONSTER_TYPE_STORIES = {

@@ -563,16 +563,17 @@ function showMonsterDetails(monsterId) {
     // Create details content
     const detailsContent = document.getElementById('detailsContent');
 
-    let ability = MONSTER_ABILITIES[monster.abilId];
-    let abilityText = "Inherited Ability: None";
-    if (ability) {
-        abilityText = "Inherited Ability: " + ability.name + " - " + ability.desc;
-    }
+    let ability = MONSTER_ABILITIES[monster.typeId];
+    let ability2 = MONSTER_ABILITIES[monster.abilId];
 
-    let ability2 = MONSTER_ABILITIES[monster.typeId];
-    let ability2Text = "Natural Ability: None";
+    let abilityText = "Natural Ability: None";
+    if (ability) {
+        abilityText = "Natural Ability: " + ability.name + " - " + ability.desc;
+    }
+    
+    let abilityText2 = "";
     if (ability2) {
-        ability2Text = "Natural Ability: " + ability2.name + " - " + ability2.desc;
+        abilityText2 = "Inherited Ability: " + ability2.name + " - " + ability2.desc;
     }
     
     // Sprite and basic info
@@ -586,7 +587,7 @@ function showMonsterDetails(monsterId) {
                 <p><span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''} Level ${monster.level}, Spawn Level (Potential): ${monster.spawnLevel}</p>
                 <p>Favors ${GAME_CONFIG.statNamesProper[monster.favoredStat]}</p>
                 <p>${abilityText}</p>
-                <p>${ability2Text}</p>
+                ${abilityText2 ? `<p>${abilityText2}</p>` : ''}
             </div>
         </div>
     `;
@@ -1004,8 +1005,8 @@ function setupUIEventHandlers() {
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(event) {
-        // 'ESC' key to toggle storage
-        if (event.key === 'Escape') {
+        // 'Q' key to toggle storage
+        if (event.key === 'q' || event.key === 'Q' || event.key === 'Escape') {
             toggleStorageUI();
         }
         // 'M' key to toggle music

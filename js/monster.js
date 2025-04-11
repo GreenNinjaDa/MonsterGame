@@ -572,8 +572,13 @@ function monsterAttack(attacker, defender, deltaTime) {
     let damageMulti = 1;
     
     if (attacker.currentStamina < staminaCost) {
-        // Not enough stamina, double cooldown and don't consume stamina
-        damageMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
+        if (hasAbility(attacker, 9) && attacker.currentHP > staminaCost) {
+            attacker.currentHP -= staminaCost; //Unrelenting spends HP instead of stamina
+        }
+        else {
+            // Not enough stamina, double cooldown and don't consume stamina
+            damageMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
+        }
     } else {
         attacker.currentStamina -= staminaCost;
     }
@@ -586,7 +591,17 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
-    
+
+    // Static Charge ability gains 5% of damage taken as stamina
+    if (hasAbility(attacker, 35)) {
+        attacker.currentStamina += damageResult.total * 0.05;
+    }
+
+    // Physical Drain ability
+    if (hasAbility(attacker, 16)) {
+        attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (damageResult.physical * 0.2));
+    }
+
     // Visual feedback for elemental interactions
     if (damageResult.elementMultiplier < 1.1 && damageResult.elementMultiplier > 0.9) {
         // Clear any existing color flash timeout and revert material
@@ -994,7 +1009,7 @@ function selectWeightedRandomTarget(attacker) {
 
         if (!filterReason) {
             // Check for Distracting Presence ability (abilId 15)
-            if (inRange && target.abilId === 15 && Math.random() < 0.2) {
+            if (inRange && hasAbility(target, 15) && Math.random() < 0.2) {
                 attackMissed = true; // Mark that the attack will miss
             }
         }
