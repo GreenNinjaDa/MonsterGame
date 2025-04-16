@@ -414,7 +414,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
         monsterMesh: mesh, // Store reference to actual monster mesh
         uiLabel,
         inCombat: false,
-        timeSinceCombat: 0,
+        timeSinceDamageTaken: 9999,
+        timeSinceDamageDealt: 9999,
         experience: {
             current: 0,
             toNextLevel: 25 * level
@@ -432,9 +433,6 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
         facingLeft: false, // Track which direction monster is facing
         glowSprite: null, // Initialize glow sprite
     };
-
-    //Make sure it's not considered in combat
-    monster.timeSinceCombat = 9999;
 
     // Update the UI label
     updateUILabel(uiLabel, monster);
@@ -473,7 +471,18 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
 }
 
 // Calculate damage based on stats and elemental relations
-function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0) {
+function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAttack = false) {
+
+    // Ability 13: Magic Thorns reflects 25% of attack special damage taken before reduction
+    if (isAttack && hasAbility(defender, 13)) {
+        dealDamage(defender, attacker, 0, specialBase * 0.25, false);
+    }
+
+    // Ability 11: Berserker
+    if (hasAbility(attacker, 11) && attacker.timeSinceDamageTaken < 2) {
+        physicalBase = physicalBase * 1.5;
+        specialBase = specialBase * 1.5;
+    }
 
     // Calculate physical damage reduction
     const physicalDamage = Math.floor(
@@ -514,15 +523,12 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0) {
     // Total damage
     const totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
     
-    /*return {
-        physical: adjustedPhysicalDamage,
-        special: adjustedSpecialDamage,
-        total: totalDamage,
-        elementMultiplier
-    };*/
-    
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - totalDamage);
+
+    // Set both monsters to be in combat
+    defender.timeSinceDamageTaken = 0;
+    attacker.timeSinceDamageDealt = 0;
 
     // Static Charge ability gains 10% of physical damage taken as stamina
     if (hasAbility(attacker, 35)) {
@@ -665,9 +671,6 @@ function monsterAttack(attacker, defender, deltaTime) {
     } else {
         attacker.currentStamina -= staminaCost;
     }
-    
-    attacker.timeSinceCombat = 0; 
-    defender.timeSinceCombat = 0;
 
     // Modify physical and special base damage based on typeId.atkCd (attack cooldown)
     let tempPhysicalDmg = GAME_CONFIG.physicalBase;
@@ -682,7 +685,7 @@ function monsterAttack(attacker, defender, deltaTime) {
     tempSpecialDmg = tempSpecialDmg * (1 + (attacker.stats.sAtk / 100));
 
     // Calculate damage
-    dealDamage(attacker, defender, tempPhysicalDmg * staminaMulti, tempSpecialDmg * staminaMulti);
+    dealDamage(attacker, defender, tempPhysicalDmg * staminaMulti, tempSpecialDmg * staminaMulti, true);
     
     // Move attacker in a random direction after attack
     const randomAngle = Math.random() * Math.PI * 2;
@@ -1003,7 +1006,7 @@ function checkLevelUp(monster) {
 function inCombat(monster) {
     if (gameState.inBossFight > 0) return true;
     if (monster.aggroTarget) return true;
-    return monster.timeSinceCombat < GAME_CONFIG.combatStatusTime;
+    return monster.timeSinceDamageTaken < GAME_CONFIG.combatStatusTime || monster.timeSinceDamageDealt < GAME_CONFIG.combatStatusTime;
 }
 
 // Helper function to select a random enemy with distance-based weighting

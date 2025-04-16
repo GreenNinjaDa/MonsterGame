@@ -169,8 +169,8 @@ const MONSTER_ABILITIES = {
     00: { name: "Adaptive Strikes", desc: "Attack damage type becomes the lower of the defender's defenses." },
     */
     9: { name: "Unrelenting", desc: "When stamina is depleted, spends HP instead to attack."},
-    11: { name: "Berserker", desc: "Enrages when hit, dealing 50% increased damage for 2 seconds." }, //TODO
-    12: { name: "Magic Thorns", desc: "Reflects 25% of special damage taken before reduction." }, //TODO
+    11: { name: "Berserker", desc: "Enrages when hit, dealing 50% increased damage for 2 seconds." },
+    12: { name: "Magic Thorns", desc: "Reflects 25% of attack special damage taken before reduction." },
     13: { name: "Rumbler", desc: "Rolls around during combat." },
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
     15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss." },

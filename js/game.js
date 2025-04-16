@@ -729,7 +729,8 @@ function gameLoop(time) {
     const allMonsters = [...gameState.player.monsters, ...gameState.player.storedMonsters, ...gameState.wildMonsters, ...gameState.bossMonsters];
     for (const monster of allMonsters) {
         if (monster.defeated) continue;
-        monster.timeSinceCombat += cappedDeltaTime;
+        monster.timeSinceDamageTaken += cappedDeltaTime;
+        monster.timeSinceDamageDealt += cappedDeltaTime;
     }
     
     // Handle monster collisions and aggro in a single optimized pass
@@ -1576,8 +1577,9 @@ function updateMonsterRevival(deltaTime) {
                 monster.currentHP = Math.floor(monster.maxHP * 0.5);
                 monster.currentStamina = monster.maxStamina;
                 
-                // Set timeSinceCombat to a high value to ensure monster is considered out of combat
-                monster.timeSinceCombat = 9999;
+                // Set timeSinceDamageTaken and timeSinceDamageDealt to a high value to ensure monster is considered out of combat
+                monster.timeSinceDamageTaken = 9999;
+                monster.timeSinceDamageDealt = 9999;
                 
                 // Make visible again
                 monster.mesh.visible = true;
@@ -2060,7 +2062,6 @@ function updateMonsterFollowing(deltaTime) {
                     monster.chasingPlayer = true; // Start chasing player
                     monster.aggroTarget = null;   // Lose current target
                     monster.isAggroed = false;
-                    monster.timeSinceCombat = 9999; // Reset combat timer
                 }
                 // If close enough to player, stop chasing
                 if (distanceToPlayer < 150) { 
