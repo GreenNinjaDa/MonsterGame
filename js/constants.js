@@ -13,15 +13,15 @@ const GAME_CONFIG = {
     // Game Neutral
     maxLevel: 70, //Maximum monster level
     innerZoneRatio: 0.4, // Ratio of map that maintains minimum level (40%)
-    outerZoneRatio: 0.6, // Ratio of map for level scaling (%)
+    outerZoneRatio: 0.6, // Ratio of map for level scaling (60%)
     combatStatusTime: 5, // Time in seconds before a monster exits combat status
     wildMonsterDamageBonus: 0.03, // 3% damage bonus for wild monsters (for each area level above 1)
     wildMonsterDamageReduction: 0.03, // 3% damage reduction for wild monsters (for each area level above 1)
-    defaultAttackCooldown: 10, // Time in seconds for default attack cooldown
+    defaultAttackCooldown: 5, // Time in seconds for default attack cooldown
     defaultStaminaCost: 50, //Default stamina cost per attack
     outOfStaminaDamageMultiplier: 0.5, // 50% less damage for out of stamina monsters
-    physicalBase: 50, // Base physical damage for normal attacks
-    specialBase: 50, // Base special damage for normal attacks
+    physicalBase: 25, // Base physical damage for normal attacks
+    specialBase: 25, // Base special damage for normal attacks
     rareModLevelWeight: 5, //How many levels higher a monster is considered for rewards per rare mod
     catchLevelPenalty: 0.5, //Monsters lose half their levels when caught from the wild
     staminaRegenRate: 0.1, // Out of combat stamina regen rate
@@ -38,24 +38,20 @@ const GAME_CONFIG = {
     
     // Monster Properties
     monsterBaseSize: 80, // Base size for monster rendering
-    
-    // Existing properties...
-    monsterFollowDistance: {
-        slot1: 25,
-        slot2: 50
-    },
+    monsterBaseHP: 200, // Base HP for monsters
+    monsterBaseStamina: 100, // Base stamina for monsters
+    monsterFollowDistance: { slot1: 25, slot2: 50 },
     aggroRange: 300, // Wild monster aggro range
-    playerMonsterAggroRange: 150, // Player monster aggro range
+    playerMonsterAggroRange: 150, // Player owned monster aggro range
     retreatCheckRange: 300, // Player range at which the player's monsters will retreat from combat
     attackRange: 100, //Monster attack range
     attackRangeSlot1: 50, // Half the normal attack range for slot 1 monsters (so it tanks)
-    respawnTime: 50, // Time for player owned monsters to respawn after being defeated
     catchTimeout: 30, // 30 seconds during which the player can capture a monster
     monsterDensity: 1, // Monsters per 500x500 area (reduced from 2)
     spawnAreaSize: 500, // Size of each spawn region
     maxMonsterWanderDistance: 1000, // Maximum distance a monster can wander from spawn
     rareModifierRate: 5, // Rate of rare modifiers in percentage, for each monster
-    statGainRatePerLevel: 0.20, // % stat gain per level
+    statGainRatePerLevel: 0.20, // % of base stats gained per level
     statNames: { 1: "spd", 2: "pDef", 3: "sDef", 4: "pAtk", 5: "sAtk", 6: "endur" },
     statNamesProper: { 1: "Speed", 2: "Physical Defense", 3: "Special Defense", 4: "Physical Attack", 5: "Special Attack", 6: "Endurance" },
     monsterTextures: {}
@@ -129,17 +125,17 @@ const MONSTER_TYPES = {
     4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 60, sAtk: 60, endur: 30}, size: 1}, //Total: 300
     5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, sDef: 40, pAtk: 50, sAtk: 60, endur: 60}, size: 0.9}, //Total: 300 //Pushes enemy away on attack???
     6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, sDef: 40, pAtk: 30, sAtk: 80, endur: 40}, size: 0.8}, //Total: 300
-    7: { name: "Roflstump", element: "Plant", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 100, sAtk: 70, endur: 30}, size: 0.8}, //Total: 300
+    7: { name: "Roflstump", element: "Plant", stats: { spd: 30, pDef: 40, sDef: 40, pAtk: 90, sAtk: 70, endur: 30}, size: 0.8}, //Total: 300
     8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, sDef: 50, pAtk: 45, sAtk: 35, endur: 70}, size: 1.2}, //Total: 300
     9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, sDef: 20, pAtk: 50, sAtk: 20, endur: 80}, size: 1}, //Total: 300
     10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 30, sDef: 50, pAtk: 40, sAtk: 70, endur: 50}, size: 1}, //Total: 300
     11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 40, sDef: 55, pAtk: 35, sAtk: 70, endur: 30}, size: 1}, //Total: 280
     12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 45, sAtk: 25, endur: 60}, size: 0.8}, //Total: 280
     13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, sDef: 45, pAtk: 70, sAtk: 10, endur: 60}, size: 0.85}, //Total: 300
-    14: { name: "Blazey", element: "Fire", stats: { spd: 5, pDef: 50, sDef: 60, pAtk: 25, sAtk: 80, endur: 40 }, size: 1}, //Total: 260
+    14: { name: "Blazey", element: "Fire", stats: { spd: 10, pDef: 50, sDef: 60, pAtk: 25, sAtk: 75, endur: 40 }, size: 1}, //Total: 260
     15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, sDef: 30, pAtk: 20, sAtk: 60, endur: 40 }, size: 1}, //Total: 260
     16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, sDef: 30, pAtk: 80, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
-    17: { name: "Moltenoth", element: "Fire", stats: { spd: 10, pDef: 60, sDef: 70, pAtk: 70, sAtk: 30, endur: 60 }, size: 1}, //Total: 300
+    17: { name: "Moltenoth", element: "Fire", stats: { spd: 20, pDef: 60, sDef: 70, pAtk: 70, sAtk: 20, endur: 60 }, size: 1}, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 50, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
     19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, sDef: 60, pAtk: 20, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
     20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 50, sAtk: 20, endur: 60 }, size: 1}, //Total: 230 //Hydra: Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
@@ -157,8 +153,8 @@ const MONSTER_TYPES = {
     32: { name: "Polrus", element: "Water", stats: { spd: 30, pDef: 50, sDef: 60, pAtk: 35, sAtk: 25, endur: 100 }, size: .95}, //Total: 300
     33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, sDef: 45, pAtk: 70, sAtk: 30, endur: 40 }, size: 1.2}, //Total: 300
     34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, sDef: 40, pAtk: 60, sAtk: 10, endur: 60 }, abilId: 13, size: 0.75}, //Total: 300
-    35: { name: "Scornfront", element: "Electric", stats: { spd: 90, pDef: 45, sDef: 40, pAtk: 5, sAtk: 70, endur: 50 }, size: 1.2}, //Total: 300
-    36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, sDef: 40, pAtk: 60, sAtk: 60, endur: 70 }, size: 0.9}, //Total: 320
+    35: { name: "Scornfront", element: "Electric", stats: { spd: 90, pDef: 45, sDef: 35, pAtk: 10, sAtk: 70, endur: 50 }, size: 1.2}, //Total: 300
+    36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, sDef: 40, pAtk: 60, sAtk: 40, endur: 70 }, size: 0.9}, //Total: 300
     /*37: { name: "Souldier", element: "Neutral", stats: { spd: 50, pDef: 70, sDef: 70, pAtk: 30, sAtk: 30, endur: 60 }, size: 1}, //Total: 310
     38: { name: "Arch", element: "Neutral", stats: { spd: 60, pDef: 30, sDef: 30, pAtk: 120, sAtk: 10, endur: 60 }, size: 1}, //Total: 310
     39: { name: "Balencia", element: "Neutral", stats: { spd: 55, pDef: 55, sDef: 55, pAtk: 55, sAtk: 55, endur: 55 }, size: 1}, //Total: 330
@@ -179,7 +175,7 @@ const MONSTER_ABILITIES = {
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
     15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss." },
     16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt." },
-	35: { name: "Static Charge", desc: "5% of damage taken gained as stamina." },
+	35: { name: "Static Charge", desc: "10% of physical damage taken gained as stamina." },
 }
 
 /*const MONSTER_TYPE_STORIES = {

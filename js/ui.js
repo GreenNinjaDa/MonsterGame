@@ -21,11 +21,15 @@ function toggleStorageUI() {
         helpButton.style.display = gameState.storageUIOpen ? 'none' : 'flex';
     }
     
-    // Update storage UI content if opening
+    // Update storage UI content if opening, clear if closing
     if (gameState.storageUIOpen) {
         saveGame();
         addChatMessage("Game saved.", 1000);
         updateStorageUI();
+    } else {
+        // Clear the monster lists when closing
+        document.getElementById('activeMonsterList').innerHTML = '';
+        document.getElementById('monsterList').innerHTML = '';
     }
 }
 
@@ -190,7 +194,7 @@ function updateStorageUI() {
 
     // Add event listener for swap buttons
     document.querySelectorAll('.swap-button').forEach(button => {
-        button.addEventListener('click', (e) => swapActiveMonsters(e.target.dataset.id));
+        button.addEventListener('click', (e) => swapActiveMonsters());
     });
 }
 
@@ -698,6 +702,8 @@ function showMonsterDetails(monsterId) {
     statsHTML += `
         <tr>
             <th colspan="1" style="padding-top: 15px;">Derived Stats</th>
+            <th class="stat-total">Base</th>
+            <th></th>
             <th class="stat-total">Current</th>
             <th></th>
             <th class="stat-total">Max Level</th>
@@ -706,6 +712,18 @@ function showMonsterDetails(monsterId) {
     
     // Calculate total of all final calculated stats
     const totalStats = Object.values(statValues).reduce((sum, stat) => sum + stat, 0);
+
+    // Calculate derived stats at base level
+    const baseLevelStatsData = calculateMonsterStats(
+        monsterType.stats, 
+        1, 
+        monster.element, 
+        monster.rareModifiers, 
+        monster.spawnLevel,
+        monster.typeId,
+        monster.favoredStat
+    );
+    const baseLevelTotalStats = Object.values(baseLevelStatsData.stats).reduce((sum, stat) => sum + stat, 0);
     
     // Calculate derived stats at current level
     const maxHPFinal = monster.maxHP;
@@ -731,24 +749,32 @@ function showMonsterDetails(monsterId) {
     statsHTML += `
         <tr class="derived-stat-row">
             <td>Total Stats</td>
+            <td class="stat-total">${baseLevelTotalStats}</td>
+            <td></td>
             <td class="stat-total">${totalStats}</td>
             <td></td>
             <td class="stat-total">${maxLevelTotalStats}</td>
         </tr>
         <tr class="derived-stat-row">
             <td>Max HP</td>
+            <td class="stat-total">${GAME_CONFIG.monsterBaseHP}</td>
+            <td></td>
             <td class="stat-total">${maxHPFinal}</td>
             <td></td>
             <td class="stat-total">${maxLevelMaxHP}</td>
         </tr>
         <tr class="derived-stat-row">
             <td>Max Stamina</td>
+            <td class="stat-total">${GAME_CONFIG.monsterBaseStamina}</td>
+            <td></td>
             <td class="stat-total">${maxStaminaFinal}</td>
             <td></td>
             <td class="stat-total">${maxLevelMaxStamina}</td>
         </tr>
         <tr class="derived-stat-row">
             <td>Attack Cooldown</td>
+            <td class="stat-total">${monster.typeId.atkCd ? monster.typeId.atkCd.toFixed(1) : GAME_CONFIG.defaultAttackCooldown.toFixed(1)}s</td>
+            <td></td>
             <td class="stat-total">${attackCooldownFinal.toFixed(1)}s</td>
             <td></td>
             <td class="stat-total">${maxLevelAttackCooldown.toFixed(1)}s</td>
@@ -1009,6 +1035,10 @@ function setupUIEventHandlers() {
         if (event.key === 'q' || event.key === 'Q' || event.key === 'Escape') {
             toggleStorageUI();
         }
+        // 'E' key to swap active monsters
+        if (event.key === 'e' || event.key === 'E') {
+            swapActiveMonsters();
+        }
         // 'M' key to toggle music
         if (event.key === 'm' || event.key === 'M') {
             toggleMusic();
@@ -1236,7 +1266,7 @@ function createFloatingCaptureOrb(position) {
 }
 
 // Swap the two active monsters
-function swapActiveMonsters(monsterId) {
+function swapActiveMonsters() {
     // Check if there are exactly two active monsters
     if (gameState.player.monsters.length !== 2) {
         addChatMessage("You need exactly two active monsters to swap.");
@@ -1248,5 +1278,5 @@ function swapActiveMonsters(monsterId) {
     
     // Update the storage UI to reflect the change
     updateStorageUI();
-    addChatMessage("Active monsters swapped.");
+    addChatMessage("Active monsters swapped.", 2000);
 }

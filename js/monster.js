@@ -26,8 +26,8 @@ function loadMonsterTextures() {
 // Create UI Labels for HP, Stamina, Level, and Name
 function createUILabel() {
     const canvas = document.createElement('canvas');
-    canvas.width = 200; // Even wider for larger name text
-    canvas.height = 100; // Taller for larger name text
+    canvas.width = 250; // Even wider for larger name text
+    canvas.height = 110; // Taller for larger name text
     const context = canvas.getContext('2d');
     
     // Create a texture from the canvas
@@ -51,7 +51,7 @@ function updateUILabel(uiLabel, monster) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     
     // Reset font for the name
-    context.font = '30px Arial';
+    context.font = '45px Arial';
     
     // Add monster name at the top with larger font
     let displayName = monster.name;
@@ -109,19 +109,19 @@ function updateUILabel(uiLabel, monster) {
     
     // HP bar
     context.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    context.fillRect(0, 40, canvas.width, 12);
+    context.fillRect(0, 45, canvas.width, 12);
     
     const hpPercent = Math.max(0, monster.currentHP / monster.maxHP);
     context.fillStyle = hpPercent > 0.5 ? 'lime' : hpPercent > 0.2 ? 'yellow' : 'red';
-    context.fillRect(2, 42, (canvas.width - 4) * hpPercent, 8);
+    context.fillRect(2, 47, (canvas.width - 4) * hpPercent, 8);
     
     // Stamina bar
     context.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    context.fillRect(0, 55, canvas.width, 12);
+    context.fillRect(0, 60, canvas.width, 12);
     
     const staminaPercent = Math.max(0, monster.currentStamina / monster.maxStamina);
     context.fillStyle = 'skyblue';
-    context.fillRect(2, 57, (canvas.width - 4) * staminaPercent, 8);
+    context.fillRect(2, 62, (canvas.width - 4) * staminaPercent, 8);
     
     // Level display with element color
     let elementColor = ELEMENT_COLORS[monster.element];
@@ -133,19 +133,19 @@ function updateUILabel(uiLabel, monster) {
         // Draw first part of outline for level text
         context.lineWidth = 4;
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(70, 69, 60, 20);
+        context.fillRect(85, 74, 80, 20);
         // Use element color for text when typeshifted
         elementColor = ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element];
         color = new THREE.Color(elementColor);
         // Draw second part of outline for level text
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(70, 89, 60, 10);
+        context.fillRect(85, 94, 80, 15);
     }
     else {
         // Draw an outline for level text
         context.lineWidth = 4;
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(70, 69, 60, 30);
+        context.fillRect(85, 74, 80, 35);
     }
 
     // Use white for text
@@ -156,9 +156,9 @@ function updateUILabel(uiLabel, monster) {
     context.textBaseline = 'middle';
     
     // Show level number
-    context.font = 'bold 25px Arial';
-    context.strokeText(monster.level, 100, 85);
-    context.fillText(monster.level, 100, 85);
+    context.font = 'bold 35px Arial';
+    context.strokeText(monster.level, 125, 93);
+    context.fillText(monster.level, 125, 93);
     
     // Update the texture
     texture.needsUpdate = true;
@@ -274,11 +274,17 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
             }
         });
     }
+
+    //Determine attack cooldown based on typeId
+    let attackCooldown = GAME_CONFIG.defaultAttackCooldown;
+    if (typeId.atkCd) {
+        attackCooldown = typeId.atkCd;
+    }
     
     // Step 6: Calculate derived stats
-    const maxHP = Math.round(200 * (1 + 0.4 * stats.endur / 100));
-    const maxStamina = Math.round(100 * (1 + 0.4 * stats.endur / 100));
-    const attackCooldown = GAME_CONFIG.defaultAttackCooldown / (1 + GAME_CONFIG.speedAttackScaling * stats.spd); // Base cooldown, reduced by speed stat
+    const maxHP = Math.round(GAME_CONFIG.monsterBaseHP * (1 + 0.4 * stats.endur / 100));
+    const maxStamina = Math.round(GAME_CONFIG.monsterBaseStamina * (1 + 0.4 * stats.endur / 100));
+    attackCooldown = attackCooldown / (1 + GAME_CONFIG.speedAttackScaling * stats.spd); // Base cooldown, reduced by speed stat
     
     return {
         stats,
@@ -467,18 +473,16 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
 }
 
 // Calculate damage based on stats and elemental relations
-function dealDamage(attacker, defender, physicalBase = GAME_CONFIG.physicalBase, specialBase = GAME_CONFIG.specialBase) {
-    
-    // Calculate physical damage
+function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0) {
+
+    // Calculate physical damage reduction
     const physicalDamage = Math.floor(
-        (physicalBase * (100 + attacker.stats.pAtk)) / 
-        (100 + defender.stats.pDef)
+        (physicalBase / (1 + (defender.stats.pDef / 100)))
     );
     
-    // Calculate special damage
+    // Calculate special damage reduction
     const specialDamage = Math.floor(
-        (specialBase * (100 + attacker.stats.sAtk)) / 
-        (100 + defender.stats.sDef)
+        (specialBase / (1 + (defender.stats.sDef / 100)))
     );
     
     // Check for elemental advantage
@@ -510,12 +514,91 @@ function dealDamage(attacker, defender, physicalBase = GAME_CONFIG.physicalBase,
     // Total damage
     const totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
     
-    return {
+    /*return {
         physical: adjustedPhysicalDamage,
         special: adjustedSpecialDamage,
         total: totalDamage,
         elementMultiplier
-    };
+    };*/
+    
+    // Apply damage to defender
+    defender.currentHP = Math.max(0, defender.currentHP - totalDamage);
+
+    // Static Charge ability gains 10% of physical damage taken as stamina
+    if (hasAbility(attacker, 35)) {
+        attacker.currentStamina += adjustedPhysicalDamage * 0.1;
+    }
+
+    // Physical Drain ability
+    if (hasAbility(attacker, 16)) {
+        attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedPhysicalDamage * 0.2));
+    }
+
+    // Visual feedback for elemental interactions
+    if (elementMultiplier < 1.1 && elementMultiplier > 0.9) {
+        // Clear any existing color flash timeout and revert material
+        if (defender.colorResetTimeout) {
+            clearTimeout(defender.colorResetTimeout);
+            defender.colorResetTimeout = null;
+            if (defender.monsterMesh && defender.originalMaterial) {
+                defender.monsterMesh.material = defender.originalMaterial;
+            }
+        }
+        
+        // Create a new shader material for the flash effect
+        const flashMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                tMap: { value: defender.originalTexture },
+                tintColor: { value: new THREE.Color(1, 1, 1) }
+            },
+            vertexShader: tintShaderMaterial.vertexShader,
+            fragmentShader: tintShaderMaterial.fragmentShader,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        // Set the tint color based on effectiveness
+        if (elementMultiplier > 1) {
+            flashMaterial.uniforms.tintColor.value.set(1, 0, 0);
+        } else {
+            flashMaterial.uniforms.tintColor.value.set(0, 0, 1);
+        }
+        
+        // Apply the flash material
+        defender.monsterMesh.material = flashMaterial;
+        
+        // Store the flash timeout in the monster object
+        defender.colorResetTimeout = setTimeout(() => {
+            if (defender.monsterMesh && defender.originalMaterial) {
+                defender.monsterMesh.material = defender.originalMaterial;
+                defender.colorResetTimeout = null;
+            }
+        }, 200);
+    }
+    
+    // Show damage number with color based on effectiveness
+    let textColor;
+    if (elementMultiplier >= 1.1) {
+        // Super effective - red text
+        textColor = 0xff0000;
+    } else if (elementMultiplier <= 0.9) {
+        // Not very effective - blue text
+        textColor = 0x0000ff;
+    } else {
+        // Normal effectiveness - yellow text
+        textColor = 0xffff00;
+    }
+    
+    createFloatingText(`-${totalDamage}`, defender.mesh.position, textColor);
+    
+    // Update health bars
+    updateUILabel(defender.uiLabel, defender);
+    updateUILabel(attacker.uiLabel, attacker);
+    
+    // Check if defender is defeated
+    if (defender.currentHP <= 0) {
+        handleMonsterDefeat(defender, attacker);
+    }
 }
 
 // Shader material for tinting textures
@@ -569,7 +652,7 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     // Check if attacker has enough stamina
     const staminaCost = GAME_CONFIG.defaultStaminaCost;
-    let damageMulti = 1;
+    let staminaMulti = 1;
     
     if (attacker.currentStamina < staminaCost) {
         if (hasAbility(attacker, 9) && attacker.currentHP > staminaCost) {
@@ -577,7 +660,7 @@ function monsterAttack(attacker, defender, deltaTime) {
         }
         else {
             // Not enough stamina, double cooldown and don't consume stamina
-            damageMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
+            staminaMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
         }
     } else {
         attacker.currentStamina -= staminaCost;
@@ -585,94 +668,27 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     attacker.timeSinceCombat = 0; 
     defender.timeSinceCombat = 0;
-    
+
+    // Modify physical and special base damage based on typeId.atkCd (attack cooldown)
+    let tempPhysicalDmg = GAME_CONFIG.physicalBase;
+    let tempSpecialDmg = GAME_CONFIG.specialBase;
+    if (attacker.typeId.atkCd) {
+        tempPhysicalDmg = tempPhysicalDmg * (attacker.typeId.atkCd / GAME_CONFIG.defaultAttackCooldown);
+        tempSpecialDmg = tempSpecialDmg * (attacker.typeId.atkCd / GAME_CONFIG.defaultAttackCooldown);
+    }
+
+    // Boost outgoing damage
+    tempPhysicalDmg = tempPhysicalDmg * (1 + (attacker.stats.pAtk / 100));
+    tempSpecialDmg = tempSpecialDmg * (1 + (attacker.stats.sAtk / 100));
+
     // Calculate damage
-    const damageResult = dealDamage(attacker, defender, GAME_CONFIG.physicalBase * damageMulti, GAME_CONFIG.specialBase * damageMulti);
-    
-    // Apply damage to defender
-    defender.currentHP = Math.max(0, defender.currentHP - damageResult.total);
-
-    // Static Charge ability gains 5% of damage taken as stamina
-    if (hasAbility(attacker, 35)) {
-        attacker.currentStamina += damageResult.total * 0.05;
-    }
-
-    // Physical Drain ability
-    if (hasAbility(attacker, 16)) {
-        attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (damageResult.physical * 0.2));
-    }
-
-    // Visual feedback for elemental interactions
-    if (damageResult.elementMultiplier < 1.1 && damageResult.elementMultiplier > 0.9) {
-        // Clear any existing color flash timeout and revert material
-        if (defender.colorResetTimeout) {
-            clearTimeout(defender.colorResetTimeout);
-            defender.colorResetTimeout = null;
-            if (defender.monsterMesh && defender.originalMaterial) {
-                defender.monsterMesh.material = defender.originalMaterial;
-            }
-        }
-        
-        // Create a new shader material for the flash effect
-        const flashMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                tMap: { value: defender.originalTexture },
-                tintColor: { value: new THREE.Color(1, 1, 1) }
-            },
-            vertexShader: tintShaderMaterial.vertexShader,
-            fragmentShader: tintShaderMaterial.fragmentShader,
-            transparent: true,
-            side: THREE.DoubleSide
-        });
-        
-        // Set the tint color based on effectiveness
-        if (damageResult.elementMultiplier > 1) {
-            flashMaterial.uniforms.tintColor.value.set(1, 0, 0);
-        } else {
-            flashMaterial.uniforms.tintColor.value.set(0, 0, 1);
-        }
-        
-        // Apply the flash material
-        defender.monsterMesh.material = flashMaterial;
-        
-        // Store the flash timeout in the monster object
-        defender.colorResetTimeout = setTimeout(() => {
-            if (defender.monsterMesh && defender.originalMaterial) {
-                defender.monsterMesh.material = defender.originalMaterial;
-                defender.colorResetTimeout = null;
-            }
-        }, 200);
-    }
-    
-    // Show damage number with color based on effectiveness
-    let textColor;
-    if (damageResult.elementMultiplier >= 1.1) {
-        // Super effective - red text
-        textColor = 0xff0000;
-    } else if (damageResult.elementMultiplier <= 0.9) {
-        // Not very effective - blue text
-        textColor = 0x0000ff;
-    } else {
-        // Normal effectiveness - yellow text
-        textColor = 0xffff00;
-    }
-    
-    createFloatingText(`-${damageResult.total}`, defender.mesh.position, textColor);
-    
-    // Update health bars
-    updateUILabel(defender.uiLabel, defender);
-    updateUILabel(attacker.uiLabel, attacker);
+    dealDamage(attacker, defender, tempPhysicalDmg * staminaMulti, tempSpecialDmg * staminaMulti);
     
     // Move attacker in a random direction after attack
     const randomAngle = Math.random() * Math.PI * 2;
     const moveDistance = 5;
     attacker.mesh.position.x += Math.cos(randomAngle) * moveDistance;
     attacker.mesh.position.y += Math.sin(randomAngle) * moveDistance;
-    
-    // Check if defender is defeated
-    if (defender.currentHP <= 0) {
-        handleMonsterDefeat(defender, attacker);
-    }
 }
 
 // Handle monster defeat

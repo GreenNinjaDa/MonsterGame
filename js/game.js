@@ -673,7 +673,7 @@ function gameLoop(time) {
         gameState.fpsHistory = [];
     }
     gameState.fpsHistory.push(frameRate);
-    if (gameState.fpsHistory.length > 10) {
+    if (gameState.fpsHistory.length > 100) {
         gameState.fpsHistory.shift();
     }
     const avgFps = Math.round(gameState.fpsHistory.reduce((a, b) => a + b, 0) / gameState.fpsHistory.length);
@@ -1919,7 +1919,7 @@ function handleRumbleCombat(monster, target, distance, deltaTime) {
             monster.mesh.position.z = calculateZPosition(monster.mesh.position.y);
         }
     } else if (monster.rollingState === 'rolling') {
-        const rollSpeed = 200 * deltaTime; // Fixed rolling speed
+        const rollSpeed = GAME_CONFIG.playerSpeed * deltaTime; // Fixed rolling speed equal to player speed
 
         // Apply slight turning while rolling (e.g., 30 degrees/sec)
         const turnAngle = (Math.PI / 6) * deltaTime * monster.rollTurnDirection;
