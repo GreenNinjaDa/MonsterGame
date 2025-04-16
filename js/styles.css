@@ -1,0 +1,651 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000;
+    touch-action: none;
+}
+canvas {
+    display: block;
+}
+#ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #ffdd57;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+#goldCounter {
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+#fpsCounter {
+    margin-bottom: 10px;
+    margin-top: 10px;
+    color: #00ff00;
+}
+#storageButton {
+    background-color: rgba(0, 0, 0, 0.1);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    border: 2px solid black;
+    color: #ffdd57;
+    padding: 10px 5px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 5px;
+    pointer-events: auto;
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+#captureUI {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    display: none;
+    pointer-events: auto;
+}
+#captureButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 30px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+#captureDetailsButton {
+    background-color: #9b59b6;
+    border: none;
+    color: white;
+    padding: 30px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+#nextTargetButton {
+    background-color: #3498db;
+    border: none;
+    color: white;
+    padding: 30px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.capture-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+#storageUI {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    pointer-events: auto;
+}
+#storageUI h2 {
+    text-align: center;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#monsterList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+.monster-card {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 5px;
+}
+.monster-card:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+.monster-color {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: 0 auto;
+}
+.monster-actions {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+.monster-actions button {
+    background-color: #2980b9;
+    border: none;
+    color: white;
+    padding: 10px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.monster-actions button.details-button {
+    background-color: #9b59b6;
+}
+.sort-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+.sort-button {
+    background-color: #3498db;
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+.sort-button:hover {
+    background-color: #2980b9;
+}
+.close-button {
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    font-size: 48px;
+    cursor: pointer
+}
+
+/* Monster Details Modal */
+#monsterDetailsUI {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    pointer-events: auto;
+    z-index: 1001;
+}
+
+#monsterDetailsUI h2 {
+    text-align: center;
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#detailsContent {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.monster-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.monster-header .monster-sprite {
+    width: 200px;
+    height: 200px;
+    margin-right: 20px;
+}
+
+.monster-sprite {
+    width: 150px;
+    height: 150px;
+    margin-right: 15px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.monster-sprite img {
+    max-width: 200px;
+    max-height: 200px;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+@media screen and (max-width: 768px) {
+    .monster-sprite {
+        width: 100px;
+        height: 100px;
+        margin-right: 10px;
+    }
+    
+    .monster-header .monster-sprite {
+        width: 150px;
+        height: 150px;
+        margin-right: 15px;
+    }
+    
+    .monster-sprite img {
+        max-width: 150px;
+        max-height: 150px;
+    }
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    table-layout: fixed;
+}
+
+.stats-table th, .stats-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table th {
+    font-weight: bold;
+    color: #ffdd57;
+}
+
+.stats-table th:first-child,
+.stats-table td:first-child {
+    width: 30%;
+}
+
+.stats-table th:nth-child(2),
+.stats-table td:nth-child(2) {
+    width: 12%;
+}
+
+.stats-table th:nth-child(3),
+.stats-table td:nth-child(3),
+.stats-table th:nth-child(4),
+.stats-table td:nth-child(4),
+.stats-table th:nth-child(5),
+.stats-table td:nth-child(5) {
+    width: 15%;
+}
+
+.stats-table th:last-child,
+.stats-table td:last-child {
+    width: 13%;
+}
+
+.stat-value {
+    text-align: right;
+}
+
+.boosted-stat {
+    color: #00ff00;
+    font-weight: bold;
+}
+
+.stat-modifier {
+    color: #4CAF50;
+    text-align: right;
+}
+
+.stat-modifier.negative {
+    color: #e74c3c;
+}
+
+.stat-total {
+    font-weight: bold;
+    text-align: right;
+}
+
+#chatUI {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    max-height: 600px;
+    overflow-y: auto;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.chat-message {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: gold;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.chat-message.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.chat-message.fade-out {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+#activeMonsterList {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+#activeMonsterList .monster-card {
+    flex: 1;
+    max-width: 45%;
+}
+
+.music-toggle {
+    position: relative;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 48px;
+    cursor: pointer;
+    padding: 5px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    margin-right: 10px;
+    float: left;
+}
+
+.music-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Create a container for toggle buttons */
+.toggle-buttons-container {
+    display: flex;
+    margin-right: auto;
+}
+
+#welcomePopup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 10px;
+}
+
+.welcome-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.welcome-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.welcome-content p {
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+#welcomeCloseButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#welcomeCloseButton:hover {
+    background-color: #45a049;
+}
+
+#helpButton {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1000;
+    border: 2px solid #000;
+    transition: all 0.3s ease;
+}
+
+#helpButton.flash {
+    animation: flashRed 1s infinite;
+}
+
+@keyframes flashRed {
+    0% {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #000;
+        transform: scale(1);
+    }
+    50% {
+        background-color: rgba(255, 0, 0, 0.5);
+        border-color: #ff0000;
+        transform: scale(2);
+    }
+    100% {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #000;
+        transform: scale(1);
+    }
+}
+
+#helpButton:hover {
+    background-color: #fff;
+    transform: scale(1.1);
+}
+
+#helpPopup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1001;
+    overflow-y: auto;
+}
+
+.help-content {
+    position: relative;
+    background-color: rgba(255, 255, 255, 0.5);
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+}
+
+.help-content h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.help-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.help-sections section {
+    background-color: rgba(245, 245, 245, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.help-sections h3 {
+    color: #444;
+    margin-bottom: 15px;
+}
+
+.help-sections p {
+    margin: 8px 0;
+    line-height: 1.4;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .help-content {
+        margin: 20px;
+        padding: 20px;
+    }
+    
+    .help-sections {
+        grid-template-columns: 1fr;
+    }
+}
+
+#helpCloseButton {
+    display: block;
+    margin: 30px auto 0;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#helpCloseButton:hover {
+    background-color: #45a049;
+}
+
+.element-chart-section {
+    grid-column: 1 / -1;
+    text-align: center;
+    background-color: rgba(245, 245, 245, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.element-chart {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .element-chart {
+        max-width: 90%;
+        margin: 10px auto;
+    }
+}
+
+.monster-explained-section {
+    grid-column: 1 / -1;
+    text-align: center;
+    background-color: rgba(245, 245, 245, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.monster-explained-chart {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .monster-explained-chart {
+        max-width: 90%;
+        margin: 10px auto;
+    }
+}
+
+/* Added styles for tooltips */
+[title] {
+    /*text-decoration: underline dotted;*/
+    cursor: help;
+} 
