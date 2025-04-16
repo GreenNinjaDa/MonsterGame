@@ -1981,13 +1981,9 @@ function updateHPRegen(deltaTime) {
         const isStored = gameState.player.storedMonsters.includes(monster);
         const isInCombat = inCombat(monster); // Capture result
         let regenRate = (isInCombat && !isStored) ? GAME_CONFIG.hpRegenRateCombat : GAME_CONFIG.hpRegenRate;
-        if (hasAbility(monster, 14)) {regenRate = 0.025} //Blazey always regens HP at half out of combat rates
+        // Ability 14: Lazy - Always regens HP at half out of combat rates
+        if (hasAbility(monster, 14)) {regenRate = MONSTER_ABILITIES[14].value * GAME_CONFIG.hpRegenRate}
         const regenAmount = monster.maxHP * regenRate * deltaTime;
-        
-        // --- REMOVED Debug Logging ---
-        // if (monster.team === 2 && monster.currentHP < monster.maxHP) {
-        //     console.log(...);
-        // }
 
         // Apply HP regeneration
         if (monster.currentHP < monster.maxHP && regenAmount > 0) { 

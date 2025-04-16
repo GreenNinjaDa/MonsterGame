@@ -10,9 +10,9 @@ const MONSTER_TYPES = {
     6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, sDef: 40, pAtk: 30, sAtk: 80, endur: 40}, size: 0.8 }, //Total: 300
     7: { name: "Roflstump", element: "Plant", stats: { spd: 30, pDef: 40, sDef: 40, pAtk: 90, sAtk: 70, endur: 30}, size: 0.8}, //Total: 300
     8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, sDef: 50, pAtk: 45, sAtk: 35, endur: 70}, size: 1.2}, //Total: 300
-    9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, sDef: 20, pAtk: 50, sAtk: 20, endur: 80}, size: 1}, //Total: 300
+    9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, sDef: 20, pAtk: 50, sAtk: 20, endur: 80}, size: 1, atkCd: 3}, //Total: 300
     10: { name: "Emborgi", element: "Fire", stats: { spd: 60, pDef: 30, sDef: 50, pAtk: 40, sAtk: 70, endur: 50}, size: 1}, //Total: 300
-    11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 40, sDef: 55, pAtk: 35, sAtk: 70, endur: 30}, size: 1}, //Total: 280
+    11: { name: "Vinegents", element: "Plant", stats: { spd: 50, pDef: 40, sDef: 55, pAtk: 35, sAtk: 70, endur: 30}, atkCd: 5, size: 1}, //Total: 280
     12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 45, sAtk: 25, endur: 60}, size: 0.8}, //Total: 280
     13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, sDef: 45, pAtk: 70, sAtk: 10, endur: 60}, size: 0.85}, //Total: 300
     14: { name: "Blazey", element: "Fire", stats: { spd: 10, pDef: 50, sDef: 60, pAtk: 25, sAtk: 75, endur: 40 }, size: 1}, //Total: 260
@@ -21,7 +21,7 @@ const MONSTER_TYPES = {
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 20, pDef: 60, sDef: 70, pAtk: 70, sAtk: 20, endur: 60 }, size: 1}, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 50, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
     19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, sDef: 60, pAtk: 20, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
-    20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 50, sAtk: 20, endur: 60 }, size: 1}, //Total: 230 //Hydra: Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
+    20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 60, sAtk: 20, endur: 80 }, size: 1}, //Total: 260 //Hydra: Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
     21: { name: "Pyrithan", element: "Earth", stats: { spd: 30, pDef: 90, sDef: 50, pAtk: 60, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
     22: { name: "Tesnail", element: "Electric", stats: { spd: 80, pDef: 50, sDef: 30, pAtk: 15, sAtk: 45, endur: 80 }, size: 1}, //Total: 300
     23: { name: "Crystacean", element: "Earth", stats: { spd: 30, pDef: 40, sDef: 90, pAtk: 80, sAtk: 20, endur: 40 }, size: 1}, //Total: 300
@@ -50,15 +50,18 @@ const MONSTER_TYPES = {
 const MONSTER_ABILITIES = {
     /* IDEAS:
     00: { name: "Adaptive Strikes", desc: "Attack damage type becomes the lower of the defender's defenses." },
+    00: { name: "Willpower", desc: "Damage goes to stamina when HP is depleted." },
+    00: { name: "Ensnaring", desc: "10% of damage also reduces enemy stamina." }
     */
-    9: { name: "Unrelenting", desc: "When stamina is depleted, spends HP instead to attack."},
-    11: { name: "Vengeance", desc: "Enrages when damaged, dealing 50% increased damage for 2 seconds." },
-    12: { name: "Magic Thorns", desc: "Reflects 25% of attack special damage taken before reduction." },
+    9: { name: "Unrelenting", desc: "When stamina is depleted, spends HP instead to attack." },
+    11: { name: "Vengeance", desc: "Enrages when damaged, dealing 50% increased damage for 2 seconds.", value: 1.5, time: 2 },
+    12: { name: "Magic Thorns", desc: "Reflects 25% of attack special damage taken before reduction.", value: 0.25 },
     13: { name: "Rumbler", desc: "Rolls around during combat." },
-    14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates." },
-    15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss." },
-    16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt." },
-	35: { name: "Static Charge", desc: "10% of physical damage taken gained as stamina." },
+    14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates.", value: 0.5 },
+    15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss.", value: 0.2 },
+    16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt.", value: 0.2 },
+    20: { name: "Hydra", desc: "Instead of dying, spends all its stamina to revive.", value: 0.1 },
+	35: { name: "Static Charge", desc: "20% of physical damage taken gained as stamina.", value: 0.2 },
 }
 
 /*const MONSTER_TYPE_STORIES = {

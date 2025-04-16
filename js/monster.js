@@ -484,13 +484,13 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
 
     // Ability 12: Magic Thorns reflects 25% of attack special damage taken before reduction
     if (isAttack && hasAbility(defender, 12)) {
-        dealDamage(defender, attacker, 0, specialBase * 0.25, false);
+        dealDamage(defender, attacker, 0, specialBase * MONSTER_ABILITIES[12].value, false);
     }
 
     // Ability 11: Vengeance
-    if (hasAbility(attacker, 11) && attacker.timeSinceDamageTaken < 2) {
-        physicalBase = physicalBase * 1.5;
-        specialBase = specialBase * 1.5;
+    if (hasAbility(attacker, 11) && attacker.timeSinceDamageTaken < MONSTER_ABILITIES[11].time) {
+        physicalBase = physicalBase * MONSTER_ABILITIES[11].value;
+        specialBase = specialBase * MONSTER_ABILITIES[11].value;
     }
 
     // Calculate physical damage reduction
@@ -535,18 +535,24 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - totalDamage);
 
+    // Ability 20 - Hydra - Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
+    if (hasAbility(defender, 20) && defender.currentHP <= 0 && defender.currentStamina > (MONSTER_ABILITIES[20].value * defender.maxStamina)) {
+        defender.currentHP = defender.maxHP * (defender.currentStamina / defender.maxStamina);
+        defender.currentStamina = 0;
+    }
+
     // Set both monsters to be in combat
     defender.timeSinceDamageTaken = 0;
     attacker.timeSinceDamageDealt = 0;
 
-    // Static Charge ability gains 10% of physical damage taken as stamina
+    // Ability 35 - Static Charge - gains 20% of physical damage taken as stamina
     if (hasAbility(defender, 35)) {
-        defender.currentStamina += adjustedPhysicalDamage * 0.1;
+        defender.currentStamina += adjustedPhysicalDamage * MONSTER_ABILITIES[35].value;
     }
 
     // Physical Drain ability
     if (hasAbility(attacker, 16)) {
-        attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedPhysicalDamage * 0.2));
+        attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedPhysicalDamage * MONSTER_ABILITIES[16].value));
     }
 
     // Visual feedback for elemental interactions
@@ -1043,7 +1049,7 @@ function selectWeightedRandomTarget(attacker) {
 
         if (!filterReason) {
             // Check for Distracting Presence ability 15
-            if (inRange && hasAbility(target, 15) && Math.random() < 0.2) {
+            if (inRange && hasAbility(target, 15) && Math.random() < MONSTER_ABILITIES[15].value) {
                 attackMissed = true; // Mark that the attack will miss
             }
         }
