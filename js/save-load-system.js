@@ -24,7 +24,8 @@ window.saveGame = function() {
             favoredStat: monster.favoredStat,
             element: monster.element,
             spawnLevel: monster.spawnLevel,
-            rareModifiers: monster.rareModifiers
+            rareModifiers: monster.rareModifiers,
+            abilId: monster.abilId
         })),
         storedMonsters: storedMonsters.map(monster => ({
             typeId: monster.typeId,
@@ -33,7 +34,8 @@ window.saveGame = function() {
             favoredStat: monster.favoredStat,
             element: monster.element,
             spawnLevel: monster.spawnLevel,
-            rareModifiers: monster.rareModifiers
+            rareModifiers: monster.rareModifiers,
+            abilId: monster.abilId
         })),
         player: playerData
     };
@@ -96,7 +98,9 @@ window.loadGame = function() {
             0, // not wild
             monsterData.spawnLevel,
             monsterData.element,
-            monsterData.favoredStat
+            monsterData.favoredStat,
+            null, // no masterId
+            monsterData.abilId
         );
         monster.experience = monsterData.experience;
         gameState.player.monsters.push(monster);
@@ -112,7 +116,9 @@ window.loadGame = function() {
             0, // not wild
             monsterData.spawnLevel,
             monsterData.element,
-            monsterData.favoredStat
+            monsterData.favoredStat,
+            null, // no masterId
+            monsterData.abilId
         );
         monster.experience = monsterData.experience;
         gameState.player.storedMonsters.push(monster);
@@ -121,12 +127,20 @@ window.loadGame = function() {
     // If player has no active monsters but has stored monsters, activate the first one
     if (gameState.player.monsters.length === 0 && gameState.player.storedMonsters.length > 0) {
         const firstStoredMonster = gameState.player.storedMonsters[0];
-        if (!firstStoredMonster.defeated) {
-            // Remove from stored monsters
-            gameState.player.storedMonsters.splice(0, 1);
-            // Add to active monsters
-            addMonsterToPlayer(firstStoredMonster);
-            addChatMessage(`${firstStoredMonster.name} has been automatically activated!`, 5000);
-        }
+        // Remove from stored monsters
+        gameState.player.storedMonsters.splice(0, 1);
+        // Add to active monsters
+        addMonsterToPlayer(firstStoredMonster);
+        addChatMessage(`${firstStoredMonster.name} has been automatically activated!`, 5000);
+    }
+
+    // If player has 1 active monster but has stored monsters, activate the first one
+    if (gameState.player.monsters.length === 1 && gameState.player.storedMonsters.length > 0) {
+        const firstStoredMonster = gameState.player.storedMonsters[0];
+        // Remove from stored monsters
+        gameState.player.storedMonsters.splice(0, 1);
+        // Add to active monsters
+        addMonsterToPlayer(firstStoredMonster);
+        addChatMessage(`${firstStoredMonster.name} has been automatically activated!`, 5000);
     }
 }

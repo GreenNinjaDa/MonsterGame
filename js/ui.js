@@ -38,18 +38,37 @@ function initStorageUI() {
     // Set up initial content
     updateStorageUI();
     
-    // Add music toggle button to storage UI header
+    // Create a container for toggle buttons
     const storageHeader = document.querySelector('#storageUI h2');
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'toggle-buttons-container';
+    
+    // Add music toggle button
     const musicButton = document.createElement('button');
     musicButton.id = 'musicToggleButton';
     musicButton.className = 'music-toggle';
     musicButton.innerHTML = '🎶'; // Default to sound-on icon
+    musicButton.title = 'Toggle Music';
+    
+    // Add fullscreen toggle button
+    const fullscreenButton = document.createElement('button');
+    fullscreenButton.id = 'fullscreenToggleButton';
+    fullscreenButton.className = 'music-toggle'; // Reuse the same style
+    fullscreenButton.innerHTML = '⤴️'; // Default to fullscreen icon
+    fullscreenButton.title = 'Toggle Fullscreen';
+    
+    // Add buttons to container
+    buttonsContainer.appendChild(musicButton);
+    buttonsContainer.appendChild(fullscreenButton);
     
     // Insert before the header text
-    storageHeader.parentNode.insertBefore(musicButton, storageHeader);
+    storageHeader.parentNode.insertBefore(buttonsContainer, storageHeader);
     
     // Add click handler for music toggle
     musicButton.addEventListener('click', toggleMusic);
+    
+    // Add click handler for fullscreen toggle
+    fullscreenButton.addEventListener('click', toggleFullscreen);
 }
 
 // Toggle music playback
@@ -74,6 +93,43 @@ function toggleMusic() {
         gameState.musicSavedOff = true;
     }
 }
+
+// Toggle fullscreen mode
+function toggleFullscreen() {
+    const button = document.getElementById('fullscreenToggleButton');
+    
+    if (!document.fullscreenElement) {
+        // Enter fullscreen
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen()
+                .then(() => {
+                    button.innerHTML = '⤵️';
+                })
+                .catch((err) => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+        }
+    } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+            document.exitFullscreen()
+                .then(() => {
+                    button.innerHTML = '⤴️';
+                })
+                .catch((err) => {
+                    console.error(`Error attempting to exit fullscreen: ${err.message}`);
+                });
+        }
+    }
+}
+
+// Listen for fullscreen changes (handles F11 and other methods)
+document.addEventListener('fullscreenchange', function() {
+    const button = document.getElementById('fullscreenToggleButton');
+    if (button) {
+        button.innerHTML = document.fullscreenElement ? '⤵️' : '⤴️';
+    }
+});
 
 // Helper function to format modifiers for display
 function formatModifiers(monster, showCount = true) {
@@ -121,8 +177,9 @@ function updateStorageUI() {
         
         // Monster info
         const infoDiv = document.createElement('div');
+        const hasInheritedAbil = monster.abilId !== MONSTER_TYPES[monster.typeId].abilId && monster.abilId !== null;
         infoDiv.innerHTML = `
-            <h4>${monster.name} ${formatModifiers(monster)}</h4>
+            <h4>${hasInheritedAbil ? "!" : ""}${monster.name} ${formatModifiers(monster)}</h4>
             <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
             <p>${monster.defeated ? `<span style="color: red">Respawn: ${Math.ceil(monster.reviveTimer)}/${monster.level * 2}s</span>` : `HP: ${Math.round(monster.currentHP)}/${monster.maxHP}`}</p>
             <p>EXP: ${monster.level >= GAME_CONFIG.maxLevel ? 'Max Level' : `${monster.experience.current}/${monster.experience.toNextLevel}`}</p>
@@ -156,8 +213,9 @@ function updateStorageUI() {
         
         // Monster info
         const infoDiv = document.createElement('div');
+        const hasInheritedAbil = monster.abilId !== MONSTER_TYPES[monster.typeId].abilId && monster.abilId !== null;
         infoDiv.innerHTML = `
-            <h4>${monster.name} ${formatModifiers(monster)}</h4>
+            <h4>${hasInheritedAbil ? "!" : ""}${monster.name} ${formatModifiers(monster)}</h4>
             <p>Lvl: ${monster.level} | Type: <span style="color: #${new THREE.Color(ELEMENT_COLORS[monster.element]).getHexString()}">${monster.element}</span>${monster.element !== MONSTER_TYPES[monster.typeId].element ? ` (<span style="color: #${new THREE.Color(ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element]).getHexString()}">${MONSTER_TYPES[monster.typeId].element}</span>)` : ''}</p>
             <p>${monster.defeated ? `<span style="color: red">Respawn: ${Math.ceil(monster.reviveTimer)}/${monster.level * 2}s</span>` : `HP: ${Math.round(monster.currentHP)}/${monster.maxHP}`}</p>
             <p>EXP: ${monster.level >= GAME_CONFIG.maxLevel ? 'Max Level' : `${monster.experience.current}/${monster.experience.toNextLevel}`}</p>
@@ -413,7 +471,9 @@ function handleCapture() {
                 0,
                 monster.spawnLevel,
                 monster.element,
-                monster.favoredStat
+                monster.favoredStat,
+                null,
+                monster.abilId
             );
             
             // Ensure EXP formula is correct (halved requirement)
@@ -679,10 +739,34 @@ function showMonsterDetails(monsterId) {
         const totalValue = monster.stats[stat];
         statValues[stat] = totalValue;
         
+        // Determine the title attribute based on the stat
+        let statTitle = '';
+        switch (stat) {
+            case 'pAtk':
+                statTitle = ' title="Each Physical Attack increases physical damage dealt by 1%"';
+                break;
+            case 'sAtk':
+                statTitle = ' title="Each Special Attack increases Special damage dealt by 1%"';
+                break;
+            case 'pDef':
+                statTitle = ' title="Each Physical Defense reduces physical damage taken by 1%"';
+                break;
+            case 'sDef':
+                statTitle = ' title="Each Special Defense reduces special damage taken by 1%"';
+                break;
+            case 'spd':
+                const speedAttackPercent = (GAME_CONFIG.speedAttackScaling * 100).toFixed(1); // Calculate percentage
+                statTitle = ` title="Each Speed increases attack speed by ${speedAttackPercent}%"`;
+                break;
+            case 'endur':
+                statTitle = ' title="Each Endurance increases HP and stamina by 0.4%"';
+                break;
+        }
+        
         // Display the stat row
         statsHTML += `
             <tr>
-                <td>${GAME_CONFIG.statNamesProper[statIndex]}</td>
+                <td${statTitle}>${GAME_CONFIG.statNamesProper[statIndex]}</td>
                 <td class="stat-value ${stat === GAME_CONFIG.statNames[monster.favoredStat] ? 'boosted-stat' : ''}">${baseValue}</td>
                 <td class="stat-modifier">
                     ${levelModifier > 0 ? '+' + levelModifier : (levelModifier < 0 ? levelModifier : '')}
@@ -773,11 +857,11 @@ function showMonsterDetails(monsterId) {
         </tr>
         <tr class="derived-stat-row">
             <td>Attack Cooldown</td>
-            <td class="stat-total">${monster.typeId.atkCd ? monster.typeId.atkCd.toFixed(1) : GAME_CONFIG.defaultAttackCooldown.toFixed(1)}s</td>
+            <td class="stat-total">${MONSTER_TYPES[monster.typeId].atkCd ? MONSTER_TYPES[monster.typeId].atkCd.toFixed(1) : GAME_CONFIG.defaultAttackCooldown.toFixed(1)}s</td>
             <td></td>
-            <td class="stat-total">${attackCooldownFinal.toFixed(1)}s</td>
+            <td class="stat-total">${attackCooldownFinal.toPrecision(3)}s</td>
             <td></td>
-            <td class="stat-total">${maxLevelAttackCooldown.toFixed(1)}s</td>
+            <td class="stat-total">${maxLevelAttackCooldown.toPrecision(3)}s</td>
         </tr>
     `;
     
@@ -1057,6 +1141,15 @@ function setupUIEventHandlers() {
                 helpButton.classList.remove('flash');
                 gameState.helpUIOpen = true;
             }
+        }
+        // 'F11' key to toggle fullscreen
+        if (event.key === 'F11') {
+            event.preventDefault(); // Prevent default F11 behavior
+            toggleFullscreen();
+        }
+        // 'F' key to toggle fullscreen, but not if CTRL is also held down
+        if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey) {
+            toggleFullscreen();
         }
     });
 }

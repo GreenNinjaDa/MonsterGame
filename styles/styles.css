@@ -405,11 +405,18 @@ canvas {
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
-    margin-right: auto;
+    margin-right: 10px;
+    float: left;
 }
 
 .music-toggle:hover {
     background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Create a container for toggle buttons */
+.toggle-buttons-container {
+    display: flex;
+    margin-right: auto;
 }
 
 #welcomePopup {
@@ -635,4 +642,10 @@ canvas {
         max-width: 90%;
         margin: 10px auto;
     }
+}
+
+/* Added styles for tooltips */
+[title] {
+    /*text-decoration: underline dotted;*/
+    cursor: help;
 } 

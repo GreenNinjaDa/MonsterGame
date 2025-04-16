@@ -26,7 +26,7 @@ function loadMonsterTextures() {
 // Create UI Labels for HP, Stamina, Level, and Name
 function createUILabel() {
     const canvas = document.createElement('canvas');
-    canvas.width = 250; // Even wider for larger name text
+    canvas.width = 400; // Even wider for larger name text
     canvas.height = 110; // Taller for larger name text
     const context = canvas.getContext('2d');
     
@@ -37,7 +37,7 @@ function createUILabel() {
     // Create a sprite with the texture
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(90, 45, 1); // Larger scale for bigger text
+    sprite.scale.set(150, 45, 1); // Larger scale for bigger text
     sprite.position.y = 70; // Position higher above the monster
     sprite.position.z = 1; // Ensure UI is above monster
     
@@ -66,6 +66,15 @@ function updateUILabel(uiLabel, monster) {
     if (modifiers && Array.isArray(modifiers) && modifiers.length > 0) {
         // Add the number of modifiers to the name
         displayName += modifiers.length;
+    }
+    
+    if (!MONSTER_ABILITIES[monster.abilId]) {
+        monster.abilId = null;
+    }
+    
+    // Add "!" to name if monster has an inherited ability
+    if (monster.abilId != MONSTER_TYPES[monster.typeId].abilId && monster.abilId != null) {
+        displayName = "!" +displayName;
     }
     
     context.textAlign = 'center';
@@ -109,19 +118,19 @@ function updateUILabel(uiLabel, monster) {
     
     // HP bar
     context.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    context.fillRect(0, 45, canvas.width, 12);
+    context.fillRect(75, 45, canvas.width - 150, 12);
     
     const hpPercent = Math.max(0, monster.currentHP / monster.maxHP);
     context.fillStyle = hpPercent > 0.5 ? 'lime' : hpPercent > 0.2 ? 'yellow' : 'red';
-    context.fillRect(2, 47, (canvas.width - 4) * hpPercent, 8);
+    context.fillRect(77, 47, (canvas.width - 154) * hpPercent, 8);
     
     // Stamina bar
     context.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    context.fillRect(0, 60, canvas.width, 12);
+    context.fillRect(75, 60, canvas.width - 150, 12);
     
     const staminaPercent = Math.max(0, monster.currentStamina / monster.maxStamina);
     context.fillStyle = 'skyblue';
-    context.fillRect(2, 62, (canvas.width - 4) * staminaPercent, 8);
+    context.fillRect(77, 62, (canvas.width - 154) * staminaPercent, 8);
     
     // Level display with element color
     let elementColor = ELEMENT_COLORS[monster.element];
@@ -133,19 +142,19 @@ function updateUILabel(uiLabel, monster) {
         // Draw first part of outline for level text
         context.lineWidth = 4;
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(85, 74, 80, 20);
+        context.fillRect(160, 74, 80, 20);
         // Use element color for text when typeshifted
         elementColor = ELEMENT_COLORS[MONSTER_TYPES[monster.typeId].element];
         color = new THREE.Color(elementColor);
         // Draw second part of outline for level text
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(85, 94, 80, 15);
+        context.fillRect(160, 94, 80, 15);
     }
     else {
         // Draw an outline for level text
         context.lineWidth = 4;
         context.fillStyle = `rgba(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)}, 1)`;
-        context.fillRect(85, 74, 80, 35);
+        context.fillRect(160, 74, 80, 35);
     }
 
     // Use white for text
@@ -157,8 +166,8 @@ function updateUILabel(uiLabel, monster) {
     
     // Show level number
     context.font = 'bold 35px Arial';
-    context.strokeText(monster.level, 125, 93);
-    context.fillText(monster.level, 125, 93);
+    context.strokeText(monster.level, 200, 93);
+    context.fillText(monster.level, 200, 93);
     
     // Update the texture
     texture.needsUpdate = true;
@@ -277,8 +286,8 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
 
     //Determine attack cooldown based on typeId
     let attackCooldown = GAME_CONFIG.defaultAttackCooldown;
-    if (typeId.atkCd) {
-        attackCooldown = typeId.atkCd;
+    if (MONSTER_TYPES[typeId].atkCd) {
+        attackCooldown = MONSTER_TYPES[typeId].atkCd;
     }
     
     // Step 6: Calculate derived stats
@@ -312,18 +321,28 @@ function updateMonsterDirection(monster, targetX) {
 }
 
 // Create monster object
-function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnLevel = 0, tempElement, favoredStat = null, masterId = null) {
+function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnLevel = 0, tempElement, favoredStat = null, masterId = null, inheritedAbilId = null) {
     const monsterType = MONSTER_TYPES[typeId];
 
     if (!tempElement || tempElement == "") {
         tempElement = MONSTER_TYPES[typeId].element
     }
 
-    // Wild monsters (team 1) have a 20% chance to spawn as a random element (typeshifting)
-    if (team === 1 && Math.random() < 0.2) {
-        tempElement = ELEMENTS[Math.floor(Math.random() * (ELEMENTS.length - 1))]; // -1 because of Neutral type "Balance"
+    // Wild monsters (team 1) have a 15% chance to spawn as a random element (typeshifting)
+    // and a 10% chance to inherit an ability from a random monster type if not typeshifted
+    if (team === 1) {
+        if (Math.random() < 0.15) {
+            tempElement = ELEMENTS[Math.floor(Math.random() * (ELEMENTS.length - 1))]; // -1 because of Neutral type "Balance"
+        } else if (Math.random() < 0.1) {
+                inheritedAbilId = Math.floor(Math.random() * 35) + 1; // 35 possible abilities included for now
+        }
     }
     
+    // Do not allow two of the same ability
+    if (inheritedAbilId === typeId) {
+        inheritedAbilId = null;
+    }
+
     // Convert string modifier to array for backward compatibility
     if (rareModifiers && typeof rareModifiers === 'string') {
         rareModifiers = [rareModifiers];
@@ -380,21 +399,11 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
     
     gameState.monsterIdFixer ++;
 
-    // THIS SECTION TO BE USED LATER FOR FUSION
-
-    // Determine if the monster has an inherited ability
-    let inheritedAbilId = null;
-
-    // Do not allow two of the same ability
-    if (inheritedAbilId === monsterType.abilId) {
-        inheritedAbilId = null;
-    }
-
     // Monster object
     const monster = {
         id: Date.now() + Math.random() + gameState.monsterIdFixer,
         typeId,
-        abilId: inheritedAbilId || monsterType.abilId, // Use monsterType.abilId if it exists, otherwise use typeId
+        abilId: inheritedAbilId ?? monsterType.abilId ?? null,
         name: monsterType.name,
         element: tempElement,
         level,
@@ -473,12 +482,12 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
 // Calculate damage based on stats and elemental relations
 function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAttack = false) {
 
-    // Ability 13: Magic Thorns reflects 25% of attack special damage taken before reduction
-    if (isAttack && hasAbility(defender, 13)) {
+    // Ability 12: Magic Thorns reflects 25% of attack special damage taken before reduction
+    if (isAttack && hasAbility(defender, 12)) {
         dealDamage(defender, attacker, 0, specialBase * 0.25, false);
     }
 
-    // Ability 11: Berserker
+    // Ability 11: Vengeance
     if (hasAbility(attacker, 11) && attacker.timeSinceDamageTaken < 2) {
         physicalBase = physicalBase * 1.5;
         specialBase = specialBase * 1.5;
@@ -531,8 +540,8 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     attacker.timeSinceDamageDealt = 0;
 
     // Static Charge ability gains 10% of physical damage taken as stamina
-    if (hasAbility(attacker, 35)) {
-        attacker.currentStamina += adjustedPhysicalDamage * 0.1;
+    if (hasAbility(defender, 35)) {
+        defender.currentStamina += adjustedPhysicalDamage * 0.1;
     }
 
     // Physical Drain ability
@@ -640,8 +649,8 @@ function monsterAttack(attacker, defender, deltaTime) {
         return;
     }
     
-    // Reset cooldown at the start
-    attacker.currentCooldown = attacker.attackCooldown;
+    // Add attack cooldown to current cooldown to enable accurate attack rate
+    attacker.currentCooldown += attacker.attackCooldown;
     
     // Use weighted random target selection to potentially choose a different target
     const targetResult = selectWeightedRandomTarget(attacker);
@@ -657,8 +666,14 @@ function monsterAttack(attacker, defender, deltaTime) {
     updateMonsterDirection(attacker, defender.mesh.position.x);
     
     // Check if attacker has enough stamina
-    const staminaCost = GAME_CONFIG.defaultStaminaCost;
-    let staminaMulti = 1;
+    let staminaCost = GAME_CONFIG.defaultStaminaCost;
+    let staminaDmgMulti = 1;
+
+    // Set stamina multiplier equal to ratio of attack cooldown to default attack cooldown
+    if (MONSTER_TYPES[attacker.typeId].atkCd) {
+        let staminaMulti = 1 * (MONSTER_TYPES[attacker.typeId].atkCd / GAME_CONFIG.defaultAttackCooldown);
+        staminaCost = staminaCost * staminaMulti;
+    }
     
     if (attacker.currentStamina < staminaCost) {
         if (hasAbility(attacker, 9) && attacker.currentHP > staminaCost) {
@@ -666,18 +681,18 @@ function monsterAttack(attacker, defender, deltaTime) {
         }
         else {
             // Not enough stamina, double cooldown and don't consume stamina
-            staminaMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
+            staminaDmgMulti = GAME_CONFIG.outOfStaminaDamageMultiplier;
         }
     } else {
         attacker.currentStamina -= staminaCost;
     }
 
-    // Modify physical and special base damage based on typeId.atkCd (attack cooldown)
+    // Modify physical and special base damage based on MONSTER_TYPES[attacker.typeId].atkCd (attack cooldown)
     let tempPhysicalDmg = GAME_CONFIG.physicalBase;
     let tempSpecialDmg = GAME_CONFIG.specialBase;
-    if (attacker.typeId.atkCd) {
-        tempPhysicalDmg = tempPhysicalDmg * (attacker.typeId.atkCd / GAME_CONFIG.defaultAttackCooldown);
-        tempSpecialDmg = tempSpecialDmg * (attacker.typeId.atkCd / GAME_CONFIG.defaultAttackCooldown);
+    if (MONSTER_TYPES[attacker.typeId].atkCd) {
+        tempPhysicalDmg = tempPhysicalDmg * (MONSTER_TYPES[attacker.typeId].atkCd / GAME_CONFIG.defaultAttackCooldown);
+        tempSpecialDmg = tempSpecialDmg * (MONSTER_TYPES[attacker.typeId].atkCd / GAME_CONFIG.defaultAttackCooldown);
     }
 
     // Boost outgoing damage
@@ -685,7 +700,7 @@ function monsterAttack(attacker, defender, deltaTime) {
     tempSpecialDmg = tempSpecialDmg * (1 + (attacker.stats.sAtk / 100));
 
     // Calculate damage
-    dealDamage(attacker, defender, tempPhysicalDmg * staminaMulti, tempSpecialDmg * staminaMulti, true);
+    dealDamage(attacker, defender, tempPhysicalDmg * staminaDmgMulti, tempSpecialDmg * staminaDmgMulti, true);
     
     // Move attacker in a random direction after attack
     const randomAngle = Math.random() * Math.PI * 2;
@@ -1027,7 +1042,7 @@ function selectWeightedRandomTarget(attacker) {
         if (!inRange && !filterReason) { filterReason = `Out of Range (Dist: ${distance.toFixed(1)}, Range: ${GAME_CONFIG.attackRange})`; } // Added distance info
 
         if (!filterReason) {
-            // Check for Distracting Presence ability (abilId 15)
+            // Check for Distracting Presence ability 15
             if (inRange && hasAbility(target, 15) && Math.random() < 0.2) {
                 attackMissed = true; // Mark that the attack will miss
             }

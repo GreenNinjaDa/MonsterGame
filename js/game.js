@@ -374,7 +374,7 @@ function cleanupBossMasters() {
     for (let i = gameState.bossMonsters.length - 1; i >= 0; i--) {
         const monster = gameState.bossMonsters[i];
         if (monster.mesh) {
-            // console.log(`Removing boss monster mesh: ${monster.name} (ID: ${monster.id})`);
+
             // Dispose geometry and material
             if (monster.mesh.geometry) {
                 monster.mesh.geometry.dispose();
@@ -673,7 +673,7 @@ function gameLoop(time) {
         gameState.fpsHistory = [];
     }
     gameState.fpsHistory.push(frameRate);
-    if (gameState.fpsHistory.length > 100) {
+    if (gameState.fpsHistory.length > 20) {
         gameState.fpsHistory.shift();
     }
     const avgFps = Math.round(gameState.fpsHistory.reduce((a, b) => a + b, 0) / gameState.fpsHistory.length);

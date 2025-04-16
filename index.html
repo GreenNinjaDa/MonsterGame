@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monsterbound</title>
+    <meta property="og:image" content="Monsterbound.jpeg">
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-0X6S7QK33B"></script>
     <script>
@@ -17,6 +18,12 @@
     <link rel="stylesheet" href="styles/styles.css">
 </head>
 <body>
+    <BedrockPassportProvider
+      baseUrl="https://api.bedrockpassport.com"
+      authCallbackUrl="http://<yoururl>/auth/callback"
+      tenantId="orange-jk51jglon7" 
+    >
+    </BedrockPassportProvider>
     <div id="ui">
         <button id="storageButton">Menu/Monsters</button>
         <div id="areaDisplay">Area: Binder Town</div>
@@ -43,12 +50,12 @@
         <div id="storageSlots">
             <h3 style="text-align: center;">Stored Monsters</h3>
             <div class="sort-buttons">
-                <button id="sortByNameButton" class="sort-button">Sort by Name</button>
-                <button id="sortByTypeButton" class="sort-button">by MonsterID#</button>
-                <button id="sortByStatsButton" class="sort-button">by Stats</button>
-                <button id="sortByElementButton" class="sort-button">by Element</button>
-                <button id="sortByRarityButton" class="sort-button">by Rarity</button>
-                <button id="sortByMaxLvlStatsButton" class="sort-button">by MaxLvlStats</button>
+                <button id="sortByNameButton" class="sort-button" title="Sort stored monsters alphabetically by name">Sort by Name</button>
+                <button id="sortByTypeButton" class="sort-button" title="Sort stored monsters by their Monster ID number">by MonsterID#</button>
+                <button id="sortByStatsButton" class="sort-button" title="Sort stored monsters by their total current stats (descending)">by Stats</button>
+                <button id="sortByElementButton" class="sort-button" title="Sort stored monsters alphabetically by their current element">by Element</button>
+                <button id="sortByRarityButton" class="sort-button" title="Sort stored monsters by the number of rare modifiers they have (descending)">by Rarity</button>
+                <button id="sortByMaxLvlStatsButton" class="sort-button" title="Sort stored monsters by their potential total stats at max level (descending)">by MaxLvlStats</button>
             </div>
             <div id="monsterList"></div>
             <div style="text-align: center; margin-top: 15px;">
@@ -155,6 +162,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
     
     <!-- Game Scripts -->
+    <script src="js/monster_constants.js"></script>
     <script src="js/constants.js"></script>
     <script src="js/monster.js"></script>
     <script src="js/ui.js"></script>
