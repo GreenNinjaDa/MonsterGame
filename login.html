@@ -5,31 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Monsterbound</title>
     <style>
-        /* Optional: Add some basic styling for the widget container */
-        #bedrock-login-widget {
-            max-width: 480px; /* Match panelClass max-width */
-            margin: 50px auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: #f9f9f9; /* Example background */
-        }
+        /* Minimal base styles */
         body {
             font-family: system-ui, sans-serif;
-            background-color: #eee; /* Example background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
         }
     </style>
-    <!-- Optional: Include Tailwind CSS for styling from CDN -->
+    <!-- Tailwind CSS from CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Optional: Configure Tailwind for dark mode if needed, 
+        // but we'll use explicit dark classes for simplicity here.
+        // tailwind.config = { darkMode: 'class' }
+    </script>
 </head>
-<body>
+<body class="bg-slate-900 text-gray-300 flex flex-col justify-center items-center min-h-screen p-4">
+
+    <h1 class="text-4xl font-bold text-white mb-2">Monsterbound</h1>
+    <p class="text-lg text-gray-400 mb-8">Sign in to save your progress</p>
+
     <!-- This div will contain the login widget -->
-    <div id="bedrock-login-widget">Loading Login...</div>
+    <div id="bedrock-login-widget" class="w-full max-w-md mb-6">Loading Login...</div>
+
+    <button onclick="window.location.href='/'" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded mb-2">
+        Continue as Guest
+    </button>
+    <p class="text-sm text-gray-500">You won't be able to save your progress</p>
 
     <!-- Load the required scripts -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -53,7 +54,7 @@
         const bedrockConfig = {
           baseUrl: 'https://api.bedrockpassport.com', // Base API URL
           authCallbackUrl: window.location.origin, // Use origin for callback, adjust if needed for production
-          tenantId: 'orange-strqpa0f1t', // Your tenant ID
+          tenantId: 'orange-jk51jglon7', // Your tenant ID
         };
 
         const container = document.getElementById('bedrock-login-widget');
@@ -81,22 +82,22 @@
                   const success = await loginCallback(token, refreshToken);
                   if (success) {
                     setMessage('Login successful! Redirecting back...');
-                    // Redirect back to the main page (or wherever needed)
-                    setTimeout(() => window.location.href = '/', 1500); // Redirect to root
+                    setTimeout(() => window.location.href = '/', 1500);
                   } else {
                     setMessage('Authentication failed. Please try logging in again.');
-                    setTimeout(() => window.location.href = window.location.pathname, 2000); // Go back to login page
+                    setTimeout(() => window.location.href = window.location.pathname, 2000);
                   }
                 } catch (error) {
                   console.error('Login error:', error);
                   setMessage('An error occurred during login. Please try again.');
-                  setTimeout(() => window.location.href = window.location.pathname, 2000); // Go back to login page
+                  setTimeout(() => window.location.href = window.location.pathname, 2000);
                 }
               }
               processLogin();
             }, [loginCallback]);
 
-            return React.createElement('div', {style: {textAlign: 'center', padding: '1rem'}}, message);
+            // Display processing message in dark theme
+            return React.createElement('div', {className: 'text-center p-4 text-white'}, message);
           }
 
           root.render(
@@ -107,25 +108,32 @@
             )
           );
         } else {
-          // Render login panel
+          // Render login panel in dark theme
           root.render(
             React.createElement(
               Bedrock.BedrockPassportProvider,
               bedrockConfig,
               React.createElement(Bedrock.LoginPanel, {
-                title: "Sign in to Monsterbound",
-                logo: "https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg", // Example logo
+                title: "Sign in to",
+                logo: "https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg",
                 logoAlt: "Orange Web3",
+                walletButtonText: "Connect Wallet",
+                showConnectWallet: false,
+                separatorText: "OR",
                 features: {
+                  enableWalletConnect: false,
                   enableAppleLogin: true,
                   enableGoogleLogin: true,
                   enableEmailLogin: true,
                 },
-                // Style options (using Tailwind classes from CDN)
-                panelClass: "container p-2 md:p-8 rounded-2xl max-w-[480px] bg-white shadow-lg", // Added bg and shadow
+                titleClass: "text-xl font-bold",
+                logoClass: "ml-2 md:h-8 h-6",
+                panelClass: "container p-2 md:p-8 rounded-2xl max-w-[480px]",
                 buttonClass: "hover:border-orange-500",
-                titleClass: "text-xl font-bold text-center mb-4", // Added text styling
-                headerClass: "justify-center mb-4", // Added margin
+                separatorTextClass: "bg-orange-900 text-gray-500",
+                separatorClass: "bg-orange-900",
+                linkRowClass: "justify-center",
+                headerClass: "justify-center",
               })
             )
           );

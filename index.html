@@ -26,7 +26,6 @@
 <body>
     <div id="ui">
         <button id="storageButton">Menu/Monsters</button>
-        <button onclick="window.location.href='login.html'" style="margin-left: 10px;">Login</button>
         <div id="areaDisplay">Area: Binder Town</div>
         <div id="goldCounter">Gold: 100</div>
         <div id="fpsCounter">FPS: 60</div>
@@ -169,6 +168,31 @@
     <script src="js/ui.js"></script>
     <script src="js/save-load-system.js"></script>
     <script src="js/game.js"></script>
+
+    <!-- Login Button - Moved and Repositioned -->
+    <button 
+        onclick="window.location.href='login.html'" 
+        style="
+            /* Appearance Styles */
+            background-color: rgba(0, 0, 0, 0.1);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            border: 2px solid black;
+            color: #ffdd57;
+            padding: 5px 8px; 
+            text-align: center;
+            text-decoration: none;
+            font-size: 14px; 
+            cursor: pointer;
+            border-radius: 5px;
+            pointer-events: auto;
+            /* Positioning Styles */
+            position: fixed;
+            bottom: 50px; 
+            right: 10px;
+            z-index: 1000; /* Ensure it's above other elements */
+        ">
+        Orange Login
+    </button>
 
     <a target="_blank" href="https://discord.gg/547meQMzAY" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: 120px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">Discord    !</a>
     <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
