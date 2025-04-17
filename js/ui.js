@@ -829,6 +829,15 @@ function showMonsterDetails(monsterId) {
     const maxLevelMaxStamina = maxLevelStatsData.maxStamina;
     const maxLevelAttackCooldown = maxLevelStatsData.attackCooldown;
     
+    // Prepare base stats for ability 8 "Rotund"
+    let baseMaxHP = GAME_CONFIG.monsterBaseHP;
+    let baseMaxStamina = GAME_CONFIG.monsterBaseStamina;
+
+    if (hasAbility(monster, 8)) {
+        baseMaxHP = Math.round(baseMaxHP * (1 + MONSTER_ABILITIES[8].value));
+        baseMaxStamina = Math.round(baseMaxStamina * (1 - MONSTER_ABILITIES[8].value));
+    }
+
     // Show progression of stats
     statsHTML += `
         <tr class="derived-stat-row">
@@ -841,7 +850,7 @@ function showMonsterDetails(monsterId) {
         </tr>
         <tr class="derived-stat-row">
             <td>Max HP</td>
-            <td class="stat-total">${GAME_CONFIG.monsterBaseHP}</td>
+            <td class="stat-total">${baseMaxHP}</td>
             <td></td>
             <td class="stat-total">${maxHPFinal}</td>
             <td></td>
@@ -849,7 +858,7 @@ function showMonsterDetails(monsterId) {
         </tr>
         <tr class="derived-stat-row">
             <td>Max Stamina</td>
-            <td class="stat-total">${GAME_CONFIG.monsterBaseStamina}</td>
+            <td class="stat-total">${baseMaxStamina}</td>
             <td></td>
             <td class="stat-total">${maxStaminaFinal}</td>
             <td></td>

@@ -2408,8 +2408,8 @@ function createWildMonster(areaLevel, x, y) {
         }
     }
     
-    // Create monster
-    const monster = createMonster(typeId, level, rareModifiers, 1, level, MONSTER_TYPES[typeId].element); // Pass team = 1 for wild
+    // Create monster, pass team = 1 for wild monsters
+    const monster = createMonster(typeId, level, rareModifiers, 1, level, MONSTER_TYPES[typeId].element);
     
     // Position monster
     monster.mesh.position.set(x, y, calculateZPosition(y));

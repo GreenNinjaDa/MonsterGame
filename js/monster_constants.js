@@ -21,7 +21,7 @@ const MONSTER_TYPES = {
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 20, pDef: 60, sDef: 70, pAtk: 70, sAtk: 20, endur: 60 }, size: 1}, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 50, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
     19: { name: "Lampray", element: "Electric", stats: { spd: 40, pDef: 40, sDef: 60, pAtk: 20, sAtk: 90, endur: 50 }, size: 1}, //Total: 300
-    20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 60, sAtk: 20, endur: 80 }, size: 1}, //Total: 260 //Hydra: Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
+    20: { name: "Hydrant", element: "Water", stats: { spd: 20, pDef: 40, sDef: 40, pAtk: 60, sAtk: 20, endur: 80 }, size: 1}, //Total: 260
     21: { name: "Pyrithan", element: "Earth", stats: { spd: 30, pDef: 90, sDef: 50, pAtk: 60, sAtk: 30, endur: 40 }, size: 1}, //Total: 300
     22: { name: "Tesnail", element: "Electric", stats: { spd: 80, pDef: 50, sDef: 30, pAtk: 15, sAtk: 45, endur: 80 }, size: 1}, //Total: 300
     23: { name: "Crystacean", element: "Earth", stats: { spd: 30, pDef: 40, sDef: 90, pAtk: 80, sAtk: 20, endur: 40 }, size: 1}, //Total: 300
@@ -32,19 +32,19 @@ const MONSTER_TYPES = {
     28: { name: "Scorchion", element: "Fire", stats: { spd: 40, pDef: 60, sDef: 60, pAtk: 20, sAtk: 80, endur: 40 }, size: 1}, //Total: 300
     29: { name: "Steanix", element: "Water", stats: { spd: 50, pDef: 30, sDef: 40, pAtk: 70, sAtk: 70, endur: 40 }, size: 1}, //Total: 300
     30: { name: "Igneite", element: "Fire", stats: { spd: 60, pDef: 50, sDef: 30, pAtk: 80, sAtk: 20, endur: 60 }, size: 0.9}, //Total: 300
-    31: { name: "Boltzalea", element: "Electric", stats: { spd: 20, pDef: 40, sDef: 70, pAtk: 10, sAtk: 120, endur: 40 }, size: 1}, //Total: 300
+    31: { name: "Boltzalea", element: "Electric", stats: { spd: 30, pDef: 40, sDef: 60, pAtk: 10, sAtk: 120, endur: 40 }, size: 1}, //Total: 300
     32: { name: "Polrus", element: "Water", stats: { spd: 30, pDef: 50, sDef: 60, pAtk: 35, sAtk: 25, endur: 100 }, size: .95}, //Total: 300
     33: { name: "Shockram", element: "Electric", stats: { spd: 60, pDef: 55, sDef: 45, pAtk: 70, sAtk: 30, endur: 40 }, size: 1.2}, //Total: 300
     34: { name: "RollNRock", element: "Earth", stats: { spd: 90, pDef: 40, sDef: 40, pAtk: 60, sAtk: 10, endur: 60 }, abilId: 13, size: 0.75}, //Total: 300
     35: { name: "Scornfront", element: "Electric", stats: { spd: 90, pDef: 45, sDef: 35, pAtk: 10, sAtk: 70, endur: 50 }, size: 1.2, atkCd: 20}, //Total: 300
     36: { name: "Corgknight", element: "Fire", stats: { spd: 30, pDef: 60, sDef: 40, pAtk: 60, sAtk: 40, endur: 70 }, size: 0.9}, //Total: 300
     /*37: { name: "Souldier", element: "Neutral", stats: { spd: 50, pDef: 70, sDef: 70, pAtk: 30, sAtk: 30, endur: 60 }, size: 1}, //Total: 310
-    38: { name: "Arch", element: "Neutral", stats: { spd: 60, pDef: 30, sDef: 30, pAtk: 120, sAtk: 10, endur: 60 }, size: 1}, //Total: 310
+    38: { name: "Arch", element: "Neutral", stats: { spd: 50, pDef: 30, sDef: 30, pAtk: 120, sAtk: 10, endur: 70 }, size: 1}, //Total: 310
     39: { name: "Balencia", element: "Neutral", stats: { spd: 55, pDef: 55, sDef: 55, pAtk: 55, sAtk: 55, endur: 55 }, size: 1}, //Total: 330
-    40: { name: "Source", element: "Neutral", stats: { spd: 60, pDef: 30, sDef: 30, pAtk: 10, sAtk: 120, endur: 60 }, size: 1}, //Total: 310
+    40: { name: "Source", element: "Neutral", stats: { spd: 70, pDef: 30, sDef: 30, pAtk: 10, sAtk: 120, endur: 50 }, size: 1}, //Total: 310
     */
-    //Dragginball
-    //Unicorg
+    // Dragginball
+    // Unicorg
 };
 
 const MONSTER_ABILITIES = {
@@ -53,6 +53,7 @@ const MONSTER_ABILITIES = {
     00: { name: "Willpower", desc: "Damage goes to stamina when HP is depleted." },
     00: { name: "Ensnaring", desc: "10% of damage also reduces enemy stamina." }
     */
+    8: { name: "Rotund", desc: "10% increased max HP, 10% reduced max stamina.", value: 0.1 },
     9: { name: "Unrelenting", desc: "When stamina is depleted, spends HP instead to attack." },
     11: { name: "Vengeance", desc: "Enrages when damaged, dealing 50% increased damage for 2 seconds.", value: 1.5, time: 2 },
     12: { name: "Magic Thorns", desc: "Reflects 25% of attack special damage taken before reduction.", value: 0.25 },
@@ -60,7 +61,9 @@ const MONSTER_ABILITIES = {
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates.", value: 0.5 },
     15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss.", value: 0.2 },
     16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt.", value: 0.2 },
-    20: { name: "Hydra", desc: "Instead of dying, spends all its stamina to revive.", value: 0.1 },
+    17: { name: "Hardened Skin", desc: "Incoming damage reduced by 10, minimum of 10.", value: 10 },
+    19: { name: "Special Drain", desc: "Leeches 20% of special damage dealt.", value: 0.2 },
+    20: { name: "Hydra", desc: "Instead of dying, swaps its HP and stamina percentages.", value: 0.15 },
 	35: { name: "Static Charge", desc: "20% of physical damage taken gained as stamina.", value: 0.2 },
 }
 

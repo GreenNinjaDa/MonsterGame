@@ -174,7 +174,7 @@ function updateUILabel(uiLabel, monster) {
 }
 
 // Calculate monster stats from base values, level, element, and rare modifiers
-function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0, typeId = null, favoredStat = null) {
+function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLevel = 0, typeId = null, favoredStat = null, abilId = null) {
     // Create copies to avoid modifying original objects
     let stats = {};
     const originalElement = MONSTER_TYPES[typeId].element;
@@ -290,9 +290,17 @@ function calculateMonsterStats(baseStats, level, element, rareModifiers, spawnLe
         attackCooldown = MONSTER_TYPES[typeId].atkCd;
     }
     
+    // Apply Rotund ability 8
+    let maxHP = GAME_CONFIG.monsterBaseHP;
+    let maxStamina = GAME_CONFIG.monsterBaseStamina;
+    if (typeId === 8 || abilId === 8) {
+        maxHP = Math.round(maxHP * (1 + MONSTER_ABILITIES[8].value));
+        maxStamina = Math.round(maxStamina * (1 - MONSTER_ABILITIES[8].value));
+    }
+
     // Step 6: Calculate derived stats
-    const maxHP = Math.round(GAME_CONFIG.monsterBaseHP * (1 + 0.4 * stats.endur / 100));
-    const maxStamina = Math.round(GAME_CONFIG.monsterBaseStamina * (1 + 0.4 * stats.endur / 100));
+    maxHP = Math.round(maxHP * (1 + 0.4 * stats.endur / 100));
+    maxStamina = Math.round(maxStamina * (1 + 0.4 * stats.endur / 100));
     attackCooldown = attackCooldown / (1 + GAME_CONFIG.speedAttackScaling * stats.spd); // Base cooldown, reduced by speed stat
     
     return {
@@ -361,7 +369,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
         rareModifiers, 
         spawnLevel,
         typeId,
-        favoredStat
+        favoredStat,
+        inheritedAbilId
     );
 
     // Create the monster's visual representation using a plane with texture
@@ -530,12 +539,17 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     const adjustedPhysicalDamage = Math.floor(physicalDamage * tempMultiplier);
     
     // Total damage
-    const totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
+    let totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
+
+    // Apply Hardened Skin ability 17
+    if (hasAbility(defender, 17) && totalDamage > 10) {
+        totalDamage = Math.max(MONSTER_ABILITIES[17].value, totalDamage - MONSTER_ABILITIES[17].value);
+    }
     
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - totalDamage);
 
-    // Ability 20 - Hydra - Upon 0 hp, spends half its stamina to revive with current stamina% hp if stamina > 10%.
+    // Ability 20 - Hydra - Upon 0 hp, spends all its stamina to heal current stamina% hp if stamina > 15%.
     if (hasAbility(defender, 20) && defender.currentHP <= 0 && defender.currentStamina > (MONSTER_ABILITIES[20].value * defender.maxStamina)) {
         defender.currentHP = defender.maxHP * (defender.currentStamina / defender.maxStamina);
         defender.currentStamina = 0;
@@ -550,9 +564,14 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
         defender.currentStamina += adjustedPhysicalDamage * MONSTER_ABILITIES[35].value;
     }
 
-    // Physical Drain ability
+    // Physical Drain ability 16
     if (hasAbility(attacker, 16)) {
         attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedPhysicalDamage * MONSTER_ABILITIES[16].value));
+    }
+
+    // Special Drain ability 19
+    if (hasAbility(attacker, 19)) {
+        attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedSpecialDamage * MONSTER_ABILITIES[19].value));
     }
 
     // Visual feedback for elemental interactions
@@ -683,7 +702,7 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     if (attacker.currentStamina < staminaCost) {
         if (hasAbility(attacker, 9) && attacker.currentHP > staminaCost) {
-            attacker.currentHP -= staminaCost; //Unrelenting spends HP instead of stamina
+            attacker.currentHP -= staminaCost; // Ability 9: Unrelenting - spends HP instead of stamina
         }
         else {
             // Not enough stamina, double cooldown and don't consume stamina
@@ -804,7 +823,8 @@ function handleMonsterDefeat(defeated, victor) {
             defeated.rareModifiers, 
             defeated.spawnLevel,
             defeated.typeId,
-            defeated.favoredStat
+            defeated.favoredStat,
+            defeated.abilId
         );
         
         // Update monster with new stats
@@ -999,7 +1019,8 @@ function checkLevelUp(monster) {
             monster.rareModifiers, 
             monster.spawnLevel,
             monster.typeId,
-            monster.favoredStat
+            monster.favoredStat,
+            monster.abilId
         );
         
         // Store current HP and stamina percentages to maintain proportions
