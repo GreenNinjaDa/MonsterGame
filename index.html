@@ -24,13 +24,65 @@
     <link rel="stylesheet" href="js/styles.css">
 </head>
 <body>
-    <BedrockPassportProvider
-      baseUrl="https://api.bedrockpassport.com"
-      authCallbackUrl="http://<yoururl>/auth/callback"
-      tenantId="orange-jk51jglon7" 
-    >
-        {children}
-    </BedrockPassportProvider>
+    <!-- 1. Create a container for the widget -->
+<div id="bedrock-login-widget"></div>
+
+<!-- 2. Load the required scripts -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://public-cdn-files.pages.dev/bedrock-passport.umd.js"></script>
+
+<!-- Optional: Include Tailwind CSS for styling -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- 3. Initialize the widget -->
+<script>
+  (function () {
+    const bedrockConfig = {
+      baseUrl: 'https://api.bedrockpassport.com', // Base API URL – no need to change this. Leave as is.
+      authCallbackUrl: window.location.origin, // For production, ensure you have a dedicated auth callback page (e.g. /auth/callback)
+      tenantId: 'orange-jk51jglon7', // Your assigned tenant ID - you can request one at https://vibecodinglist.com/orange-id-integration
+    };
+
+    const container = document.getElementById('bedrock-login-widget');
+    const root = ReactDOM.createRoot(container);
+
+    // Render login widget with grouped options:
+    root.render(
+      React.createElement(
+        Bedrock.BedrockPassportProvider,
+        bedrockConfig,
+        React.createElement(Bedrock.LoginPanel, {
+          // Content options — No changes needed unless specific customization is required
+          title: 'Sign in to',
+          logo: 'https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg',
+          logoAlt: 'Orange Web3',
+          walletButtonText: 'Connect Wallet',
+          showConnectWallet: false,
+          separatorText: 'OR',
+
+          // Feature toggles — Adjust these based on which login methods you want to support
+          features: {
+            enableWalletConnect: false,
+            enableAppleLogin: true,
+            enableGoogleLogin: true,
+            enableEmailLogin: true,
+          },
+
+          // Style options — Keep as-is unless UI tweaks are needed
+          titleClass: 'text-xl font-bold',
+          logoClass: 'ml-2 md:h-8 h-6',
+          panelClass: 'container p-2 md:p-8 rounded-2xl max-w-[480px]',
+          buttonClass: 'hover:border-orange-500',
+          separatorTextClass: 'bg-orange-900 text-gray-500',
+          separatorClass: 'bg-orange-900',
+          linkRowClass: 'justify-center',
+          headerClass: 'justify-center',
+        })
+      )
+    );
+  })();
+</script>
     <div id="ui">
         <button id="storageButton">Menu/Monsters</button>
         <div id="areaDisplay">Area: Binder Town</div>
