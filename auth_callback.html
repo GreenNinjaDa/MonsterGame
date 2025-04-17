@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Login - Monsterbound</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a202c; /* Dark background like login page */
+            color: #cbd5e0; /* Light text */
+        }
+        #message {
+            padding: 2rem;
+            text-align: center;
+        }
+    </style>
+    <!-- Tailwind CSS (Optional, but helps if using utility classes) -->
+    <script src="https://cdn.tailwindcss.com"></script> 
+</head>
+<body>
+    <div id="auth-container">
+        <div id="message">Processing authentication... Please wait.</div>
+    </div>
+
+    <!-- Load the required scripts -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://public-cdn-files.pages.dev/bedrock-passport.umd.js"></script>
+
+    <!-- Initialize the callback handler -->
+    <script>
+      (function () {
+        const messageDiv = document.getElementById('message');
+
+        // Ensure required libraries are loaded
+        if (!window.React || !window.ReactDOM || !window.Bedrock) {
+          console.error('Error: Required libraries failed to load.');
+          if (messageDiv) messageDiv.innerText = 'Error: Could not load authentication libraries. Please check your connection or contact support.';
+          return;
+        }
+
+        // Configuration for Bedrock Passport (Needs to match login page config)
+        const bedrockConfig = {
+          baseUrl: 'https://api.bedrockpassport.com', 
+          authCallbackUrl: window.location.href, // The callback handler itself
+          tenantId: 'orange-jk51jglon7', // Your tenant ID
+        };
+
+        const container = document.getElementById('auth-container');
+        if (!container) {
+            console.error('Error: Container element "auth-container" not found.');
+            if (messageDiv) messageDiv.innerText = 'Error: UI element missing.';
+            return;
+        }
+        const root = ReactDOM.createRoot(container);
+
+        // Extract tokens from URL
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const refreshToken = params.get('refreshToken');
+
+        if (token && refreshToken) {
+          // Define the React component to handle the callback
+          function AuthCallbackProcessor() {
+            const { loginCallback } = Bedrock.useBedrockPassport();
+            const [message, setMessage] = React.useState('Processing authentication...');
+
+            React.useEffect(() => {
+              async function processLogin() {
+                try {
+                  setMessage('Verifying tokens...');
+                  // Call the library function to handle the tokens
+                  const success = await loginCallback(token, refreshToken); 
+                  
+                  if (success) {
+                    setMessage('Login successful! Redirecting back to the game...');
+                    // Redirect back to the main game page on success
+                    setTimeout(() => window.location.href = '/', 1500); // Redirect to root (index.html)
+                  } else {
+                    // Handle login failure
+                    setMessage('Authentication failed. Please try logging in again. Redirecting...');
+                    setTimeout(() => window.location.href = '/login.html', 2500); // Redirect back to login
+                  }
+                } catch (error) {
+                  // Handle errors during the login process
+                  console.error('Login callback error:', error);
+                  setMessage('An error occurred during login. Please try again. Redirecting...');
+                  setTimeout(() => window.location.href = '/login.html', 3000); // Redirect back to login
+                }
+              }
+              processLogin();
+            }, [loginCallback]); // Dependency array ensures this runs once
+
+            // Render the current message
+            return React.createElement('div', { id: 'message', className: 'p-8 text-center' }, message);
+          }
+
+          // Render the component within the Provider
+          root.render(
+            React.createElement(
+              Bedrock.BedrockPassportProvider,
+              bedrockConfig,
+              React.createElement(AuthCallbackProcessor)
+            )
+          );
+        } else {
+          // Handle cases where tokens are missing (shouldn't normally happen)
+          console.error('Error: Authentication tokens not found in URL.');
+          if (messageDiv) messageDiv.innerText = 'Error: Authentication tokens missing. Please try logging in again.';
+          // Optionally redirect back to login after a delay
+           setTimeout(() => window.location.href = '/login.html', 3000);
+        }
+      })();
+    </script>
+</body>
+</html> 

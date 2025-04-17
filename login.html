@@ -53,7 +53,7 @@
         // Configuration for Bedrock Passport
         const bedrockConfig = {
           baseUrl: 'https://api.bedrockpassport.com', // Base API URL
-          authCallbackUrl: window.location.origin, // Use origin for callback, adjust if needed for production
+          authCallbackUrl: window.location.origin + '/auth_callback.html', // Point to the new callback page
           tenantId: 'orange-jk51jglon7', // Your tenant ID
         };
 
