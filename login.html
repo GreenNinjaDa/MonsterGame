@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Monsterbound</title>
+    <style>
+        /* Optional: Add some basic styling for the widget container */
+        #bedrock-login-widget {
+            max-width: 480px; /* Match panelClass max-width */
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9; /* Example background */
+        }
+        body {
+            font-family: system-ui, sans-serif;
+            background-color: #eee; /* Example background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+    </style>
+    <!-- Optional: Include Tailwind CSS for styling from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <!-- This div will contain the login widget -->
+    <div id="bedrock-login-widget">Loading Login...</div>
+
+    <!-- Load the required scripts -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://public-cdn-files.pages.dev/bedrock-passport.umd.js"></script>
+
+    <!-- Initialize the widget -->
+    <script>
+      (function () {
+        // Ensure required libraries are loaded
+        if (!window.React || !window.ReactDOM || !window.Bedrock) {
+          console.error('Error: Required libraries failed to load.');
+          const container = document.getElementById('bedrock-login-widget');
+          if (container) {
+            container.innerHTML = '<div style="color: red; text-align: center;">Error loading authentication widget. Please check your internet connection.</div>';
+          }
+          return;
+        }
+
+        // Configuration for Bedrock Passport
+        const bedrockConfig = {
+          baseUrl: 'https://api.bedrockpassport.com', // Base API URL
+          authCallbackUrl: window.location.origin, // Use origin for callback, adjust if needed for production
+          tenantId: 'orange-jk51jglon7', // Your tenant ID
+        };
+
+        const container = document.getElementById('bedrock-login-widget');
+        if (!container) {
+            console.error('Error: Container element "bedrock-login-widget" not found.');
+            return;
+        }
+        const root = ReactDOM.createRoot(container);
+
+        // Check if we're handling a callback
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const refreshToken = params.get('refreshToken');
+
+        if (token && refreshToken) {
+          // Handle callback
+          function AuthCallbackProcessor() {
+            const {loginCallback} = Bedrock.useBedrockPassport();
+            const [message, setMessage] = React.useState('Processing authentication...');
+
+            React.useEffect(() => {
+              async function processLogin() {
+                try {
+                  setMessage('Verifying tokens...');
+                  const success = await loginCallback(token, refreshToken);
+                  if (success) {
+                    setMessage('Login successful! Redirecting back...');
+                    // Redirect back to the main page (or wherever needed)
+                    setTimeout(() => window.location.href = '/', 1500); // Redirect to root
+                  } else {
+                    setMessage('Authentication failed. Please try logging in again.');
+                    setTimeout(() => window.location.href = window.location.pathname, 2000); // Go back to login page
+                  }
+                } catch (error) {
+                  console.error('Login error:', error);
+                  setMessage('An error occurred during login. Please try again.');
+                  setTimeout(() => window.location.href = window.location.pathname, 2000); // Go back to login page
+                }
+              }
+              processLogin();
+            }, [loginCallback]);
+
+            return React.createElement('div', {style: {textAlign: 'center', padding: '1rem'}}, message);
+          }
+
+          root.render(
+            React.createElement(
+              Bedrock.BedrockPassportProvider,
+              bedrockConfig,
+              React.createElement(AuthCallbackProcessor)
+            )
+          );
+        } else {
+          // Render login panel
+          root.render(
+            React.createElement(
+              Bedrock.BedrockPassportProvider,
+              bedrockConfig,
+              React.createElement(Bedrock.LoginPanel, {
+                title: "Sign in to Monsterbound",
+                logo: "https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg", // Example logo
+                logoAlt: "Orange Web3",
+                features: {
+                  enableAppleLogin: true,
+                  enableGoogleLogin: true,
+                  enableEmailLogin: true,
+                },
+                // Style options (using Tailwind classes from CDN)
+                panelClass: "container p-2 md:p-8 rounded-2xl max-w-[480px] bg-white shadow-lg", // Added bg and shadow
+                buttonClass: "hover:border-orange-500",
+                titleClass: "text-xl font-bold text-center mb-4", // Added text styling
+                headerClass: "justify-center mb-4", // Added margin
+              })
+            )
+          );
+        }
+      })();
+    </script>
+</body>
+</html> 

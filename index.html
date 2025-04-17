@@ -24,9 +24,9 @@
     <link rel="stylesheet" href="js/styles.css">
 </head>
 <body>
-    <div id="bedrock-login-widget"></div>
     <div id="ui">
         <button id="storageButton">Menu/Monsters</button>
+        <button onclick="window.location.href='login.html'" style="margin-left: 10px;">Login</button>
         <div id="areaDisplay">Area: Binder Town</div>
         <div id="goldCounter">Gold: 100</div>
         <div id="fpsCounter">FPS: 60</div>
@@ -169,139 +169,6 @@
     <script src="js/ui.js"></script>
     <script src="js/save-load-system.js"></script>
     <script src="js/game.js"></script>
-    
-    <!-- Bedrock Passport Integration -->
-    <!-- 1. Container div added above -->
-    <!-- 2. Load the required scripts -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://public-cdn-files.pages.dev/bedrock-passport.umd.js"></script>
-    <!-- Optional: Include Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 3. Initialize the widget -->
-    <script>
-      (function () {
-        // Ensure required libraries are loaded
-        if (!window.React || !window.ReactDOM || !window.Bedrock) {
-          console.error('Error: Required libraries failed to load.');
-          const container = document.getElementById('bedrock-login-widget');
-          if (container) {
-            container.innerHTML = '<div style="color: red; text-align: center;">Error loading authentication widget. Please check your internet connection.</div>';
-          }
-          return;
-        }
-
-        // Configuration for Bedrock Passport
-        const bedrockConfig = {
-          baseUrl: 'https://api.bedrockpassport.com', // Base API URL – no need to change this. Leave as is.
-          authCallbackUrl: window.location.origin, // For production, ensure you have a dedicated auth callback page (e.g. /auth/callback)
-          tenantId: 'orange-jk51jglon7', // Your assigned tenant ID
-        };
-
-        const container = document.getElementById('bedrock-login-widget');
-        if (!container) {
-            console.error('Error: Container element "bedrock-login-widget" not found.');
-            return;
-        }
-        const root = ReactDOM.createRoot(container);
-
-        // Check if we're handling a callback
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        const refreshToken = params.get('refreshToken');
-
-        if (token && refreshToken) {
-          // We're handling a callback
-          // Create the callback processor component
-          function AuthCallbackProcessor() {
-            const {loginCallback} = Bedrock.useBedrockPassport();
-            const [message, setMessage] = React.useState(
-              'Processing authentication...'
-            );
-
-            React.useEffect(() => {
-              async function processLogin() {
-                try {
-                  setMessage('Verifying tokens...');
-                  const success = await loginCallback(token, refreshToken);
-
-                  if (success) {
-                    setMessage('Login successful! Redirecting...');
-                    // Remove token parameters from URL and redirect
-                    window.history.replaceState(
-                      {},
-                      document.title,
-                      window.location.pathname
-                    );
-                    setTimeout(() => {
-                      // Redirect or refresh page as needed
-                      window.location.reload();
-                    }, 1000);
-                  } else {
-                    setMessage('Authentication failed. Please try again.');
-                  }
-                } catch (error) {
-                  console.error('Login error:', error);
-                  setMessage('An error occurred during login.');
-                }
-              }
-
-              processLogin();
-            }, [loginCallback]); // Ensure loginCallback is included in dependency array
-
-            return React.createElement(
-              'div',
-              {style: {textAlign: 'center', padding: '1rem'}},
-              message
-            );
-          }
-
-          // Render callback processor within the Provider
-          root.render(
-            React.createElement(
-              Bedrock.BedrockPassportProvider,
-              bedrockConfig,
-              React.createElement(AuthCallbackProcessor)
-            )
-          );
-        } else {
-          // Normal login flow: Render login panel within the Provider
-          root.render(
-            React.createElement(
-              Bedrock.BedrockPassportProvider,
-              bedrockConfig,
-              React.createElement(Bedrock.LoginPanel, {
-                // Content options — No changes needed unless specific customization is required
-                title: "Sign in to",
-                logo: "https://irp.cdn-website.com/e81c109a/dms3rep/multi/orange-web3-logo-v2a-20241018.svg",
-                logoAlt: "Orange Web3",
-                walletButtonText: "Connect Wallet",
-                showConnectWallet: false, // Set to true if you want wallet connect
-                separatorText: "OR",
-
-                // Feature toggles — Adjust these based on which login methods you want to support
-                features: {
-                  enableWalletConnect: false, // Set to true if you want wallet connect
-                  enableAppleLogin: true,
-                  enableGoogleLogin: true,
-                  enableEmailLogin: true,
-                },
-
-                // Style options — Keep as-is unless UI tweaks are needed
-                titleClass: "text-xl font-bold",
-                logoClass: "ml-2 md:h-8 h-6",
-                panelClass: "container p-2 md:p-8 rounded-2xl max-w-[480px]",
-                buttonClass: "hover:border-orange-500",
-                separatorTextClass: "bg-orange-900 text-gray-500", // Adjust if not using Tailwind bg colors
-                separatorClass: "bg-orange-900", // Adjust if not using Tailwind bg colors
-                linkRowClass: "justify-center",
-                headerClass: "justify-center",
-              })
-            )
-          );
-        }
-      })();
-    </script>
 
     <a target="_blank" href="https://discord.gg/547meQMzAY" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: 120px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">Discord    !</a>
     <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
