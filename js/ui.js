@@ -805,7 +805,8 @@ function showMonsterDetails(monsterId) {
         monster.rareModifiers, 
         monster.spawnLevel,
         monster.typeId,
-        monster.favoredStat
+        monster.favoredStat,
+        monster.abilId
     );
     const baseLevelTotalStats = Object.values(baseLevelStatsData.stats).reduce((sum, stat) => sum + stat, 0);
     
@@ -822,7 +823,8 @@ function showMonsterDetails(monsterId) {
         monster.rareModifiers, 
         monster.spawnLevel,
         monster.typeId,
-        monster.favoredStat
+        monster.favoredStat,
+        monster.abilId
     );
     const maxLevelTotalStats = Object.values(maxLevelStatsData.stats).reduce((sum, stat) => sum + stat, 0);
     const maxLevelMaxHP = maxLevelStatsData.maxHP;

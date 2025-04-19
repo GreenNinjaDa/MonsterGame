@@ -1959,6 +1959,8 @@ function updateStaminaRegen(deltaTime) {
         // Calculate regen rate (1% in combat, 10% out of combat or always 10% for stored monsters)
         const isStored = gameState.player.storedMonsters.includes(monster);
         let regenRate = (inCombat(monster) && !isStored) ? GAME_CONFIG.staminaRegenRateCombat : GAME_CONFIG.staminaRegenRate;
+        // Ability 6: Early Bird - Double regen out of combat.
+        if (hasAbility(monster, 6)) {regenRate = regenRate * MONSTER_ABILITIES[6].value}
         const regenAmount = monster.maxStamina * regenRate * deltaTime;
         
         // Apply stamina regeneration
@@ -1983,6 +1985,8 @@ function updateHPRegen(deltaTime) {
         let regenRate = (isInCombat && !isStored) ? GAME_CONFIG.hpRegenRateCombat : GAME_CONFIG.hpRegenRate;
         // Ability 14: Lazy - Always regens HP at half out of combat rates
         if (hasAbility(monster, 14)) {regenRate = MONSTER_ABILITIES[14].value * GAME_CONFIG.hpRegenRate}
+        // Ability 6: Early Bird - Double regen out of combat. Works with Lazy!
+        if (hasAbility(monster, 6)) {regenRate = regenRate * MONSTER_ABILITIES[6].value}
         const regenAmount = monster.maxHP * regenRate * deltaTime;
 
         // Apply HP regeneration
@@ -2348,8 +2352,8 @@ function createWildMonster(areaLevel, x, y) {
         level = Math.floor(minAreaLevel + (levelRange * adjustedRatio));
     }
     
-    // Have a 50% chance to spawn a monster from this area level, 40% chance to spawn one from any level below,
-    // 5% chance to spawn one from the area level above, and 5% chance to spawn any random monster.
+    // Have a 75% chance to spawn a monster from this area level, 20% chance to spawn one from any level below,
+    // 3% chance to spawn one from the area level above, and 2% chance to spawn any random monster.
     const spawnRoll = Math.random() * 100;
     let availableTypes;
     

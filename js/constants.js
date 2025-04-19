@@ -1,7 +1,7 @@
 // Camera/View Constants
 const GAME_CONFIG = {
     //Version number
-    version: "0.7.3",
+    version: "0.7.6",
 
     // View and Camera
     baseViewSize: 500,  // Base size for camera view and calculations

@@ -374,7 +374,8 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
     );
 
     // Create the monster's visual representation using a plane with texture
-    const size = monsterType.size * GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier;
+    const baseSize = monsterType.size ?? 1; // Default size to 1 if not specified
+    const size = baseSize * GAME_CONFIG.monsterBaseSize * calculatedStats.sizeMultiplier;
     const geometry = new THREE.PlaneGeometry(size, size);
     const material = new THREE.MeshBasicMaterial({ 
         map: GAME_CONFIG.monsterTextures[typeId],
@@ -522,6 +523,26 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
         elementMultiplier = 0.67; // 33% less damage
     }
 
+    // Ability 1 - Infertile - Takes 20% less damage from plant element enemies.
+    if (hasAbility(defender, 1) && (attacker.element === "Plant" || MONSTER_TYPES[attacker.typeId].element === "Plant")) {
+        elementMultiplier = elementMultiplier * MONSTER_ABILITIES[1].value;
+    }
+
+    // Ability 2 - Greek Fire - Deals 25% more damage to water element enemies.
+    if (hasAbility(attacker, 2) && (defender.element === "Water" || MONSTER_TYPES[defender.typeId].element === "Water")) {
+        elementMultiplier = elementMultiplier * MONSTER_ABILITIES[2].value;
+    }
+
+    // Ability 10 - Extinguisher - Deals 25% more damage to fire element enemies.
+    if (hasAbility(attacker, 10) && (defender.element === "Fire" || MONSTER_TYPES[defender.typeId].element === "Fire")) {
+        elementMultiplier = elementMultiplier * MONSTER_ABILITIES[10].value;
+    }
+
+    // Ability 18 - Waterproof - Takes 20% less damage from water element enemies.
+    if (hasAbility(defender, 18) && (attacker.element === "Water" || MONSTER_TYPES[attacker.typeId].element === "Water")) {
+        elementMultiplier = elementMultiplier * MONSTER_ABILITIES[18].value;
+    }
+
     // Add damage bonus/reduction for wild monsters (team 1) based on area level
     let tempMultiplier = 1
 
@@ -531,20 +552,35 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     if (defender.team === 1) {
         tempMultiplier = tempMultiplier * (1 / (1 + (gameState.currentArea - 1) * GAME_CONFIG.wildMonsterDamageReduction));
     }
-
-    tempMultiplier = tempMultiplier * elementMultiplier;
     
-    // Apply element multiplier to both damage types
-    const adjustedSpecialDamage = Math.floor(specialDamage * tempMultiplier);
-    const adjustedPhysicalDamage = Math.floor(physicalDamage * tempMultiplier);
+    // Apply multipliers to both damage types
+    const adjustedSpecialDamage = Math.floor(specialDamage * tempMultiplier * elementMultiplier);
+    const adjustedPhysicalDamage = Math.floor(physicalDamage * tempMultiplier * elementMultiplier);
+
+    // Ability 7 - Stomper - Deals 25% more physical damage to enemies below 50% HP.
+    if (hasAbility(attacker, 7) && defender.currentHP < defender.maxHP * MONSTER_ABILITIES[7].threshold) {
+        adjustedPhysicalDamage = adjustedPhysicalDamage * MONSTER_ABILITIES[7].value;
+    }
     
     // Total damage
     let totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
+
+    // Ability 3 - Between a Rock... - Takes 5% less damage from enemies per level higher they are.
+    if (hasAbility(defender, 3) && (attacker.level > defender.level)) {
+        totalDamage /= 1 + (attacker.level - defender.level) * MONSTER_ABILITIES[3].value;
+    }
+
+    // Ability 9003 - ..And a Hard Place - Deals 5% increased damage to enemies per level higher they are.
+    if (hasAbility(attacker, 9003) && (defender.level > attacker.level)) {
+        totalDamage *= 1 + (1 / (1 + (defender.level - attacker.level) * MONSTER_ABILITIES[9003].value));
+    }
 
     // Apply Hardened Skin ability 17
     if (hasAbility(defender, 17) && totalDamage > 10) {
         totalDamage = Math.max(MONSTER_ABILITIES[17].value, totalDamage - MONSTER_ABILITIES[17].value);
     }
+
+    totalDamage = Math.ceil(totalDamage);
     
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - totalDamage);
@@ -559,11 +595,6 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     defender.timeSinceDamageTaken = 0;
     attacker.timeSinceDamageDealt = 0;
 
-    // Ability 35 - Static Charge - gains 20% of physical damage taken as stamina
-    if (hasAbility(defender, 35)) {
-        defender.currentStamina += adjustedPhysicalDamage * MONSTER_ABILITIES[35].value;
-    }
-
     // Physical Drain ability 16
     if (hasAbility(attacker, 16)) {
         attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedPhysicalDamage * MONSTER_ABILITIES[16].value));
@@ -572,6 +603,11 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     // Special Drain ability 19
     if (hasAbility(attacker, 19)) {
         attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedSpecialDamage * MONSTER_ABILITIES[19].value));
+    }
+
+    // Ability 35 - Static Charge - gains 20% of physical damage taken as stamina
+    if (hasAbility(defender, 35)) {
+        defender.currentStamina += adjustedPhysicalDamage * MONSTER_ABILITIES[35].value;
     }
 
     // Visual feedback for elemental interactions
@@ -868,7 +904,8 @@ function handleMonsterDefeat(defeated, victor) {
 function addCaptureTarget(monster) {
     // Get the base size from monster type and apply the same scaling as in createMonster
     const monsterType = MONSTER_TYPES[monster.typeId];
-    const monsterSize = monsterType.size * GAME_CONFIG.monsterBaseSize * 0.8; // Slightly smaller than the actual monster
+    const baseSize = monsterType.size ?? 1; // Default size to 1 if not specified
+    const monsterSize = baseSize * GAME_CONFIG.monsterBaseSize * 0.8; // Slightly smaller than the actual monster
     
     // Create a capture icon with the monster's image
     // Create the outer ring
@@ -1126,6 +1163,5 @@ function selectWeightedRandomTarget(attacker) {
 
 // Function to check if a monster has an ability naturally or has gained it
 function hasAbility(monster, abilityId) {
-    if (monster.abilId === abilityId) return true;
-    else return abilityId === monster.typeId;
+    return abilityId === monster.typeId || abilityId === monster.abilId;
 }

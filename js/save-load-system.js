@@ -25,7 +25,7 @@ window.saveGame = function() {
             element: monster.element,
             spawnLevel: monster.spawnLevel,
             rareModifiers: monster.rareModifiers,
-            abilId: monster.abilId
+            abilId: monster.abilId != MONSTER_TYPES[monster.typeId].abilId ? monster.abilId : null
         })),
         storedMonsters: storedMonsters.map(monster => ({
             typeId: monster.typeId,
@@ -35,7 +35,7 @@ window.saveGame = function() {
             element: monster.element,
             spawnLevel: monster.spawnLevel,
             rareModifiers: monster.rareModifiers,
-            abilId: monster.abilId
+            abilId: monster.abilId != MONSTER_TYPES[monster.typeId].abilId ? monster.abilId : null
         })),
         player: playerData
     };
