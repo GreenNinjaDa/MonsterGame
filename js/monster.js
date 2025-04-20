@@ -585,7 +585,12 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     // Apply damage to defender
     defender.currentHP = Math.max(0, defender.currentHP - totalDamage);
 
-    // Ability 20 - Hydra - Upon 0 hp, spends all its stamina to heal current stamina% hp if stamina > 15%.
+    // Apply ensnaring ability 5
+    if (hasAbility(attacker, 5)) {
+        defender.currentStamina = Math.max(0, defender.currentStamina - (totalDamage * MONSTER_ABILITIES[5].value));
+    }
+
+    // Ability 20 - Hydra - Upon 0 HP, spends all its stamina to swap HP and staminaif stamina > 10%.
     if (hasAbility(defender, 20) && defender.currentHP <= 0 && defender.currentStamina > (MONSTER_ABILITIES[20].value * defender.maxStamina)) {
         defender.currentHP = defender.maxHP * (defender.currentStamina / defender.maxStamina);
         defender.currentStamina = 0;
@@ -605,7 +610,7 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
         attacker.currentHP = Math.min(attacker.maxHP, attacker.currentHP + (adjustedSpecialDamage * MONSTER_ABILITIES[19].value));
     }
 
-    // Ability 35 - Static Charge - gains 20% of physical damage taken as stamina
+    // Ability 35 - Static Charge - gains 15% of physical damage taken as stamina
     if (hasAbility(defender, 35)) {
         defender.currentStamina += adjustedPhysicalDamage * MONSTER_ABILITIES[35].value;
     }
@@ -1011,6 +1016,11 @@ function handleExperienceGain(victor, defeated) {
     } else if (levelDifference > 0) {
         // For every level above, increase EXP by 5%
         expModifier = Math.min(2, 1 + (levelDifference * 0.05));
+    }
+
+    // Apply growth spurt ability 4
+    if (hasAbility(victor, 4)) {
+        expModifier *= MONSTER_ABILITIES[4].value;
     }
     
     // Calculate final EXP and apply the 2x bonus

@@ -62,7 +62,8 @@ const MONSTER_ABILITIES = {
     1: { name: "Infertile", desc: "Takes 20% less damage from plant element enemies.", value: 0.8 },
     2: { name: "Greek Fire", desc: "Deals 25% more damage to water element enemies.", value: 1.25 },
     3: { name: "Between a Rock..", desc: "Takes 5% less damage from enemies per level higher they are.", value: 0.05 },
-    //4: { name: "Growth Spurt", desc: "Gains 30% more exp.", }, //TODO
+    4: { name: "Growth Spurt", desc: "Gains 30% more exp.", value: 1.3 },
+    5: { name: "Ensnaring", desc: "10% of damage also reduces enemy stamina.", value: 0.1 },
     6: { name: "Early Bird", desc: "Double regen out of combat.", value: 2.0 },
     7: { name: "Stomper", desc: "Deals 25% more physical damage to enemies below 50% HP.", value: 1.25, threshold: 0.5 },
     8: { name: "Rotund", desc: "10% increased max HP, 10% reduced max stamina.", value: 0.1 },
@@ -73,12 +74,12 @@ const MONSTER_ABILITIES = {
     13: { name: "Rumbler", desc: "Rolls around during combat." },
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates.", value: 0.5 },
     15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss.", value: 0.2 },
-    16: { name: "Physical Drain", desc: "Leeches 20% of physical damage dealt.", value: 0.2 },
+    16: { name: "Physical Drain", desc: "Leeches 15% of physical damage dealt.", value: 0.15 },
     17: { name: "Hardened Body", desc: "Incoming damage reduced by 20, minimum of 20.", value: 20 },
     18: { name: "Waterproof", desc: "Takes 20% less damage from water element enemies.", value: 0.8 },
     19: { name: "Special Drain", desc: "Leeches 20% of special damage dealt.", value: 0.2 },
-    20: { name: "Hydra", desc: "Instead of dying, swaps its HP and stamina percentages.", value: 0.15 },
-	35: { name: "Static Charge", desc: "20% of physical damage taken gained as stamina.", value: 0.2 },
+    20: { name: "Hydra", desc: "Instead of dying, swaps its HP and stamina percentages.", value: 0.1 },
+	35: { name: "Static Charge", desc: "15% of physical damage taken gained as stamina.", value: 0.15 },
     9003: { name: "...And a Hard Place", desc: "Deals 5% increased damage to enemies per level higher they are.", value: 0.05 },
 }
 
