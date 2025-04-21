@@ -46,6 +46,14 @@ function createUILabel() {
 
 // Update HP, Stamina bars, Level display, and Name
 function updateUILabel(uiLabel, monster) {
+    // --- Optimization: Don't update UI for certain states --- 
+    if (monster.defeated) return; // Exit if defeated
+    if (gameState.player.storedMonsters.includes(monster)) return; // Exit if stored
+    // Exit if the monster is a capture target (check by ID)
+    const isCaptureTarget = gameState.captureTargets.some(target => target.monster.id === monster.id);
+    if (isCaptureTarget) return;
+    // --- End Optimization ---
+    
     const { context, texture } = uiLabel;
     const canvas = context.canvas;
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -554,8 +562,8 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     }
     
     // Apply multipliers to both damage types
-    const adjustedSpecialDamage = Math.floor(specialDamage * tempMultiplier * elementMultiplier);
-    const adjustedPhysicalDamage = Math.floor(physicalDamage * tempMultiplier * elementMultiplier);
+    let adjustedSpecialDamage = Math.floor(specialDamage * tempMultiplier * elementMultiplier);
+    let adjustedPhysicalDamage = Math.floor(physicalDamage * tempMultiplier * elementMultiplier);
 
     // Ability 7 - Stomper - Deals 25% more physical damage to enemies below 50% HP.
     if (hasAbility(attacker, 7) && defender.currentHP < defender.maxHP * MONSTER_ABILITIES[7].threshold) {
@@ -565,7 +573,7 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     // Total damage
     let totalDamage = adjustedPhysicalDamage + adjustedSpecialDamage;
 
-    // Ability 3 - Between a Rock... - Takes 5% less damage from enemies per level higher they are.
+    // Ability 3 - Between a Rock.. - Takes 5% less damage from enemies per level higher they are.
     if (hasAbility(defender, 3) && (attacker.level > defender.level)) {
         totalDamage /= 1 + (attacker.level - defender.level) * MONSTER_ABILITIES[3].value;
     }
@@ -1125,7 +1133,7 @@ function selectWeightedRandomTarget(attacker) {
         return !filterReason; // Return true if no filterReason was set
     });
 
-    // If attack missed due to Distracting Presence
+    // If attack missed
     if (attackMissed) {
         createFloatingText("Missed!", attacker.mesh.position, 0xffffff, -0.5);
         return null; // Return null to signify a missed attack

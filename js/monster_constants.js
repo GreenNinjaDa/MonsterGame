@@ -16,7 +16,7 @@ const MONSTER_TYPES = {
     12: { name: "Blackbory", element: "Earth", stats: { spd: 30, pDef: 50, sDef: 70, pAtk: 55, sAtk: 15, endur: 60}, size: 0.8}, //Total: 280
     13: { name: "Rumbleweed", element: "Plant", stats: { spd: 50, pDef: 65, sDef: 45, pAtk: 70, sAtk: 10, endur: 60}, size: 0.85}, //Total: 300
     14: { name: "Blazey", element: "Fire", stats: { spd: 10, pDef: 50, sDef: 60, pAtk: 25, sAtk: 75, endur: 40 } }, //Total: 260
-    15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, sDef: 30, pAtk: 20, sAtk: 60, endur: 40 } }, //Total: 260
+    15: { name: "Treezard", element: "Plant", stats: { spd: 50, pDef: 60, sDef: 30, pAtk: 20, sAtk: 70, endur: 50 } }, //Total: 280
     16: { name: "Dampyre", element: "Water", stats: { spd: 80, pDef: 40, sDef: 30, pAtk: 70, sAtk: 30, endur: 40 } }, //Total: 290
     17: { name: "Moltenoth", element: "Fire", stats: { spd: 20, pDef: 60, sDef: 70, pAtk: 70, sAtk: 20, endur: 60 } }, //Total: 300
     18: { name: "Puddlepus", element: "Water", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 50, sAtk: 50, endur: 50 }, size: 0.95}, //Total: 300
@@ -55,9 +55,11 @@ const MONSTER_ABILITIES = {
     00: { name: "Ensnaring", desc: "10% of damage also reduces enemy stamina." }
     00: { name: "Masher", desc: "Deals 25% more special damage to enemies below 50% HP." }
     00: { name: "", desc: "." },
+    00: { name: "", desc: ".", value: 0},
     00: { name: "Ambusher", desc: "Deals double physical damage to enemies above 90% HP.", value: 2.0, threshold: 0.9 },
     00: { name: "Surprise Attack", desc: "Deals double special damage to enemies above 90% HP.", value: 2.0, threshold: 0.9 },
     00: { name: "Glancing Blows", desc: "Adds half a second to enemy attack cooldown when hit.", value: 0.5 },
+    00: { name: "", desc: ".", value: 0},
     */
     1: { name: "Infertile", desc: "Takes 20% less damage from plant element enemies.", value: 0.8 },
     2: { name: "Greek Fire", desc: "Deals 25% more damage to water element enemies.", value: 1.25 },
@@ -73,11 +75,11 @@ const MONSTER_ABILITIES = {
     12: { name: "Magic Thorns", desc: "Reflects 25% of attack special damage taken before reduction.", value: 0.25 },
     13: { name: "Rumbler", desc: "Rolls around during combat." },
     14: { name: "Lazy", desc: "Always regenerates HP at half out of combat rates.", value: 0.5 },
-    15: { name: "Distracting Presence", desc: "Nearby enemies have a 20% chance to miss.", value: 0.2 },
+    15: { name: "Distracting Presence", desc: "Nearby enemies have a 10% chance to miss.", value: 0.1 },
     16: { name: "Physical Drain", desc: "Leeches 15% of physical damage dealt.", value: 0.15 },
     17: { name: "Hardened Body", desc: "Incoming damage reduced by 20, minimum of 20.", value: 20 },
     18: { name: "Waterproof", desc: "Takes 20% less damage from water element enemies.", value: 0.8 },
-    19: { name: "Special Drain", desc: "Leeches 20% of special damage dealt.", value: 0.2 },
+    19: { name: "Special Drain", desc: "Leeches 15% of special damage dealt.", value: 0.15 },
     20: { name: "Hydra", desc: "Instead of dying, swaps its HP and stamina percentages.", value: 0.1 },
 	35: { name: "Static Charge", desc: "15% of physical damage taken gained as stamina.", value: 0.15 },
     9003: { name: "...And a Hard Place", desc: "Deals 5% increased damage to enemies per level higher they are.", value: 0.05 },

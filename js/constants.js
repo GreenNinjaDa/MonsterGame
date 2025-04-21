@@ -1,7 +1,7 @@
 // Camera/View Constants
 const GAME_CONFIG = {
     //Version number
-    version: "0.7.6",
+    version: "0.7.7",
 
     // View and Camera
     baseViewSize: 500,  // Base size for camera view and calculations
@@ -29,6 +29,7 @@ const GAME_CONFIG = {
     hpRegenRate: 0.05, // Out of combat HP regen rate
     hpRegenRateCombat: 0, // combat HP regen rate
     speedAttackScaling: 0.006, //0.6% attack speed scaling per speed stat
+    masterFollowDistance: 150, // Distance to follow player for boss masters
     
     // Movement Speeds (units per second)
     playerSpeed: 200, // Base player movement speed

@@ -240,12 +240,10 @@ function initThree() {
     // Add focus/blur event listeners to manage frame rate
     window.addEventListener('blur', () => {
         gameState.windowFocused = false;
-        console.log('Window lost focus - reducing frame rate to 10 FPS');
     });
     
     window.addEventListener('focus', () => {
         gameState.windowFocused = true;
-        console.log('Window gained focus - restoring normal frame rate');
     });
     
     // Set initial focus state
@@ -506,10 +504,6 @@ function spawnBossMasters(areaLevel) {
     console.log(`Spawned ${numBosses} boss masters (Team 0) and their monsters in Area 1.`);
 }
 
-/**
- * Initiates the boss fight by changing teams and removing chat bubbles.
- * @param {number} clickedMasterId - The ID of the master whose bubble was clicked.
- */
 function startBossFight(clickedMasterId) {
     // Find the specific boss master and their monsters first
     const targetMaster = gameState.bossMasters.find(m => m.id === clickedMasterId);
@@ -653,8 +647,8 @@ function gameLoop(time) {
     if (isBackgroundCapped) {
         // Calculate time since last frame
         const timeSinceLastFrame = time - gameState.lastTime;
-        // If less than 100ms (10 FPS) has passed, skip this frame
-        if (timeSinceLastFrame < 100) {
+        // If less than 50ms (20 FPS) has passed, skip this frame
+        if (timeSinceLastFrame < 50) {
             requestAnimationFrame(gameLoop);
             return;
         }
@@ -673,7 +667,7 @@ function gameLoop(time) {
         gameState.fpsHistory = [];
     }
     gameState.fpsHistory.push(frameRate);
-    if (gameState.fpsHistory.length > 20) {
+    if (gameState.fpsHistory.length > 40) {
         gameState.fpsHistory.shift();
     }
     const avgFps = Math.round(gameState.fpsHistory.reduce((a, b) => a + b, 0) / gameState.fpsHistory.length);
@@ -732,7 +726,7 @@ function gameLoop(time) {
         monster.timeSinceDamageTaken += cappedDeltaTime;
         monster.timeSinceDamageDealt += cappedDeltaTime;
     }
-    
+
     // Handle monster collisions and aggro in a single optimized pass
     handleMonsterCollisionsAndAggro();
     
@@ -834,6 +828,7 @@ function updateElementSpheres(deltaTime) {
 
 // Handle monster collisions and aggro range in a single pass to optimize performance
 function handleMonsterCollisionsAndAggro() {
+
     // Combine all monsters into a single array
     const allMonsters = [...gameState.player.monsters, ...gameState.wildMonsters, ...gameState.bossMonsters];
     const numMonsters = allMonsters.length;
@@ -1538,8 +1533,8 @@ function updateMasterMovement(deltaTime) {
             continue; // Stop processing this master for this frame
         }
 
-        // Follow player, maintaining a distance of 200
-        const followDistance = 200;
+        // Follow player, maintaining a distance of 150 by default
+        const followDistance = GAME_CONFIG.masterFollowDistance;
         if (distanceToPlayer > followDistance) {
             const direction = new THREE.Vector3()
                 .subVectors(playerPos, masterPos)
@@ -1963,11 +1958,16 @@ function updateStaminaRegen(deltaTime) {
         if (hasAbility(monster, 6)) {regenRate = regenRate * MONSTER_ABILITIES[6].value}
         const regenAmount = monster.maxStamina * regenRate * deltaTime;
         
+        // Store current stamina before regeneration
+        const staminaBefore = monster.currentStamina;
+
         // Apply stamina regeneration
         monster.currentStamina = Math.min(monster.maxStamina, monster.currentStamina + regenAmount);
-        
-        // Update UI
-        updateUILabel(monster.uiLabel, monster);
+
+        // Update UI only if stamina actually changed
+        if (monster.currentStamina !== staminaBefore) {
+            updateUILabel(monster.uiLabel, monster);
+        }
     }
 }
 
@@ -2020,6 +2020,7 @@ function updateCaptureTargets(deltaTime) {
 
 // Handle monster following behavior
 function updateMonsterFollowing(deltaTime) {
+    
     const monstersToUpdate = [...gameState.player.monsters, ...gameState.bossMonsters];
 
     for (const monster of monstersToUpdate) {
