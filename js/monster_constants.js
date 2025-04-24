@@ -45,7 +45,7 @@ const MONSTER_TYPES = {
     */
     // Dragginball
     // Unicorg
-    // Geotux
+    // Gooeytux
     // 1001: { name: "Subject A", element: "Neutral", stats: { spd: 60, pDef: 20, sDef: 20, pAtk: 70, sAtk: 70, endur: 60 } }, //Total: 300
 };
 

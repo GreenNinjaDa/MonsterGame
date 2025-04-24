@@ -188,13 +188,18 @@
             /* Positioning Styles */
             position: fixed;
             bottom: 5px; 
-            right: 210px;
+            right: 220px;
             z-index: 1000; /* Ensure it's above other elements */
         ">
         Orange Login
     </button>
 
-    <a target="_blank" href="https://chitchatter.im/public/d84476f7-617c-4aa7-a0f4-3365643706b9" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: 120px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">Join Chat !</a>
+    <div id="chatRoomContainer" style="display: none;">
+        <iframe src="https://chitchatter.im/public/d84476f7-617c-4aa7-a0f4-3365643706b9" width="400" height="600"></iframe>
+    </div>
+
+    <a id="chatRoomLink" href="#" onclick="toggleChatRoom(); return false;" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: 120px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">Show Chat !</a>
+
     <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
 </body>
 </html>

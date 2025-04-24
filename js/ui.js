@@ -1390,3 +1390,16 @@ function swapActiveMonsters() {
     updateStorageUI();
     addChatMessage("Active monsters swapped.", 2000);
 }
+
+function toggleChatRoom() {
+    const chatRoomContainer = document.getElementById('chatRoomContainer');
+    const toggleChatBtn = document.getElementById('toggleChatBtn');
+    
+    if (chatRoomContainer.style.display === 'none') {
+        chatRoomContainer.style.display = 'block';
+        toggleChatBtn.textContent = 'Close Chat';
+    } else {
+        chatRoomContainer.style.display = 'none';
+        toggleChatBtn.textContent = 'Open Chat';
+    }
+}

@@ -648,4 +648,28 @@ canvas {
 [title] {
     /*text-decoration: underline dotted;*/
     cursor: help;
+}
+
+/* Chat Room Styles */
+#chatRoomContainer {
+  position: fixed;
+  bottom: 40px;
+  right: 10px;
+  z-index: 10000;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+#chatRoomContainer iframe {
+  border: none;  
+}
+
+#toggleChatBtn {
+  border-radius: 5px;
+}
+
+#toggleChatBtn:hover {
+  background: #eee;
 } 
