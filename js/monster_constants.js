@@ -7,7 +7,7 @@ const MONSTER_TYPES = {
     3: { name: "DownTwo", element: "Earth", stats: { spd: 30, pDef: 65, sDef: 65, pAtk: 55, sAtk: 55, endur: 30}, atkCd: 5, abilId: 9003 }, //Total: 300
     4: { name: "Potsy", element: "Plant", stats: { spd: 30, pDef: 60, sDef: 60, pAtk: 60, sAtk: 60, endur: 30}, atkCd: 5 }, //Total: 300
     5: { name: "Shockles", element: "Electric", stats: { spd: 60, pDef: 30, sDef: 40, pAtk: 50, sAtk: 60, endur: 60}, size: 0.9, atkCd: 5 }, //Total: 300
-    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, sDef: 40, pAtk: 30, sAtk: 80, endur: 40}, size: 0.8, atkCd: 5 }, //Total: 300
+    6: { name: "Zappy Bird", element: "Electric", stats: { spd: 70, pDef: 40, sDef: 40, pAtk: 30, sAtk: 80, endur: 40}, size: 0.8 }, //Total: 300
     7: { name: "Roflstump", element: "Plant", stats: { spd: 30, pDef: 40, sDef: 40, pAtk: 90, sAtk: 70, endur: 30}, size: 0.8 }, //Total: 300
     8: { name: "Wimbler", element: "Water", stats: { spd: 40, pDef: 60, sDef: 50, pAtk: 45, sAtk: 35, endur: 70}, size: 1.2, atkCd: 5}, //Total: 300
     9: { name: "Urthmoad", element: "Earth", stats: { spd: 100, pDef: 30, sDef: 20, pAtk: 50, sAtk: 20, endur: 80}, atkCd: 3}, //Total: 300
@@ -45,6 +45,7 @@ const MONSTER_TYPES = {
     */
     // Dragginball
     // Unicorg
+    // Geotux
     // 1001: { name: "Subject A", element: "Neutral", stats: { spd: 60, pDef: 20, sDef: 20, pAtk: 70, sAtk: 70, endur: 60 } }, //Total: 300
 };
 
@@ -57,9 +58,12 @@ const MONSTER_ABILITIES = {
     00: { name: "", desc: "." },
     00: { name: "", desc: ".", value: 0},
     00: { name: "Ambusher", desc: "Deals double physical damage to enemies above 90% HP.", value: 2.0, threshold: 0.9 },
-    00: { name: "Surprise Attack", desc: "Deals double special damage to enemies above 90% HP.", value: 2.0, threshold: 0.9 },
-    00: { name: "Glancing Blows", desc: "Adds half a second to enemy attack cooldown when hit.", value: 0.5 },
-    00: { name: "", desc: ".", value: 0},
+    00: { name: "Surprise Attack", desc: "Deals double special damage to enemies above 90% HP.", value: 2, threshold: 0.9 },
+    00: { name: "Frontloader", desc: "Spends double stamina to deal 50% more damage with attacks.", value: 1.5, costMulti: 2 },
+    00: { name: "Executioner", desc: "Deals 50% more damage to enemies below 15% HP.", value: 1.5, threshold: 0.15 },
+    00: { name: "Finisher", desc: "Spends double stamina to deal double damage to enemies below half HP.", value: 2, costMulti: 2 },
+    00: { name: "Roundup", desc: "Deals 25% more damage to plant element enemies.", value: 1.25 },
+    00: { name: "Indomitable", desc: "Incoming hit damage above 10% of max HP is halved.", threshold: 0.1},
     */
     1: { name: "Infertile", desc: "Takes 20% less damage from plant element enemies.", value: 0.8 },
     2: { name: "Greek Fire", desc: "Deals 25% more damage to water element enemies.", value: 1.25 },
@@ -80,7 +84,10 @@ const MONSTER_ABILITIES = {
     17: { name: "Hardened Body", desc: "Incoming damage reduced by 20, minimum of 20.", value: 20 },
     18: { name: "Waterproof", desc: "Takes 20% less damage from water element enemies.", value: 0.8 },
     19: { name: "Special Drain", desc: "Leeches 15% of special damage dealt.", value: 0.15 },
-    20: { name: "Hydra", desc: "Instead of dying, swaps its HP and stamina percentages.", value: 0.1 },
+    20: { name: "Hydra", desc: "Instead of dying, swaps its HP and stamina percentages.", threshold: 0.1 },
+    21: { name: "Glancing Blows", desc: "Adds half a second to enemy attack cooldown when attacked.", value: 0.5 },
+    22: { name: "Block", desc: "Blocks 50% of physical damage from an attack. Cooldown: 30 seconds, modified by speed.", value: 0.5 }, //TODO
+    31: { name: "Beautiful but Deadly", desc: "When attacked, deals 10 special damage in retaliation.", value: 10},
 	35: { name: "Static Charge", desc: "15% of physical damage taken gained as stamina.", value: 0.15 },
     9003: { name: "...And a Hard Place", desc: "Deals 5% increased damage to enemies per level higher they are.", value: 0.05 },
 }

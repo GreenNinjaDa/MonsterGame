@@ -3,7 +3,7 @@ let backgroundMusic;
 let musicInitialized = false;
 let preloadedTextures = new Map(); // Store preloaded textures
 let currentMusicIndex = 1;
-const totalMusicTracks = 8; // Update this number based on how many music files you have
+const totalMusicTracks = 9; // Update this number based on how many music files you have
 
 function initMusic() {
     // Create audio element
@@ -521,7 +521,18 @@ function startBossFight(clickedMasterId) {
     // Calculate total levels
     const playerTotalLevel = gameState.player.monsters.reduce((sum, monster) => sum + monster.level, 0);
     const bossTotalLevel = targetMonsters.reduce((sum, monster) => sum + monster.level, 0);
-    const requiredPlayerLevel = bossTotalLevel - 10;
+    const requiredPlayerLevel = bossTotalLevel - 20;
+
+    // Currently in boss fight check
+    if (gameState.inBossFight > 0) {
+        addChatMessage(`You are already in a boss fight!`, 2000);
+        return;
+    }
+
+    if (gameState.inBossFight === -1) {
+        addChatMessage(`You have failed to defeat a boss! You must return later and try again.`, 2000);
+        return;
+    }
 
     // Level Check
     if (playerTotalLevel < requiredPlayerLevel) {
@@ -1162,10 +1173,18 @@ function handleClick(event) {
     for (const target of gameState.captureTargets) {
         const distanceToTarget = targetPoint.distanceTo(target.mesh.position);
         
-        if (distanceToTarget < 20) {
-            if (!target.clicked) {
-                showCaptureUI(target);
+        if (distanceToTarget < 25) { // Define click radius for capture targets here
+            // If capture UI is already open, reset the clicked flag for the current target
+            if (captureUIOpen) {
+                // Find the currently clicked target
+                const currentTarget = gameState.captureTargets.find(t => t.clicked);
+                if (currentTarget) {
+                    currentTarget.clicked = false;
+                }
             }
+            
+            // Show capture UI for the clicked target
+            showCaptureUI(target);
             return; // Always return if clicked on a capture target, regardless of UI state
         }
     }
@@ -1495,7 +1514,8 @@ function updatePlayerMovement(deltaTime) {
 function updateMasterMovement(deltaTime) {
     // Check if player has any active monsters - if not, bosses shouldn't follow
     if (gameState.player.monsters.length === 0) {
-        return; // Exit the function entirely if player has no active monsters
+        gameState.inBossfight = -1;
+        return; // End the boss fight in failure if player has no active monsters
     }
     
     // Iterate through all boss masters
@@ -1569,7 +1589,7 @@ function updateMonsterRevival(deltaTime) {
                 monster.reviveTimer = null;
                 
                 // Restore to 50% HP
-                monster.currentHP = Math.floor(monster.maxHP * 0.5);
+                monster.currentHP = Math.ceil(monster.maxHP * 0.5);
                 monster.currentStamina = monster.maxStamina;
                 
                 // Set timeSinceDamageTaken and timeSinceDamageDealt to a high value to ensure monster is considered out of combat
@@ -1580,7 +1600,7 @@ function updateMonsterRevival(deltaTime) {
                 monster.mesh.visible = true;
                 
                 // Update UI
-                updateUILabel(monster.uiLabel, monster);
+                updateUILabel(monster);
 
                 // Check if monster is in stored monsters and player has less than 2 active monsters
                 const isStored = gameState.player.storedMonsters.includes(monster);
@@ -1851,6 +1871,11 @@ function updateCombat(deltaTime) {
         if (monster.team === 0 && gameState.player.monsters.indexOf(monster) === 0) {
             attackRange = GAME_CONFIG.attackRangeSlot1;
         }
+
+        // If it is the first monster of an NPC master, set its attack range to the slot 1 attack range
+        if (monster.masterId && gameState.bossMasters.find(m => m.id === monster.masterId)?.slot === 1) {
+            attackRange = GAME_CONFIG.attackRangeSlot1;
+        }
         
         // Rolling behavior for Rumble (abilId 13)
         if (hasAbility(monster, 13)) {
@@ -1966,7 +1991,7 @@ function updateStaminaRegen(deltaTime) {
 
         // Update UI only if stamina actually changed
         if (monster.currentStamina !== staminaBefore) {
-            updateUILabel(monster.uiLabel, monster);
+            updateUILabel(monster);
         }
     }
 }
@@ -1992,7 +2017,7 @@ function updateHPRegen(deltaTime) {
         // Apply HP regeneration
         if (monster.currentHP < monster.maxHP && regenAmount > 0) { 
             monster.currentHP = Math.min(monster.maxHP, monster.currentHP + regenAmount);
-            updateUILabel(monster.uiLabel, monster);
+            updateUILabel(monster);
         }
     }
 }

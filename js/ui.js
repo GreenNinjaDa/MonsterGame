@@ -405,7 +405,13 @@ function showCaptureUI(captureInfo) {
     // Store monster for details button and set up event listener
     const detailsButton = document.getElementById('captureDetailsButton');
     detailsButton.dataset.monsterId = monster.id;
-    detailsButton.addEventListener('click', function() {
+    
+    // Remove any existing event listeners to prevent duplicates
+    const newDetailsButton = detailsButton.cloneNode(true);
+    detailsButton.parentNode.replaceChild(newDetailsButton, detailsButton);
+    
+    // Add the event listener to the new button
+    newDetailsButton.addEventListener('click', function() {
         const monsterId = this.dataset.monsterId;
         // Find the monster in capture targets
         const target = gameState.captureTargets.find(t => t.monster.id.toString() === monsterId);
@@ -756,7 +762,7 @@ function showMonsterDetails(monsterId) {
                 break;
             case 'spd':
                 const speedAttackPercent = (GAME_CONFIG.speedAttackScaling * 100).toFixed(1); // Calculate percentage
-                statTitle = ` title="Each Speed increases attack speed by ${speedAttackPercent}%"`;
+                statTitle = ` title="Each Speed increases attack speed and cooldown rates by ${speedAttackPercent}%"`;
                 break;
             case 'endur':
                 statTitle = ' title="Each Endurance increases HP and stamina by 0.4%"';

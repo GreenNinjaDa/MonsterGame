@@ -45,7 +45,8 @@ function createUILabel() {
 }
 
 // Update HP, Stamina bars, Level display, and Name
-function updateUILabel(uiLabel, monster) {
+function updateUILabel(monster) {
+    const uiLabel = monster.uiLabel;
     // --- Optimization: Don't update UI for certain states --- 
     if (monster.defeated) return; // Exit if defeated
     if (gameState.player.storedMonsters.includes(monster)) return; // Exit if stored
@@ -462,7 +463,7 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
     };
 
     // Update the UI label
-    updateUILabel(uiLabel, monster);
+    updateUILabel(monster);
     
     // Add floating element sphere if element is different from default
     const defaultElement = MONSTER_TYPES[typeId].element;
@@ -500,9 +501,16 @@ function createMonster(typeId, level = 1, rareModifiers = null, team = 1, spawnL
 // Calculate damage based on stats and elemental relations
 function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAttack = false) {
 
-    // Ability 12: Magic Thorns reflects 25% of attack special damage taken before reduction
-    if (isAttack && hasAbility(defender, 12)) {
-        dealDamage(defender, attacker, 0, specialBase * MONSTER_ABILITIES[12].value, false);
+    if (isAttack) {
+        // Ability 12: Magic Thorns reflects 25% of attack special damage taken before reduction
+        if (hasAbility(defender, 12)) {
+            dealDamage(defender, attacker, 0, specialBase * MONSTER_ABILITIES[12].value, false);
+        }
+        // Ability 31: Beautiful but Deadly - When attacked, deals special damage in retaliation.
+        if (hasAbility(defender, 31)) {
+            const retaliationDamage = MONSTER_ABILITIES[31].value * (1 + 0.01 * defender.stats.sAtk);
+            dealDamage(defender, attacker, 0, retaliationDamage, false);
+        }
     }
 
     // Ability 11: Vengeance
@@ -599,7 +607,7 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     }
 
     // Ability 20 - Hydra - Upon 0 HP, spends all its stamina to swap HP and staminaif stamina > 10%.
-    if (hasAbility(defender, 20) && defender.currentHP <= 0 && defender.currentStamina > (MONSTER_ABILITIES[20].value * defender.maxStamina)) {
+    if (hasAbility(defender, 20) && defender.currentHP <= 0 && defender.currentStamina > (MONSTER_ABILITIES[20].threshold * defender.maxStamina)) {
         defender.currentHP = defender.maxHP * (defender.currentStamina / defender.maxStamina);
         defender.currentStamina = 0;
     }
@@ -681,8 +689,8 @@ function dealDamage(attacker, defender, physicalBase = 0, specialBase = 0, isAtt
     createFloatingText(`-${totalDamage}`, defender.mesh.position, textColor);
     
     // Update health bars
-    updateUILabel(defender.uiLabel, defender);
-    updateUILabel(attacker.uiLabel, attacker);
+    updateUILabel(defender);
+    updateUILabel(attacker);
     
     // Check if defender is defeated
     if (defender.currentHP <= 0) {
@@ -717,7 +725,7 @@ const tintShaderMaterial = {
 };
 
 // Handle monster attack logic
-function monsterAttack(attacker, defender, deltaTime) {
+function monsterAttack(attacker, defender) {
     // Check if attacker is on cooldown
     if (attacker.currentCooldown > 0) {
         return;
@@ -735,6 +743,11 @@ function monsterAttack(attacker, defender, deltaTime) {
     
     // Use the selected target instead of the provided defender
     defender = targetResult.target;
+
+    // Ability 21 - Glancing Blows - Adds time to enemy attack cooldown when attacked
+    if (hasAbility(defender, 21)) {
+        attacker.attackCooldown += MONSTER_ABILITIES[21].value;
+    }
     
     // Update attacker direction to face defender
     updateMonsterDirection(attacker, defender.mesh.position.x);
@@ -883,7 +896,7 @@ function handleMonsterDefeat(defeated, victor) {
         defeated.attackCooldown = calculatedStats.attackCooldown;
         
         // Update UI
-        updateUILabel(defeated.uiLabel, defeated);
+        updateUILabel(defeated);
         
         addCaptureTarget(defeated);
     }
@@ -998,6 +1011,9 @@ function addMonsterToPlayer(monster) {
     
     // Add to player's monsters
     gameState.player.monsters.push(monster);
+
+    // Update UI label for the monster
+    updateUILabel(monster);
 }
 
 // Handle experience gain from defeating monsters
@@ -1096,7 +1112,7 @@ function checkLevelUp(monster) {
         createFloatingText(`LEVEL UP! ${monster.level}`, monster.mesh.position, 0xffff00, -0.5);
         
         // Update UI
-        updateUILabel(monster.uiLabel, monster);
+        updateUILabel(monster);
     }
 }
 
